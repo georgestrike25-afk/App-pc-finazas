@@ -1,0 +1,52 @@
+{
+  "name": "finanzas-personales",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Finanzas personales: PWA local, gratuita y sin conexión",
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/copy-ocr-assets.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/copy-ocr-assets.mjs",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "start": "npm run build && npm run preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run build && npm run test:e2e",
+    "typecheck": "tsc -b",
+    "sync-server": "node sync-server/server.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "package": "node scripts/package-zip.mjs"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "dexie": "4.0.11",
+    "pdfjs-dist": "4.10.38",
+    "tesseract.js": "6.0.1",
+    "@tesseract.js-data/spa": "1.0.0",
+    "papaparse": "5.5.3",
+    "@e965/xlsx": "0.20.3",
+    "workbox-window": "7.3.0"
+  },
+  "devDependencies": {
+    "vite": "6.4.4",
+    "@vitejs/plugin-react": "4.7.0",
+    "vite-plugin-pwa": "1.0.3",
+    "typescript": "5.8.3",
+    "@types/react": "18.3.23",
+    "@types/react-dom": "18.3.7",
+    "@types/papaparse": "5.3.16",
+    "@types/node": "22.15.30",
+    "vitest": "4.1.12",
+    "fake-indexeddb": "6.0.1",
+    "jsdom": "26.1.0",
+    "@playwright/test": "1.56.1",
+    "archiver": "7.0.1",
+    "pdf-lib": "1.17.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
