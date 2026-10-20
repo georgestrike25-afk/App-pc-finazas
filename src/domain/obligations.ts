@@ -322,3 +322,37 @@ export function obligationProgress(ob: Obligation, today: MonthKey): ObligationP
     overdueCount: pending.filter((i) => i.status === 'vencida').length,
   };
 }
+
+/**
+ * Busca la cuota de préstamo que corresponde a un débito de la cuenta: mismo importe
+ * (±1 centavo) y fecha de débito cercana al vencimiento (±45 días).
+ */
+export function findLoanInstallment(obs: Obligation[], amount: Cents, date: string, today: MonthKey): { ob: Obligation; n: number; paid: boolean } | undefined {
+  let best: { ob: Obligation; n: number; paid: boolean; d: number } | undefined;
+  for (const ob of obs) {
+    if (ob.deleted || ob.status === 'cancelada') continue;
+    for (const inst of buildSchedule(ob, today)) {
+      if (inst.amount === undefined || Math.abs(inst.amount - amount) > 1) continue;
+      const due = ob.dueDates?.[inst.n] ?? `${inst.month}-${String(ob.dueDay ?? 10).padStart(2, '0')}`;
+      const d = Math.abs((Date.parse(date) - Date.parse(due)) / 86400000);
+      if (d > 45) continue;
+      if (!best || d < best.d) best = { ob, n: inst.n, paid: inst.status === 'pagada', d };
+    }
+  }
+  return best && { ob: best.ob, n: best.n, paid: best.paid };
+}
+
+/** Marca como pagadas las cuotas hasta la n (por ejemplo, al ver el débito en la cuenta). */
+export function markPaidThrough(ob: Obligation, n: number, nowIso: string, reason: string): Obligation {
+  if (n <= ob.paidInstallments || !ob.nextDueMonth) return ob;
+  const step = FREQ_STEP[ob.frequency] ?? 1;
+  const done = ob.totalInstallments !== undefined && n >= ob.totalInstallments;
+  return {
+    ...ob,
+    paidInstallments: n,
+    nextDueMonth: addMonths(ob.nextDueMonth, (n - ob.paidInstallments) * step),
+    status: done ? 'pagada' : ob.status === 'vencida' ? 'pendiente' : ob.status,
+    updatedAt: nowIso,
+    revisions: [...(ob.revisions ?? []), { at: nowIso, reason, snapshot: snapshot(ob) }],
+  };
+}

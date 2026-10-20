@@ -10,7 +10,10 @@ export type Confidence = 'alta' | 'media' | 'baja';
  * cargo: interés, impuesto o comisión · sancor: cupón de Sancor Salud
  * bonificacion: descuento o devolución que reduce un gasto · credito: otros créditos (no se importan solos)
  */
-export type ItemKind = 'consumo' | 'cuota' | 'pago' | 'cargo' | 'sancor' | 'bonificacion' | 'credito' | 'desconocido';
+export type ItemKind =
+  | 'consumo' | 'cuota' | 'pago' | 'cargo' | 'sancor' | 'bonificacion' | 'credito' | 'desconocido'
+  // Movimientos de cuenta bancaria
+  | 'ingreso' | 'adelanto' | 'transferencia' | 'pago_prestamo';
 
 export interface Cell {
   x: number;
@@ -61,6 +64,8 @@ export interface UpcomingInstallments {
 }
 
 export interface ParsedDocument {
+  /** resumen: resumen de tarjeta o listado de consumos · cuenta: movimientos de cuenta bancaria. */
+  docType?: 'resumen' | 'cuenta';
   entity: Field<string>;
   currency: 'ARS' | 'USD' | 'mixta';
   decimalFormat: DecimalFormat;
@@ -492,7 +497,7 @@ function parseMovementLine(
 /** Signo con que cada tipo de línea afecta el saldo del resumen. */
 export function statementSign(kind: ItemKind): 1 | -1 | 0 {
   if (kind === 'pago' || kind === 'credito' || kind === 'bonificacion') return -1;
-  if (kind === 'desconocido') return 0;
+  if (kind === 'desconocido' || kind === 'adelanto' || kind === 'transferencia' || kind === 'ingreso' || kind === 'pago_prestamo') return 0;
   return 1;
 }
 

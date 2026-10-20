@@ -98,3 +98,54 @@ test('cronograma de préstamo: muestra en qué cuota voy y cuánto falta', async
   await row.getByRole('button', { name: 'Calendario' }).click();
   await expect(page.getByTestId('progreso')).toContainText('Intereses e impuestos que faltan');
 });
+
+test('captura de movimientos de cuenta: detecta el sueldo del mes y lo carga', async ({ page }) => {
+  test.setTimeout(240_000);
+  await go(page, 'importar');
+  const png = await page.evaluate(async () => {
+    const rows: Array<[string, string, string]> = [
+      ['Otorgamiento adelanto', '+ $ 50.000,00', '13/09/2026'],
+      ['Pago visa electronico', '- $ 318.000,00', '13/09/2026'],
+      ['Acredit. plan sueldos c 0001', '+ $ 1.000.000,00', '13/09/2026'],
+      ['Transferencia entre cuentas', '- $ 10.000,00', '13/09/2026'],
+      ['Amort.s/prestamo otorg.', '- $ 24.000,00', '10/08/2026'],
+    ];
+    const c = document.createElement('canvas');
+    c.width = 1080;
+    c.height = 140 + rows.length * 190;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.font = '40px Arial';
+    g.fillStyle = '#000';
+    g.fillText('Banco Patagonia', 40, 80);
+    rows.forEach(([concept, amount, date], i) => {
+      const y = 200 + i * 190;
+      g.font = '38px Arial';
+      g.fillStyle = '#222';
+      g.fillText(concept, 40, y);
+      g.font = 'bold 38px Arial';
+      g.fillStyle = amount.startsWith('+') ? '#1b7a2f' : '#111';
+      g.textAlign = 'right';
+      g.fillText(amount, 1040, y);
+      g.font = '32px Arial';
+      g.fillStyle = '#555';
+      g.fillText(date, 1040, y + 55);
+      g.textAlign = 'left';
+    });
+    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), 'image/png'));
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.locator('#file').setInputFiles({ name: 'movimientos.png', mimeType: 'image/png', buffer: Buffer.from(png) });
+  await expect(page.getByText('Revisión de datos extraídos')).toBeVisible({ timeout: 200_000 });
+  const salary = page.getByTestId('review-item').filter({ hasText: /plan sueldos/i });
+  await expect(salary.getByLabel('Acción')).toHaveValue('ingreso');
+  await expect(salary.locator('input[name="amount"]')).toHaveValue('1.000.000,00');
+  const old = page.getByTestId('review-item').filter({ hasText: /prestamo/i });
+  await expect(old.getByLabel('Incluir')).not.toBeChecked();
+  await page.getByRole('button', { name: 'Confirmar e incorporar' }).click();
+  await expect(page.getByText(/1 ingreso\(s\)/)).toBeVisible();
+  await go(page, 'ingresos');
+  await expect(page.locator('table')).toContainText('1.000.000,00');
+  await expect(page.locator('table')).toContainText('13/09/2026');
+});

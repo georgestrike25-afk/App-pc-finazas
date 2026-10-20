@@ -1,14 +1,19 @@
 import { getDb, type FinanzasDB } from '../db/db';
 import { addAudit, getDeviceId, getSettings, notify, nowIso } from '../db/repo';
 import { currentMonth, daysBetween, monthOf, type MonthKey } from '../domain/dates';
-import { applyStatementInstallment, findMatchingObligation, obligationFingerprintKey, impliedStartMonth } from '../domain/obligations';
+import { applyStatementInstallment, findLoanInstallment, findMatchingObligation, impliedStartMonth, markPaidThrough, obligationFingerprintKey } from '../domain/obligations';
+import { monthLabel } from '../domain/dates';
+import { formatARS } from '../domain/money';
+import { incomeNet } from '../domain/income';
 import { normalizeText, sha256Hex, uid } from '../domain/text';
+import { reviseIncome } from '../domain/income';
 import type { Cents } from '../domain/money';
 import type {
   CardPayment,
   DocumentMeta,
   Expense,
   ExpenseKind,
+  Income,
   LineFingerprint,
   Obligation,
   ObligationType,
@@ -17,10 +22,12 @@ import type {
 } from '../domain/types';
 import { checkUpcoming, reconcile, type Confidence, type ItemKind, type ParsedDocument, type ParsedItem, type UpcomingInstallments } from './statementParser';
 
-export type ReviewAction = 'gasto' | 'bonificacion' | 'cuota' | 'pago' | 'sancor' | 'vincular' | 'ignorar';
+export type ReviewAction = 'gasto' | 'bonificacion' | 'cuota' | 'pago' | 'sancor' | 'ingreso' | 'vincular' | 'ignorar';
 
 export interface DuplicateInfo {
-  type: 'linea' | 'gasto_manual' | 'obligacion' | 'sancor';
+  type: 'linea' | 'gasto_manual' | 'obligacion' | 'sancor' | 'prestamo' | 'resumen' | 'ingreso';
+  /** Cuota del préstamo vinculada (débito de cuota en la cuenta). */
+  installmentN?: number;
   targetId?: string;
   label: string;
 }
@@ -103,6 +110,8 @@ function defaultAction(k: ParsedItem['kind']): ReviewAction {
       return 'sancor';
     case 'bonificacion':
       return 'bonificacion';
+    case 'ingreso':
+      return 'ingreso';
     default:
       return 'ignorar';
   }
@@ -124,6 +133,10 @@ export async function buildReview(
   const expenses = (await db.expenses.toArray()).filter((e) => !e.deleted && e.source === 'manual');
   const obligations = (await db.obligations.toArray()).filter((o) => !o.deleted);
   const sancor = (await db.sancor.toArray()).filter((s) => !s.deleted);
+  const statements = (await db.statements.toArray()).filter((s) => !s.deleted);
+  const payments = (await db.cardPayments.toArray()).filter((s) => !s.deleted);
+  const incomes = (await db.incomes.toArray()).filter((s) => !s.deleted);
+  const isAccount = parsed.docType === 'cuenta';
   const usedManual = new Set<string>();
   const seen = new Map<string, number>();
 
@@ -144,7 +157,8 @@ export async function buildReview(
     let action = defaultAction(p.kind);
     let include = action !== 'ignorar';
     let duplicate: DuplicateInfo | undefined;
-    const itemMonth = month;
+    // En movimientos de cuenta cada línea va al mes de su fecha.
+    const itemMonth = isAccount && p.date ? monthOf(p.date) : month;
 
     if (fps.has(fingerprint)) {
       duplicate = { type: 'linea', label: 'Esta línea ya fue importada anteriormente.' };
@@ -172,7 +186,48 @@ export async function buildReview(
         action = 'vincular';
       }
     }
-    if (p.kind === 'credito' && !p.refinancing) warnings.push('Crédito: no se importa automáticamente. Regístrelo en Ingresos si corresponde.');
+    if (!duplicate && p.kind === 'pago_prestamo' && p.amount !== undefined && p.date) {
+      const li = findLoanInstallment(obligations, p.amount, p.date, today);
+      if (li) {
+        duplicate = {
+          type: 'prestamo',
+          targetId: li.ob.id,
+          installmentN: li.n,
+          label: `Cuota ${li.n}${li.ob.totalInstallments ? ` de ${li.ob.totalInstallments}` : ''} de "${li.ob.concept}"${li.paid ? ': ya figura pagada.' : ': se marcará como pagada.'}`,
+        };
+        action = li.paid ? 'ignorar' : 'vincular';
+        include = !li.paid;
+      } else {
+        warnings.push('No coincide con ninguna cuota de los préstamos cargados. Importe el cronograma del préstamo o regístrelo como gasto.');
+      }
+    } else if (!duplicate && action === 'pago' && p.amount !== undefined && p.date) {
+      const prev = payments.find((x) => x.amount === p.amount && Math.abs(daysBetween(x.date, p.date!)) <= 3);
+      const st = statements.find((x) => x.total === p.amount);
+      if (prev) {
+        duplicate = { type: 'linea', label: 'Este pago de tarjeta ya está registrado.' };
+        action = 'ignorar';
+        include = false;
+      } else if (st) {
+        duplicate = { type: 'resumen', targetId: st.id, label: `Paga el resumen de ${st.entity} de ${monthLabel(st.month)} (${formatARS(st.total)}). No es un gasto nuevo: los consumos ya están registrados.` };
+      } else {
+        warnings.push('Pago de tarjeta: no es un gasto (cancela consumos del resumen). No se encontró un resumen cargado con ese total.');
+      }
+    } else if (!duplicate && action === 'ingreso' && p.amount !== undefined) {
+      const inc = incomes.find((x) => x.month === itemMonth && x.status === 'confirmado' && (x.amountReceived === p.amount || x.extras.some((e) => e.amount === p.amount)));
+      if (inc) {
+        duplicate = { type: 'ingreso', targetId: inc.id, label: `Ya está registrado en el ingreso de ${monthLabel(itemMonth)}.` };
+        action = 'ignorar';
+        include = false;
+      } else {
+        const cur = incomes.find((x) => x.month === itemMonth && x.status === 'confirmado');
+        warnings.push(cur ? `Se sumará como ingreso adicional al ingreso ya cargado de ${monthLabel(itemMonth)} (${formatARS(incomeNet(cur))}).` : `Se registrará como ingreso cobrado de ${monthLabel(itemMonth)}.`);
+      }
+    }
+    if (isAccount && include && parsed.month && itemMonth !== parsed.month) {
+      include = false;
+      warnings.push(`Movimiento de ${monthLabel(itemMonth)}: no se incluye por defecto (márquelo si corresponde).`);
+    }
+    if (p.kind === 'credito' && !p.refinancing && !isAccount) warnings.push('Crédito: no se importa automáticamente. Regístrelo en Ingresos si corresponde.');
     const needsReview = p.confidence === 'baja' || p.amount === undefined || p.currency === 'USD';
     if (p.currency === 'USD') include = false;
     items.push({
@@ -219,7 +274,7 @@ export async function buildReview(
       nextDueDate: parsed.nextDueDate.value,
       upcoming: parsed.upcoming,
       currency: parsed.currency,
-      registerStatement: parsed.total.value !== undefined || !!parsed.dueDate.value,
+      registerStatement: !isAccount && (parsed.total.value !== undefined || !!parsed.dueDate.value),
     },
     items,
     warnings,
@@ -251,7 +306,7 @@ export function validateReview(r: ImportReview): CommitIssue[] {
 
 export interface CommitResult {
   documentId: string;
-  created: { gastos: number; cuotas: number; pagos: number; sancor: number; vinculados: number; resumen: number };
+  created: { gastos: number; cuotas: number; pagos: number; sancor: number; vinculados: number; resumen: number; ingresos: number };
 }
 
 /** Incorpora definitivamente los datos revisados, en una única transacción. */
@@ -264,9 +319,9 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
   const base = () => ({ id: uid(), createdAt: now, updatedAt: now, deviceId });
   const s = r.summary;
   const documentId = uid();
-  const created = { gastos: 0, cuotas: 0, pagos: 0, sancor: 0, vinculados: 0, resumen: 0 };
+  const created = { gastos: 0, cuotas: 0, pagos: 0, sancor: 0, vinculados: 0, resumen: 0, ingresos: 0 };
 
-  await db.transaction('rw', [db.documents, db.blobs, db.expenses, db.obligations, db.cardPayments, db.sancor, db.statements, db.fingerprints, db.audit], async () => {
+  await db.transaction('rw', [db.documents, db.blobs, db.expenses, db.obligations, db.cardPayments, db.sancor, db.statements, db.fingerprints, db.audit, db.incomes], async () => {
     const doc: DocumentMeta = {
       id: documentId,
       createdAt: now,
@@ -377,8 +432,24 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         await db.obligations.put(ob);
         await fp(it, 'cuota', ob.id);
         created.cuotas++;
+      } else if (it.action === 'ingreso') {
+        const cur = (await db.incomes.where('month').equals(it.month).toArray()).find((x) => !x.deleted);
+        if (!cur) {
+          const inc: Income = { ...base(), month: it.month, status: 'confirmado', amountReceived: it.amount, receivedDate: date, extras: [], deductions: [], notes: `Importado: ${it.concept}`, revisions: [] };
+          await db.incomes.put(inc);
+          await fp(it, 'ingreso', inc.id);
+        } else {
+          const changes: Partial<Income> =
+            cur.status === 'estimado' || cur.amountReceived === 0
+              ? { status: 'confirmado', amountReceived: it.amount, receivedDate: date, notes: [cur.notes, `Importado: ${it.concept}`].filter(Boolean).join(' · ') }
+              : { extras: [...cur.extras, { concept: it.concept, amount: it.amount }] };
+          await db.incomes.put({ ...reviseIncome(cur, changes, now), deviceId });
+          await fp(it, 'ingreso', cur.id);
+        }
+        created.ingresos++;
       } else if (it.action === 'pago') {
-        const p: CardPayment = { ...base(), entity: s.entity || 'Sin identificar', statementId, date, month: monthOf(date), amount: Math.abs(it.amount), source: 'importado', lineFingerprint: it.fingerprint };
+        const linked = it.duplicate?.type === 'resumen' ? await db.statements.get(it.duplicate.targetId!) : undefined;
+        const p: CardPayment = { ...base(), entity: linked?.entity || s.entity || 'Sin identificar', statementId: linked?.id ?? statementId, date, month: monthOf(date), amount: Math.abs(it.amount), source: 'importado', lineFingerprint: it.fingerprint };
         await db.cardPayments.put(p);
         await fp(it, 'pago', p.id);
         created.pagos++;
@@ -403,11 +474,15 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           await fp(it, 'cuota', id);
         } else if (it.duplicate.type === 'sancor') {
           await fp(it, 'sancor', id);
+        } else if (it.duplicate.type === 'prestamo' && it.duplicate.installmentN) {
+          const ob = await db.obligations.get(id);
+          if (ob) await db.obligations.put({ ...markPaidThrough(ob, it.duplicate.installmentN, now, `Cuota ${it.duplicate.installmentN} debitada de la cuenta (${date})`), deviceId });
+          await fp(it, 'cuota', id);
         }
         created.vinculados++;
       }
     }
-    await addAudit(db, 'importar', 'documentos', documentId, `Importación de "${doc.name}": ${created.gastos} gasto(s), ${created.cuotas} obligación(es), ${created.pagos} pago(s), ${created.sancor} cargo(s) Sancor, ${created.vinculados} vinculado(s)`, deviceId);
+    await addAudit(db, 'importar', 'documentos', documentId, `Importación de "${doc.name}": ${created.gastos} gasto(s), ${created.cuotas} obligación(es), ${created.pagos} pago(s), ${created.sancor} cargo(s) Sancor, ${created.ingresos} ingreso(s), ${created.vinculados} vinculado(s)`, deviceId);
   });
   notify();
   return { documentId, created };

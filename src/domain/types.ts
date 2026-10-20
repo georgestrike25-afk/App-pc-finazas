@@ -218,7 +218,7 @@ export interface DocumentMeta extends BaseRecord {
 export interface LineFingerprint extends BaseRecord {
   fingerprint: string;
   documentId?: string;
-  targetType: 'gasto' | 'cuota' | 'pago' | 'sancor' | 'ignorado';
+  targetType: 'gasto' | 'cuota' | 'pago' | 'sancor' | 'ingreso' | 'ignorado';
   targetId?: string;
 }
 

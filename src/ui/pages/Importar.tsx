@@ -14,6 +14,7 @@ import { LoanReviewView } from './LoanImport';
 const ACTION_LABEL: Record<ReviewAction, string> = {
   gasto: 'Gasto (consumo)',
   bonificacion: 'Bonificación (resta)',
+  ingreso: 'Ingreso cobrado',
   cuota: 'Cuota / obligación',
   pago: 'Pago del resumen',
   sancor: 'Sancor Salud',
@@ -21,7 +22,17 @@ const ACTION_LABEL: Record<ReviewAction, string> = {
   ignorar: 'No importar',
 };
 
-const KIND_ACTION: Record<ReviewItem['parsedKind'], ReviewAction> = { consumo: 'gasto', cargo: 'gasto', cuota: 'cuota', pago: 'pago', sancor: 'sancor', bonificacion: 'bonificacion', credito: 'bonificacion', desconocido: 'gasto' };
+const KIND_ACTION: Record<ReviewItem['parsedKind'], ReviewAction> = { consumo: 'gasto', cargo: 'gasto', cuota: 'cuota', pago: 'pago', sancor: 'sancor', bonificacion: 'bonificacion', credito: 'bonificacion', desconocido: 'gasto', ingreso: 'ingreso', adelanto: 'gasto', transferencia: 'gasto', pago_prestamo: 'gasto' };
+
+const DUP_BADGE: Record<NonNullable<ReviewItem['duplicate']>['type'], [string, 'warn' | 'info' | 'ok']> = {
+  linea: ['Duplicado', 'warn'],
+  ingreso: ['Ya registrado', 'warn'],
+  gasto_manual: ['Posible duplicado', 'warn'],
+  obligacion: ['Cuota existente', 'info'],
+  sancor: ['Posible duplicado', 'warn'],
+  resumen: ['Vinculado al resumen', 'info'],
+  prestamo: ['Cuota de préstamo', 'info'],
+};
 
 const CONF_TONE = { alta: 'ok', media: 'warn', baja: 'bad' } as const;
 
@@ -38,7 +49,7 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
           <Badge tone={CONF_TONE[it.confidence]}>Confianza {it.confidence}</Badge>
           {pending && <Badge tone="bad">Pendiente de corrección</Badge>}
           {it.reviewed && <Badge tone="ok">Revisado</Badge>}
-          {it.duplicate && <Badge tone="warn">{it.duplicate.type === 'linea' ? 'Duplicado' : 'Posible duplicado'}</Badge>}
+          {it.duplicate && <Badge tone={DUP_BADGE[it.duplicate.type][1]}>{DUP_BADGE[it.duplicate.type][0]}</Badge>}
         </span>
       </div>
       {it.duplicate && <p className="small warn">{it.duplicate.label}</p>}
@@ -181,7 +192,7 @@ export function ImportarPage() {
     try {
       const res = await commitReview(review, file, undefined, { markPreviousPaid: markPrev });
       const c = res.created;
-      toast(`Importación completa: ${c.gastos} gasto(s), ${c.cuotas} obligación(es), ${c.pagos} pago(s), ${c.sancor} Sancor, ${c.vinculados} vinculado(s).`);
+      toast(`Importación completa: ${c.gastos} gasto(s), ${c.cuotas} obligación(es), ${c.pagos} pago(s), ${c.sancor} Sancor, ${c.ingresos} ingreso(s), ${c.vinculados} vinculado(s).`);
       setReview(null);
       setFile(null);
     } catch (e) {

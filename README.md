@@ -219,6 +219,13 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Cronogramas de préstamos** (p. ej. "Cronograma – Préstamo PERSONAL" de Banco Patagonia, probado con cronogramas reales que no se guardan en el repositorio): se reconoce la tabla *Cuota · Vencimiento · Capital · Total · Estado* y se crea **un préstamo** con el importe exacto de cada cuota, su capital y su fecha. Las cuotas "PAGA" quedan pagadas y "NO VENCIDA" pendientes. La ficha del préstamo (*Tarjetas y deudas → Calendario*) muestra en qué cuota va, la próxima cuota y su vencimiento, cuotas pagadas, total que falta pagar, capital adeudado, intereses e impuestos que faltan, % de capital pagado y fecha de la última cuota. Al importar un cronograma más nuevo del mismo préstamo (mismo número) **se actualiza** sin duplicarlo. Si el cronograma no indica la entidad, se sugiere y debe confirmarse.
 
+**Movimientos de cuenta bancaria** (capturas de pantalla de home banking, p. ej. caja de ahorro de Banco Patagonia; probado con una captura real que no se guarda en el repositorio): se reconoce el formato *concepto · ± $ importe · fecha*. Cada línea se imputa al mes de su fecha y por defecto **solo se incluye el mes más reciente**.
+- *Acreditación de sueldo/haberes* → ingreso cobrado del mes (si ya hay un ingreso confirmado, se suma como adicional; si es el mismo importe, se detecta como ya registrado).
+- *Pago Visa / tarjeta* → pago de resumen, vinculado al resumen cargado con ese total (no es un gasto nuevo).
+- *Amortización de préstamo* → se identifica la cuota por importe y fecha y se marca como pagada (no se resta dos veces).
+- *Otorgamiento/cancelación de adelanto*, *transferencias entre cuentas propias*, *intereses* y créditos → no se importan por defecto (no son ingreso ni gasto; se explica en cada línea).
+- Otros débitos → gasto pagado con débito (revisable).
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites
