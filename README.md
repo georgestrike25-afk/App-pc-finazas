@@ -1,6 +1,6 @@
 # Finanzas Personales — PWA local, gratuita y sin conexión
 
-Aplicación web progresiva (PWA) para gestionar ingresos variables, gastos personales y cotidianos, gastos compartidos en pareja, Sancor Salud, tarjetas, préstamos, compras en cuotas y el objetivo de ahorro del **viaje de abril de 2027**. Funciona en **Windows (PC)** y **Android**, sin servicios pagos, sin telemetría y con los datos guardados **solo en el dispositivo**.
+Aplicación para **Android (APK)**, **Windows** y navegador (PWA) para gestionar ingresos variables, gastos personales y cotidianos, gastos compartidos en pareja, Sancor Salud, tarjetas, préstamos, compras en cuotas y el objetivo de ahorro del **viaje de abril de 2027**. Funciona en **Windows (PC)** y **Android**, sin servicios pagos, sin telemetría y con los datos guardados **solo en el dispositivo**.
 
 > La aplicación inicia **vacía**: $0 de ingresos, deudas, gastos y ahorro. El único valor precargado es el **presupuesto cotidiano orientativo de $700.000**, identificado en pantalla como "valor inicial editable" y nunca contado como gasto real.
 
@@ -9,15 +9,16 @@ Aplicación web progresiva (PWA) para gestionar ingresos variables, gastos perso
 ## Índice
 
 1. [Funciones](#funciones)
-2. [Instalación y ejecución en Windows](#instalación-y-ejecución-en-windows)
-3. [Instalar la PWA en Android](#instalar-la-pwa-en-android)
-4. [Reglas de cálculo](#reglas-de-cálculo)
-5. [Importación de documentos y OCR](#importación-de-documentos-y-ocr)
-6. [Sincronización entre PC y celular](#sincronización-entre-pc-y-celular)
-7. [Seguridad y privacidad](#seguridad-y-privacidad)
-8. [Pruebas](#pruebas)
-9. [Arquitectura](#arquitectura)
-10. [Limitaciones conocidas](#limitaciones-conocidas)
+2. [APK de Android (sin Play Store, gratis)](#apk-de-android-sin-play-store-gratis)
+3. [Instalación y ejecución en Windows](#instalación-y-ejecución-en-windows)
+4. [Instalar la PWA en Android](#instalar-la-pwa-en-android)
+5. [Reglas de cálculo](#reglas-de-cálculo)
+6. [Importación de documentos y OCR](#importación-de-documentos-y-ocr)
+7. [Sincronización entre PC y celular](#sincronización-entre-pc-y-celular)
+8. [Seguridad y privacidad](#seguridad-y-privacidad)
+9. [Pruebas](#pruebas)
+10. [Arquitectura](#arquitectura)
+11. [Limitaciones conocidas](#limitaciones-conocidas)
 
 ---
 
@@ -38,6 +39,49 @@ Aplicación web progresiva (PWA) para gestionar ingresos variables, gastos perso
 | **Historial** | Registro de cambios y documentos importados (descarga del original). |
 | **Configuración** | Reparto por defecto, % de Sancor, nombre de la pareja, categorías, ingreso estimado para proyecciones, bloqueo con PIN, OCR sin conexión, estado del almacenamiento y borrado total con doble confirmación. |
 | **Copias y sincronización** | Copias JSON (opcionalmente cifradas), restauración por reemplazo o fusión, sincronización con servidor autohospedado. |
+
+---
+
+## APK de Android (sin Play Store, gratis)
+
+El APK se compila **gratis en GitHub Actions** (`.github/workflows/android.yml`) cada vez que se suben cambios, y se publica en la página **Releases** del repositorio:
+
+**<https://github.com/georgestrike25-afk/App-pc-finazas/releases/latest>**
+
+### Instalar en el celular
+
+1. Abra el enlace de arriba **desde el celular** (Chrome).
+2. En *Assets*, toque `FinanzasPersonales-1.1.N.apk` para descargarlo.
+3. Abra el archivo descargado. Android pedirá permitir **"Instalar apps desconocidas"** para Chrome (o para "Archivos"): actívelo y vuelva atrás.
+4. Toque **Instalar**. Si aparece *Play Protect* ("app no reconocida"), elija **Más detalles → Instalar de todas formas**. Es normal en apps que no están en Play Store.
+5. Abra **Finanzas Personales** desde el ícono.
+
+**Actualizar**: instale el APK más nuevo encima del anterior; los datos se conservan (misma firma).
+
+### Diferencias con la versión web
+
+- Funciona sin internet desde el primer momento (todo viene dentro del APK, incluido el OCR).
+- Las copias de seguridad se **guardan o envían** con el menú Compartir (Drive, WhatsApp, correo) o en *Documentos/FinanzasPersonales*.
+- Puede sincronizar con la PC por la red Wi-Fi de su casa (`http://192.168.x.x:8787`) sin HTTPS.
+- Se desactivó la copia automática de Android a Google (`allowBackup=false`) para que los datos financieros no salgan del teléfono; use las copias de la app.
+
+### Firma del APK
+
+- Mientras no se configure una clave propia, el APK se firma con la **clave de prueba** pública `android/test-signing/prueba.jks`: alcanza para probar y actualizar sin perder datos, pero cualquiera podría firmar un APK con ella. **Instale solo APK de la página de Releases de este repositorio.**
+- **Firma definitiva (gratis, recomendada antes de cargar datos reales)**:
+  1. Genere una clave (en cualquier PC con Java): `keytool -genkeypair -keystore finanzas.jks -alias finanzas -keyalg RSA -keysize 2048 -validity 10000`
+  2. Conviértala a texto: `base64 -w0 finanzas.jks` (Linux) o `[Convert]::ToBase64String([IO.File]::ReadAllBytes("finanzas.jks"))` (PowerShell).
+  3. En GitHub → *Settings → Secrets and variables → Actions* cree los secretos `ANDROID_KEYSTORE_B64` (el texto), `ANDROID_KEYSTORE_PASSWORD` y `ANDROID_KEY_ALIAS` (`finanzas`).
+  4. Guarde `finanzas.jks` y la contraseña en un lugar seguro: sin ellos no se puede actualizar la app.
+  5. Al pasar de la clave de prueba a la definitiva hay que **desinstalar** la versión de prueba una vez: exporte antes una copia de seguridad y restáurela después.
+
+### Compilar el APK localmente (opcional)
+
+Requiere Android Studio (gratuito) o el SDK de Android + Java 21:
+```bash
+npm ci && npm run build && npx cap sync android
+cd android && ./gradlew assembleDebug   # APK en android/app/build/outputs/apk/debug/
+```
 
 ---
 
@@ -193,7 +237,7 @@ Una PWA guarda su base (IndexedDB) **por navegador y por dispositivo**: dos disp
 
 La fusión es registro por registro: gana la modificación más reciente; las eliminaciones viajan como "lápidas" y se propagan. Repita en el otro sentido para dejar ambos iguales.
 
-### B. Servidor autohospedado (`sync-server/server.mjs`)
+### B. Servidor en la PC (`sync-server/server.mjs`) — sincronización automática
 
 - Node.js puro, **sin dependencias**, gratuito; corre en su PC.
 - **Cifrado de extremo a extremo**: la app cifra con la *frase de sincronización* (AES-GCM 256, PBKDF2-SHA-256 600.000 iteraciones) antes de enviar; el servidor solo guarda un bloque ilegible y **rechaza datos sin cifrar**.
@@ -211,10 +255,13 @@ SYNC_TOKEN=un-token-largo-y-aleatorio npm run sync-server
 
 Variables: `PORT` (8787), `HOST` (0.0.0.0), `DATA_DIR` (`sync-server/data`), `ALLOWED_ORIGINS` (`*` o lista separada por comas), `SERVE_APP=1` (sirve también `dist/`), `TLS_CERT`/`TLS_KEY` (HTTPS con certificados PEM).
 
-En cada dispositivo: *Copias → Sincronizar PC y celular* → dirección del servidor, espacio (mismo nombre), token y frase de sincronización (misma en ambos; **no se guarda**) → *Sincronizar ahora*.
+En cada dispositivo: *Copias y sincronización → Sincronizar con la PC* → pegue el **código de emparejamiento** (o complete dirección, espacio y token), escriba la **frase de sincronización** (la misma en todos) y toque *Sincronizar ahora*. Con **"Sincronizar automáticamente"** la app sincroniza sola al abrirse, al volver a ella, 15 s después de cada cambio y cada 5 minutos (la frase queda guardada en ese dispositivo). La barra superior muestra el estado (⟳ hora de la última sincronización).
+
+Desde el celular use la dirección de la PC en la red local, por ejemplo `http://192.168.0.10:8787` (vea la IP con `ipconfig` en Windows). Si Windows pregunta por el Firewall al iniciar el servidor, permita el acceso en **redes privadas**.
 
 **Requisitos y límites**
-- La sincronización es **a pedido** (botón), no en segundo plano.
+- La sincronización corre mientras la app está abierta (no en segundo plano con la app cerrada).
+- Solo se transfieren datos cuando hubo cambios (el servidor responde "sin cambios" a quien ya está al día).
 - Si la app se abrió por HTTPS, el servidor también debe ser HTTPS (el navegador bloquea contenido mixto). Lo más simple: `tailscale serve --bg 8787` (HTTPS gratuito dentro de su red privada Tailscale). Si usa la opción 2 de Android (la app servida por el mismo servidor), app y servidor comparten dirección.
 - La PC debe estar encendida y accesible al sincronizar.
 - Los documentos originales (PDF/imágenes) no se sincronizan; sí sus datos extraídos.
@@ -299,10 +346,11 @@ scripts/       copia de recursos OCR, íconos, ZIP
 
 ## Limitaciones conocidas
 
-- **Sincronización**: no es automática en segundo plano; requiere el servidor encendido y HTTPS si la app se usa por HTTPS. Sin servidor, use copia + fusión.
-- **Instalación en Android**: requiere HTTPS (hosting estático gratuito o Tailscale).
+- **Sincronización**: funciona con la app abierta y la PC encendida en la misma red (o con Tailscale fuera de casa); la versión web por HTTPS requiere servidor HTTPS. Sin servidor, use copia + fusión.
+- **PWA en Android**: requiere HTTPS. El **APK** no tiene esa limitación.
+- **APK**: no está en Play Store; Android muestra avisos de "app desconocida" (es normal y gratuito evitar la tienda).
 - **OCR**: depende de la calidad de la imagen; máximo 10 páginas escaneadas por PDF; la primera vez descarga ≈10 MB de la propia app.
 - **Formatos de bancos**: el intérprete es genérico; con diseños de resumen muy particulares algunas líneas pueden no detectarse o quedar con confianza baja. Siempre se revisan antes de incorporar y se pueden cargar a mano.
 - **Moneda**: la app trabaja en pesos; los movimientos en dólares se detectan pero deben convertirse manualmente.
 - **Créditos/devoluciones** detectados en documentos no se importan solos: regístrelos en Ingresos si corresponde.
-- **Instalador nativo (.exe/.apk)**: no se genera; la instalación es como PWA desde Chrome/Edge.
+- **Instalador de Windows (.exe)**: en preparación (próxima etapa).

@@ -11,6 +11,8 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: true,
+    // Android 15 muestra la app de borde a borde: se agregan márgenes para no quedar bajo la barra de estado.
+    adjustMarginsForEdgeToEdge: 'auto',
     webContentsDebuggingEnabled: false,
   },
 };
