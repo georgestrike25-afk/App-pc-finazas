@@ -1,4 +1,5 @@
 import type { SourceLine } from './statementParser';
+import { isNative } from '../platform';
 
 /**
  * OCR 100 % local con Tesseract.js (WebAssembly). Los recursos (worker, núcleo
@@ -21,6 +22,7 @@ function base(): string {
 
 /** Descarga los recursos de OCR a la caché para poder usarlo sin conexión. */
 export async function prefetchOcrAssets(): Promise<void> {
+  if (isNative()) return; // en el APK los recursos ya están incluidos
   for (const a of OCR_ASSETS) {
     const r = await fetch(base() + a, { cache: 'reload' });
     if (!r.ok) throw new Error(`No se pudo descargar ${a}`);
@@ -34,7 +36,8 @@ export async function ocrImages(images: Array<Blob | HTMLCanvasElement>, onProgr
     workerPath: base() + 'ocr/worker.min.js',
     corePath: base() + 'ocr/core',
     langPath: base() + 'ocr/lang',
-    gzip: true,
+    // Al empaquetar el APK, Android descomprime los recursos .gz (queda spa.traineddata).
+    gzip: !isNative(),
     workerBlobURL: false,
     logger: (m: { status: string; progress: number }) => onProgress?.({ status: m.status, progress: m.progress }),
   });
