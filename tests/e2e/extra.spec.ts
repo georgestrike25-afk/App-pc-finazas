@@ -175,3 +175,21 @@ test('cuotas pagadas por error: aviso antes de pagar y corrección en un toque',
   await page.getByRole('button', { name: /Deshacer último pago/ }).click();
   await expect(row).toContainText('4/6 pagadas');
 });
+
+test('plan de pagos de Mercado Pago y deuda por entidad', async ({ page }) => {
+  const { PDFDocument, StandardFonts } = await import('pdf-lib');
+  const pdf = await PDFDocument.create();
+  const pg = pdf.addPage([300, 500]);
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const lines = ['Mercado pago', 'PLAN DE PAGOS ESTIMADO Moneda: pesos', 'argentinos', 'NOVIEMBRE 2026 Tarjeta: $100.000,00', 'Prestamos: $50.000,00 Total del mes:', '$150.000,00', 'DICIEMBRE 2026 Tarjeta: $0,00', 'Prestamos: $50.000,00 Total del mes:', '$50.000,00', 'TOTAL DEL PLAN: $200.000,00'];
+  lines.forEach((t, i) => pg.drawText(t, { x: 20, y: 470 - i * 16, size: 9, font }));
+  await go(page, 'importar');
+  await page.locator('#file').setInputFiles({ name: 'Mercado_pago_a_la_fecha.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await pdf.save()) });
+  await expect(page.getByTestId('verif-plan')).toContainText('coincide');
+  await page.getByRole('button', { name: 'Incorporar plan' }).click();
+  await expect(page.locator('.topbar h1')).toHaveText('Deuda por entidad');
+  const card = page.locator('.entity-card', { hasText: 'Mercado Pago' });
+  await expect(card).toContainText('200.000,00');
+  await expect(card).toContainText('último pago en diciembre de 2026');
+  await expect(card.getByTestId('entity-items').locator('li')).toHaveCount(2);
+});

@@ -8,6 +8,7 @@ import { GastosPage } from './pages/Gastos';
 import { CompartidosPage } from './pages/Compartidos';
 import { DeudasPage } from './pages/Deudas';
 import { CuotasPage } from './pages/Cuotas';
+import { EntidadesPage } from './pages/Entidades';
 import { PresupuestoPage } from './pages/Presupuesto';
 import { ImportarPage } from './pages/Importar';
 import { ViajePage } from './pages/Viaje';
@@ -30,6 +31,7 @@ export const ROUTES = [
   { path: 'ingresos', label: 'Ingresos', icon: '↓', el: IngresosPage, main: true },
   { path: 'gastos', label: 'Gastos', icon: '↑', el: GastosPage, main: true },
   { path: 'deudas', label: 'Tarjetas y deudas', icon: '▤', el: DeudasPage, main: true },
+  { path: 'entidades', label: 'Deuda por entidad', icon: '◫', el: EntidadesPage },
   { path: 'importar', label: 'Importar documentos', icon: '⇪', el: ImportarPage },
   { path: 'cuotas', label: 'Cuotas futuras', icon: '⋯', el: CuotasPage },
   { path: 'compartidos', label: 'Gastos compartidos', icon: '⚭', el: CompartidosPage },

@@ -10,6 +10,9 @@ import { KIND_LABEL } from './ExpenseForm';
 import { detectLoanSchedule } from '../../importers/loanSchedule';
 import { buildLoanReview, commitLoanReview, type LoanReview } from '../../importers/loanReview';
 import { LoanReviewView } from './LoanImport';
+import { detectPaymentPlan } from '../../importers/paymentPlan';
+import { buildPlanReview, commitPlanReview, type PlanReview } from '../../importers/planReview';
+import { PlanReviewView } from './PlanImport';
 
 const ACTION_LABEL: Record<ReviewAction, string> = {
   gasto: 'Gasto (consumo)',
@@ -147,6 +150,7 @@ export function ImportarPage() {
   const [error, setError] = useState('');
   const [review, setReview] = useState<ImportReview | null>(null);
   const [loan, setLoan] = useState<LoanReview | null>(null);
+  const [plan, setPlan] = useState<PlanReview | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [markPrev, setMarkPrev] = useState(false);
   const [filter, setFilter] = useState<'todas' | 'pendientes' | 'incluidas'>('todas');
@@ -156,10 +160,17 @@ export function ImportarPage() {
     setError('');
     setReview(null);
     setLoan(null);
+    setPlan(null);
     setFile(f);
     setBusy('Procesando el documento localmente…');
     try {
       const ex = await extractFile(f, { allowOcr, onProgress: (m, p) => { setBusy(m); setPct(p); } });
+      const pp = detectPaymentPlan(ex.lines);
+      if (pp) {
+        // Plan de pagos mensual del emisor (p. ej. Mercado Pago): deudas con su importe por mes.
+        setPlan(await buildPlanReview(pp, { name: f.name, size: f.size, mime: ex.validated.mime, kind: ex.validated.kind, hash: ex.hash }));
+        return;
+      }
       const schedule = detectLoanSchedule(ex.lines);
       if (schedule) {
         // Cronograma de préstamo: se registra como una obligación con todas sus cuotas.
@@ -199,6 +210,18 @@ export function ImportarPage() {
       setError((e as Error).message);
     }
   };
+  const commitPlan = async () => {
+    if (!plan) return;
+    try {
+      const r = await commitPlanReview(plan, file);
+      toast(`Plan incorporado: ${r.created} deuda(s) nueva(s), ${r.updated} actualizada(s).`);
+      setPlan(null);
+      setFile(null);
+      window.location.hash = '#/entidades';
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const commitLoan = async () => {
     if (!loan) return;
     try {
@@ -216,9 +239,10 @@ export function ImportarPage() {
   return (
     <div className="page">
       {loan && <LoanReviewView review={loan} setReview={setLoan} error={error} onCancel={() => { setLoan(null); setFile(null); }} onConfirm={commitLoan} />}
-      {!review && !loan && (
+      {plan && <PlanReviewView review={plan} setReview={setPlan} error={error} onCancel={() => { setPlan(null); setFile(null); }} onConfirm={commitPlan} />}
+      {!review && !loan && !plan && (
         <Card title="Importar documento">
-          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos y otros.</p>
+          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta y otros.</p>
           <p className="muted small">🔒 El documento se procesa en este dispositivo. Nunca se envía a servicios externos. Su contenido se trata solo como datos.</p>
           <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Usar OCR local para imágenes y PDF escaneados (requiere ~10 MB de recursos, se descargan de esta misma app la primera vez)</label>
           <div className="drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}>

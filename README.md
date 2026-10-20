@@ -226,6 +226,10 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 - *Otorgamiento/cancelación de adelanto*, *transferencias entre cuentas propias*, *intereses* y créditos → no se importan por defecto (no son ingreso ni gasto; se explica en cada línea).
 - Otros débitos → gasto pagado con débito (revisable).
 
+**Planes de pago** (p. ej. "Plan de pagos estimado" de Mercado Pago; probado con uno real que no se guarda en el repositorio): se leen los meses con sus conceptos (*Tarjeta*, *Préstamos*) y el *Total del mes*, y se verifica contra el *Total del plan*. Se crea una deuda por concepto con el importe de cada mes. Al importar un plan más nuevo, las mismas deudas se actualizan y los meses anteriores quedan como pagados. Si ya había deudas de esa entidad cargadas por separado, se advierte para no contarlas dos veces.
+
+**Deuda por entidad** (menú *Deuda por entidad*, o tocando "Deudas pendientes" en el Resumen): cuánto falta para saldar todo con cada banco o emisor (Banco Patagonia —préstamos y cuotas de la Visa—, Mercado Pago, Naranja X, Ualá…), en qué cuota va cada deuda, la próxima cuota, los pagos mes a mes, el último pago y la fecha en que se queda libre de deudas.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites

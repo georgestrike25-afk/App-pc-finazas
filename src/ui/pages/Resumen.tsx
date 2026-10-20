@@ -71,10 +71,11 @@ export function ResumenPage() {
             <small className="muted">Con ingreso estimado: <Money value={r.projectedAvailable} estimated /></small>
           )}
         </div>
-        <div className="kpi">
+        <a className="kpi kpi-link" href="#/entidades">
           <span>Deudas pendientes (cuotas a pagar)</span>
           <Money value={debt.amount} estimated={debt.estimated} />
-        </div>
+          <small className="muted">Ver por entidad →</small>
+        </a>
         <div className="kpi">
           <span>Ahorro del viaje</span>
           <Money value={progress} />

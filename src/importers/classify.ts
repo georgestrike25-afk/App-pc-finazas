@@ -6,6 +6,7 @@ export const ENTITY_PATTERNS: Array<{ entity: string; re: RegExp }> = [
   { entity: 'Mercado Crédito', re: /mercado\s*cr[eé]dito/i },
   { entity: 'Mercado Pago', re: /mercado\s*pago/i },
   { entity: 'Naranja X', re: /naranja/i },
+  { entity: 'Ualá', re: /ual[aá]\b/i },
   { entity: 'Plan V', re: /plan\s*v\b/i },
 ];
 

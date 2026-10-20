@@ -270,6 +270,7 @@ export function DeudasPage() {
         <button className="btn primary" onClick={() => setEditing(newOb())}>+ Nueva obligación</button>
         <button className="btn" onClick={() => setPaying({})}>Registrar pago de resumen</button>
         <a className="btn" href="#/importar">Importar resumen</a>
+        <a className="btn" href="#/entidades">Deuda por entidad</a>
       </div>
 
       {ahead.length > 0 && (

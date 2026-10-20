@@ -248,3 +248,6 @@ tr.dim { opacity: 0.5; }
 
 .fix-paid { border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.75rem; margin: 0.75rem 0; }
 .fix-paid summary { cursor: pointer; font-weight: 600; }
+
+.kpi-link { text-decoration: none; color: inherit; }
+.kpi-link:hover { border-color: var(--primary); }

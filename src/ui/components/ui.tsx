@@ -225,8 +225,8 @@ export function BarChart({ data, height = 180, ariaLabel }: { data: BarDatum[]; 
         )}
       </svg>
       <div className="chart-x">
-        {data.map((d) => (
-          <span key={d.label} style={{ width: `${groupW}%` }}>{d.label}</span>
+        {data.map((d, i) => (
+          <span key={d.label} style={{ width: `${groupW}%` }}>{data.length > 8 && i % 2 ? '' : d.label}</span>
         ))}
       </div>
       <figcaption className="chart-legend">

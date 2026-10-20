@@ -399,3 +399,51 @@ export function undoLastPayment(ob: Obligation, nowIso: string): Obligation | nu
   if (ob.paidInstallments <= 0) return null;
   return setPaidCount(ob, ob.paidInstallments - 1, nowIso, `Deshacer pago de cuota ${ob.paidInstallments}`);
 }
+
+/** Agrupa entidades del mismo banco o emisor (p. ej. "Visa Banco Patagonia" y "Banco Patagonia"). */
+export function entityGroup(entity: string): string {
+  const n = normalizeText(entity);
+  if (/patagonia/.test(n)) return 'Banco Patagonia';
+  if (/mercado ?(pago|credito|libre)|merpago/.test(n)) return 'Mercado Pago';
+  if (/naranja/.test(n)) return 'Naranja X';
+  if (/\buala\b/.test(n)) return 'Ualá';
+  if (/galicia/.test(n)) return 'Banco Galicia';
+  if (/santander/.test(n)) return 'Santander';
+  if (/nacion|bna/.test(n)) return 'Banco Nación';
+  if (/brubank/.test(n)) return 'Brubank';
+  return entity.trim() || 'Sin entidad';
+}
+
+export interface EntityDebt {
+  group: string;
+  remaining: Cents;
+  estimated: boolean;
+  /** Cuotas pendientes por mes (incluye vencidas impagas en su mes). */
+  byMonth: Record<MonthKey, Cents>;
+  lastMonth?: MonthKey;
+  overdue: Cents;
+  items: Array<{ ob: Obligation; progress: ObligationProgress }>;
+}
+
+/** Deuda pendiente agrupada por entidad: cuánto falta para saldar todo con cada una. */
+export function debtByEntity(obs: Obligation[], today: MonthKey): EntityDebt[] {
+  const map = new Map<string, EntityDebt>();
+  for (const ob of obs) {
+    if (ob.deleted || ob.status === 'cancelada') continue;
+    const pending = buildSchedule(ob, today).filter((i) => i.status === 'pendiente' || i.status === 'vencida');
+    if (!pending.length) continue;
+    const g = entityGroup(ob.entity);
+    const e = map.get(g) ?? { group: g, remaining: 0, estimated: false, byMonth: {}, overdue: 0, items: [] };
+    for (const i of pending) {
+      const v = i.amount ?? 0;
+      e.remaining += v;
+      e.byMonth[i.month] = (e.byMonth[i.month] ?? 0) + v;
+      if (i.status === 'vencida') e.overdue += v;
+      if (i.estimated) e.estimated = true;
+      if (!e.lastMonth || i.month > e.lastMonth) e.lastMonth = i.month;
+    }
+    e.items.push({ ob, progress: obligationProgress(ob, today) });
+    map.set(g, e);
+  }
+  return [...map.values()].sort((a, b) => b.remaining - a.remaining);
+}
