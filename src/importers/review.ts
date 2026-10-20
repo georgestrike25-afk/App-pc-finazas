@@ -15,9 +15,9 @@ import type {
   SancorCharge,
   Statement,
 } from '../domain/types';
-import type { Confidence, ParsedDocument, ParsedItem } from './statementParser';
+import { checkUpcoming, reconcile, type Confidence, type ItemKind, type ParsedDocument, type ParsedItem, type UpcomingInstallments } from './statementParser';
 
-export type ReviewAction = 'gasto' | 'cuota' | 'pago' | 'sancor' | 'vincular' | 'ignorar';
+export type ReviewAction = 'gasto' | 'bonificacion' | 'cuota' | 'pago' | 'sancor' | 'vincular' | 'ignorar';
 
 export interface DuplicateInfo {
   type: 'linea' | 'gasto_manual' | 'obligacion' | 'sancor';
@@ -59,6 +59,9 @@ export interface ReviewSummary {
   total?: Cents;
   minimumPayment?: Cents;
   previousBalance?: Cents;
+  nextClosingDate?: string;
+  nextDueDate?: string;
+  upcoming: UpcomingInstallments[];
   currency: ParsedDocument['currency'];
   registerStatement: boolean;
 }
@@ -98,6 +101,8 @@ function defaultAction(k: ParsedItem['kind']): ReviewAction {
       return 'pago';
     case 'sancor':
       return 'sancor';
+    case 'bonificacion':
+      return 'bonificacion';
     default:
       return 'ignorar';
   }
@@ -167,7 +172,7 @@ export async function buildReview(
         action = 'vincular';
       }
     }
-    if (p.kind === 'credito') warnings.push('Crédito o devolución: no se importa automáticamente. Regístrelo en Ingresos si corresponde.');
+    if (p.kind === 'credito' && !p.refinancing) warnings.push('Crédito: no se importa automáticamente. Regístrelo en Ingresos si corresponde.');
     const needsReview = p.confidence === 'baja' || p.amount === undefined || p.currency === 'USD';
     if (p.currency === 'USD') include = false;
     items.push({
@@ -210,6 +215,9 @@ export async function buildReview(
       total: parsed.total.value,
       minimumPayment: parsed.minimumPayment.value,
       previousBalance: parsed.previousBalance.value,
+      nextClosingDate: parsed.nextClosingDate.value,
+      nextDueDate: parsed.nextDueDate.value,
+      upcoming: parsed.upcoming,
       currency: parsed.currency,
       registerStatement: parsed.total.value !== undefined || !!parsed.dueDate.value,
     },
@@ -323,6 +331,28 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         await db.expenses.put(e);
         await fp(it, 'gasto', e.id);
         created.gastos++;
+      } else if (it.action === 'bonificacion') {
+        // Descuento o devolución: se registra como gasto negativo de la misma categoría (resta).
+        const e: Expense = {
+          ...base(),
+          kind: it.expenseKind,
+          category: it.category,
+          concept: it.concept,
+          date,
+          month: it.month,
+          totalAmount: -Math.abs(it.amount),
+          userPct: it.expenseKind === 'hogar' ? it.userPct : 100,
+          paid: false,
+          frequency: 'unica',
+          paymentMethod: 'tarjeta',
+          documentId,
+          linkedLineFingerprints: [it.fingerprint],
+          source: 'importado',
+          notes: `Bonificación${s.entity ? ` de ${s.entity}` : ''}`,
+        };
+        await db.expenses.put(e);
+        await fp(it, 'gasto', e.id);
+        created.gastos++;
       } else if (it.action === 'cuota') {
         const hasInst = !!(it.installmentN && it.installmentTotal);
         const start = hasInst ? impliedStartMonth({ n: it.installmentN!, dueMonth: it.month }) : undefined;
@@ -381,4 +411,26 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
   });
   notify();
   return { documentId, created };
+}
+
+/** Tipo de línea a efectos de verificar la lectura contra los totales del documento. */
+function verifyKind(it: ReviewItem): ItemKind {
+  if (it.action === 'cuota' || (it.action === 'vincular' && it.duplicate?.type === 'obligacion')) return 'cuota';
+  if (it.action === 'bonificacion') return 'bonificacion';
+  if (it.action === 'pago') return 'pago';
+  return it.parsedKind;
+}
+
+/** Verificaciones de la lectura: saldo del resumen y cuadro "Cuotas a vencer". */
+export function verifyReview(r: ImportReview) {
+  const rows = r.items.map((it) => ({
+    kind: verifyKind(it),
+    amount: it.amount,
+    currency: it.currency,
+    installment: it.installmentN && it.installmentTotal ? { n: it.installmentN, total: it.installmentTotal } : undefined,
+  }));
+  return {
+    balance: reconcile(r.summary.previousBalance, r.summary.total, rows),
+    upcoming: checkUpcoming(r.summary.upcoming, rows),
+  };
 }

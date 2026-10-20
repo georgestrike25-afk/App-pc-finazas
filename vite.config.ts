@@ -58,7 +58,8 @@ export default defineConfig({
   },
   worker: { format: 'es' },
   test: {
-    include: ['tests/unit/**/*.test.ts'],
+    // VITEST_LOCAL=1 ejecuta pruebas con documentos reales del usuario (tests/local, no versionado).
+    include: process.env.VITEST_LOCAL ? ['tests/local/**/*.test.ts'] : ['tests/unit/**/*.test.ts'],
     environment: 'node',
     setupFiles: ['tests/unit/setup.ts'],
     testTimeout: 60000,

@@ -45,12 +45,14 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
   const [d, setD] = useState<ExpenseDraft>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const shared = d.kind === 'hogar';
+  // Las bonificaciones importadas se guardan con importe negativo (restan del gasto).
+  const isCredit = (initial.totalAmount ?? 0) < 0;
   const split = d.totalAmount !== undefined ? splitShared(d.totalAmount, d.userPct) : null;
 
   const save = async () => {
     const e: Record<string, string> = {};
     if (!d.concept.trim()) e.concept = 'Ingrese un concepto';
-    if (d.totalAmount === undefined || d.totalAmount <= 0) e.amount = 'Ingrese un importe mayor a cero';
+    if (d.totalAmount === undefined || d.totalAmount === 0 || (!isCredit && d.totalAmount < 0)) e.amount = isCredit ? 'Ingrese el importe de la bonificación (negativo)' : 'Ingrese un importe mayor a cero';
     if (shared && (d.userPct < 0 || d.userPct > 100)) e.pct = 'Porcentaje entre 0 y 100';
     if (d.endMonth && d.endMonth < d.month) e.end = 'El fin no puede ser anterior al inicio';
     setErrors(e);
@@ -91,7 +93,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
             </>
           )}
         </Field>
-        <Field label={shared ? 'Importe total' : 'Importe'} error={errors.amount}>{(id) => <MoneyInput id={id} name="amount" value={d.totalAmount} onChange={(v) => setD({ ...d, totalAmount: v })} />}</Field>
+        <Field label={shared ? 'Importe total' : 'Importe'} error={errors.amount}>{(id) => <MoneyInput id={id} name="amount" value={d.totalAmount} allowNegative={isCredit} onChange={(v) => setD({ ...d, totalAmount: v })} />}</Field>
         <Field label="Fecha">{(id) => <input id={id} type="date" value={d.date} onChange={(e) => e.target.value && setD({ ...d, date: e.target.value, month: d.id ? d.month : monthOf(e.target.value) })} />}</Field>
         <Field label="Mes de imputación" hint="Mes en que se computa el gasto.">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
         <Field label="Medio de pago" hint={d.paymentMethod === 'tarjeta' ? 'Se computa como consumo ahora; el pago del resumen no se resta otra vez.' : undefined}>

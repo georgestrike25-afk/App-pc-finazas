@@ -57,6 +57,7 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; }
 .d-block { display: block; }
 .err { color: var(--danger); }
 .warn { color: var(--warn); }
+.ok-text { color: var(--ok); }
 
 /* Shell */
 .shell { display: flex; min-height: 100vh; }
@@ -154,7 +155,9 @@ tr.dim { opacity: 0.5; }
 .empty-t { font-weight: 600; margin: 0; }
 .empty p { margin: 0; max-width: 480px; }
 .month-nav { display: flex; align-items: center; gap: 0.25rem; align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.15rem; }
-.month-nav-label { position: relative; padding: 0 0.6rem; text-transform: capitalize; min-width: 160px; text-align: center; }
+.month-nav-label { position: relative; padding: 0 0.6rem; min-width: 160px; text-align: center; }
+.month-nav-label strong { display: inline-block; }
+.month-nav-label strong::first-letter { text-transform: uppercase; }
 .month-nav-label input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .modal-back { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.55); display: grid; place-items: center; z-index: 50; padding: 1rem; }
 .modal { background: var(--surface); border-radius: var(--radius); width: min(640px, 100%); max-height: calc(100vh - 2rem); display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); }

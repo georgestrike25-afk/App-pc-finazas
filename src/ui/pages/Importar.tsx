@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useApp } from '../store';
 import { extractFile } from '../../importers/extract';
-import { buildReview, commitReview, validateReview, type ImportReview, type ReviewAction, type ReviewItem } from '../../importers/review';
+import { buildReview, commitReview, validateReview, verifyReview, type ImportReview, type ReviewAction, type ReviewItem } from '../../importers/review';
 import { formatDate, monthLabel } from '../../domain/dates';
 import { OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
 import type { ExpenseKind, ObligationType } from '../../domain/types';
@@ -10,6 +10,7 @@ import { KIND_LABEL } from './ExpenseForm';
 
 const ACTION_LABEL: Record<ReviewAction, string> = {
   gasto: 'Gasto (consumo)',
+  bonificacion: 'Bonificación (resta)',
   cuota: 'Cuota / obligación',
   pago: 'Pago del resumen',
   sancor: 'Sancor Salud',
@@ -17,7 +18,7 @@ const ACTION_LABEL: Record<ReviewAction, string> = {
   ignorar: 'No importar',
 };
 
-const KIND_ACTION: Record<ReviewItem['parsedKind'], ReviewAction> = { consumo: 'gasto', cargo: 'gasto', cuota: 'cuota', pago: 'pago', sancor: 'sancor', credito: 'gasto', desconocido: 'gasto' };
+const KIND_ACTION: Record<ReviewItem['parsedKind'], ReviewAction> = { consumo: 'gasto', cargo: 'gasto', cuota: 'cuota', pago: 'pago', sancor: 'sancor', bonificacion: 'bonificacion', credito: 'bonificacion', desconocido: 'gasto' };
 
 const CONF_TONE = { alta: 'ok', media: 'warn', baja: 'bad' } as const;
 
@@ -65,7 +66,7 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
             </Field>
           </>
         )}
-        {it.action === 'gasto' && (
+        {(it.action === 'gasto' || it.action === 'bonificacion') && (
           <>
             <Field label="Tipo de gasto">
               {(id) => (
@@ -89,6 +90,38 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
         <label className="check small"><input type="checkbox" checked={it.reviewed} onChange={(e) => onChange({ reviewed: e.target.checked })} /> Revisado: los datos son correctos</label>
       )}
     </div>
+  );
+}
+
+function VerificationCard({ review }: { review: ImportReview }) {
+  const v = verifyReview(review);
+  if (!v.balance && !v.upcoming.length) return null;
+  return (
+    <Card title="Verificación de la lectura">
+      {v.balance && (
+        <p className={v.balance.ok ? 'ok-text' : 'warn'} data-testid="verif-saldo">
+          {v.balance.ok ? '✓ ' : '⚠ '}
+          Saldo anterior ± movimientos leídos = <Money value={v.balance.computed} /> · total del resumen <Money value={v.balance.expected} />
+          {v.balance.ok ? ' — coincide: no falta ni sobra ninguna línea.' : <> — diferencia <Money value={v.balance.difference} />: puede faltar o sobrar una línea, o haber un importe mal leído.</>}
+        </p>
+      )}
+      {v.upcoming.length > 0 && (
+        <>
+          <p className="small muted">Cuadro "Cuotas a vencer" del resumen comparado con las cuotas leídas:</p>
+          <ul className="list small" data-testid="verif-cuotas">
+            {v.upcoming.map((u) => (
+              <li key={u.label}>
+                <span>{u.ok ? '✓' : '⚠'} {u.label}</span>
+                <span>resumen <Money value={u.amount} /> · leído <Money value={u.computed} /></span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {(review.summary.nextClosingDate || review.summary.nextDueDate) && (
+        <p className="small muted">Próximo cierre: {formatDate(review.summary.nextClosingDate)} · próximo vencimiento: {formatDate(review.summary.nextDueDate)}</p>
+      )}
+    </Card>
   );
 }
 
@@ -191,6 +224,7 @@ export function ImportarPage() {
             )}
             {review.summary.previousBalance !== undefined && <p className="small muted">Saldo anterior informado: <Money value={review.summary.previousBalance} /> (solo informativo).</p>}
           </Card>
+          <VerificationCard review={review} />
           <Card
             title={`Movimientos detectados (${review.items.length})`}
             actions={

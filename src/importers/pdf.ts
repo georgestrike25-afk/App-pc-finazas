@@ -66,7 +66,7 @@ export async function extractPdfText(lib: PdfLib, bytes: Uint8Array): Promise<{ 
     const ys = [...rows.keys()].sort((a, b) => b - a);
     for (const y of ys) {
       const parts = rows.get(y)!.sort((a, b) => a.x - b.x);
-      lines.push({ text: parts.map((q) => q.s).join(' '), page: p });
+      lines.push({ text: parts.map((q) => q.s).join(' '), page: p, cells: parts.map((q) => ({ x: Math.round(q.x), s: q.s.trim() })) });
     }
     if (chars < 20) scannedPages.push(p);
     page.cleanup();

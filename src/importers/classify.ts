@@ -13,12 +13,15 @@ export function detectEntity(text: string): { entity?: string; confidence: 'alta
   const counts = ENTITY_PATTERNS.map((p) => ({ entity: p.entity, n: text.match(new RegExp(p.re.source, 'gi'))?.length ?? 0 }))
     .filter((c) => c.n > 0)
     .sort((a, b) => b.n - a.n);
-  if (!counts.length) {
-    if (/\bvisa\b/i.test(text)) return { entity: 'Visa', confidence: 'media' };
-    if (/mastercard/i.test(text)) return { entity: 'Mastercard', confidence: 'media' };
-    return { confidence: 'baja' };
+  // Plan V es un producto de Visa: solo se toma como entidad si no aparece el banco o emisor.
+  const issuers = counts.filter((c) => c.entity !== 'Plan V');
+  if (issuers.length) {
+    return { entity: issuers[0].entity, confidence: issuers.length === 1 || issuers[0].n > issuers[1].n ? 'alta' : 'media' };
   }
-  return { entity: counts[0].entity, confidence: counts.length === 1 || counts[0].n > counts[1].n ? 'alta' : 'media' };
+  if (counts.length) return { entity: counts[0].entity, confidence: 'media' };
+  if (/\bvisa\b/i.test(text)) return { entity: 'Visa', confidence: 'media' };
+  if (/mastercard/i.test(text)) return { entity: 'Mastercard', confidence: 'media' };
+  return { confidence: 'baja' };
 }
 
 const CATEGORY_RULES: Array<{ category: string; kind: ExpenseKind; words: string[] }> = [
