@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../store';
 import { getDb } from '../../db/db';
+import { saveFile } from '../../platform';
 import { softDelete } from '../../db/repo';
 import { Badge, Card, confirmDialog, Empty } from '../components/ui';
 
@@ -13,12 +14,7 @@ export function HistorialPage() {
   const open = async (id: string, name: string) => {
     const row = await getDb().blobs.get(id);
     if (!row) return;
-    const url = URL.createObjectURL(row.blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    await saveFile(name, row.blob, row.blob.type);
   };
   return (
     <div className="page">

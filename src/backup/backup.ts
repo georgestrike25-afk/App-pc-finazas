@@ -124,7 +124,10 @@ export async function restoreBackup(backup: PlainBackup, mode: 'reemplazar' | 'f
       }
     }
     const added = Object.values(stats).reduce((a, s) => a + s.added + s.updated, 0);
-    await addAudit(db, auditAction, 'copia', undefined, `${mode === 'reemplazar' ? 'Restauración completa' : 'Fusión'}: ${added} registro(s) incorporados`);
+    // Las sincronizaciones no se anotan en el historial sincronizado: cada anotación sería un cambio
+    // nuevo que el otro dispositivo volvería a recibir y reenviar indefinidamente.
+    if (auditAction !== 'sincronizar')
+      await addAudit(db, auditAction, 'copia', undefined, `${mode === 'reemplazar' ? 'Restauración completa' : 'Fusión'}: ${added} registro(s) incorporados`);
   });
   await ensureInitialized(db);
   notify();

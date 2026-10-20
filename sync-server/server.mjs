@@ -151,6 +151,11 @@ async function handler(req, res) {
   if (req.method === 'GET') {
     const s = await readSpace(space);
     if (!s) return send(res, 404, { error: 'empty' });
+    // El cliente indica la última versión que conoce: si no cambió, no se reenvían los datos.
+    if (url.searchParams.get('known') === String(s.version)) {
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      return res.end();
+    }
     return send(res, 200, { version: s.version, blob: s.blob, updatedAt: s.updatedAt });
   }
   if (req.method === 'PUT') {

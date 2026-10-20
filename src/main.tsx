@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
 import { ensureInitialized } from './db/repo';
 import { registerPwa } from './ui/pwa';
+import { startAutoSync } from './sync/autoSync';
 import './ui/styles.css';
 
 // Los errores no controlados se muestran sin exponer datos financieros en la consola.
@@ -30,5 +31,6 @@ async function start() {
     </StrictMode>,
   );
   registerPwa();
+  startAutoSync();
 }
 start();

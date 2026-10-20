@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Finanzas Personales</string>
+    <string name="title_activity_main">Finanzas Personales</string>
+    <string name="package_name">ar.finanzas.personales</string>
+    <string name="custom_url_scheme">ar.finanzas.personales</string>
+</resources>

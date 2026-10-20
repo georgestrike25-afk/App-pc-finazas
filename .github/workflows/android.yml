@@ -1,0 +1,86 @@
+# Compila el APK de Android gratis en GitHub Actions y lo publica en "Releases".
+name: Compilar APK Android
+on:
+  push:
+    branches: [main, ccr-d0ab1290-u3vi9s]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-apk
+  cancel-in-progress: false
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Dependencias
+        run: npm ci
+      - name: Pruebas
+        run: npm test
+      - name: Compilar la app web
+        run: npm run build
+      - name: Copiar la app al proyecto Android
+        run: npx cap sync android
+      - name: Clave de firma
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
+              echo "ANDROID_KEYSTORE_PASSWORD=$KS_PASS"
+              echo "ANDROID_KEY_PASSWORD=$KS_PASS"
+              echo "ANDROID_KEY_ALIAS=${KS_ALIAS:-finanzas}"
+              echo "SIGNING_KIND=definitiva"
+            } >> "$GITHUB_ENV"
+          else
+            {
+              echo "ANDROID_KEYSTORE_FILE=$GITHUB_WORKSPACE/android/test-signing/prueba.jks"
+              echo "ANDROID_KEYSTORE_PASSWORD=prueba-finanzas"
+              echo "ANDROID_KEY_PASSWORD=prueba-finanzas"
+              echo "ANDROID_KEY_ALIAS=prueba"
+              echo "SIGNING_KIND=prueba"
+            } >> "$GITHUB_ENV"
+          fi
+      - name: Compilar APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.1.${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+      - name: Preparar archivo
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk "out/FinanzasPersonales-1.1.${{ github.run_number }}.apk"
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs out/*.apk | head -5 || true
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FinanzasPersonales-apk
+          path: out/*.apk
+      - name: Publicar en Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v1.1.${{ github.run_number }}"
+          NOTES="APK de Android de Finanzas Personales (versión 1.1.${{ github.run_number }}).
+
+          Instalación: descargue el archivo .apk desde el celular, ábralo y permita instalar apps de este origen.
+          Firma: ${SIGNING_KIND}. Compilado desde ${GITHUB_SHA::7}."
+          gh release create "$TAG" out/*.apk --title "Finanzas Personales $TAG (Android)" --notes "$NOTES" --target "$GITHUB_SHA" --latest

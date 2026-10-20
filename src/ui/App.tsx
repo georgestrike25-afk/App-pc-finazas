@@ -15,6 +15,15 @@ import { HistorialPage } from './pages/Historial';
 import { ConfiguracionPage } from './pages/Configuracion';
 import { CopiasPage } from './pages/Copias';
 import { usePwa } from './pwa';
+import { getSyncStatus, onSyncStatus, type SyncStatus } from '../sync/autoSync';
+
+function SyncBadge() {
+  const [s, setS] = useState<SyncStatus>(getSyncStatus());
+  useEffect(() => onSyncStatus(setS), []);
+  if (s.state === 'inactivo') return null;
+  const label = s.state === 'ok' ? `⟳ ${new Date(s.at!).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : s.state === 'error' ? '⟳ Sin sincronizar' : '⟳ …';
+  return <a href="#/copias" className={`badge ${s.state === 'error' ? 'badge-warn' : 'badge-ok'}`} title={s.message}>{label}</a>;
+}
 
 export const ROUTES = [
   { path: 'resumen', label: 'Resumen', icon: '◎', el: ResumenPage, main: true },
@@ -118,6 +127,7 @@ function Shell() {
           <button className="btn ghost icon only-mobile" onClick={() => setMenu(true)} aria-label="Abrir menú">☰</button>
           <h1>{current.label}</h1>
           <div className="topbar-r">
+            <SyncBadge />
             {!pwa.online && <span className="badge badge-warn">Sin conexión</span>}
             {pwa.canInstall && (
               <button className="btn small" onClick={pwa.install}>Instalar app</button>
