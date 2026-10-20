@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '../store';
-import { saveRecord, softDelete } from '../../db/repo';
+import { notify, saveRecord, softDelete } from '../../db/repo';
+import { getDb } from '../../db/db';
+import { applyStatementPayment } from '../../db/cardPayments';
 import {
   buildSchedule,
   cancelObligation,
@@ -9,10 +11,14 @@ import {
   obligationIssues,
   obligationProgress,
   OBLIGATION_TYPE_LABEL,
+  installmentDueDate,
+  installmentsDueBy,
+  setPaidCount,
+  undoLastPayment,
   payNextInstallment,
   reviseObligation,
 } from '../../domain/obligations';
-import { formatDate, monthLabel, monthOf, todayIso, type MonthKey } from '../../domain/dates';
+import { addMonths, formatDate, monthLabel, monthOf, todayIso, type MonthKey } from '../../domain/dates';
 import { formatARS, type Cents } from '../../domain/money';
 import type { CardPayment, Obligation, ObligationStatus, ObligationType, Statement } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Field, Modal, Money, MoneyInput, MonthSelect, Warnings } from '../components/ui';
@@ -42,7 +48,14 @@ function ObligationForm({ initial, onClose }: { initial: ObDraft; onClose: () =>
     setErrors(e);
     if (Object.keys(e).length) return;
     const now = new Date().toISOString();
-    const rec = existing ? reviseObligation(existing, d, effectiveFrom, 'Edición manual', now, today) : { ...d, revisions: [] };
+    // Si solo cambió la cantidad de cuotas pagadas, el calendario se mantiene (la próxima cuota avanza o retrocede).
+    const changes = { ...d };
+    if (existing && d.paidInstallments !== existing.paidInstallments && d.nextDueMonth === existing.nextDueMonth && existing.nextDueMonth) {
+      const step = { mensual: 1, bimestral: 2, trimestral: 3, anual: 12 }[d.frequency];
+      changes.nextDueMonth = addMonths(existing.nextDueMonth, (d.paidInstallments - existing.paidInstallments) * step);
+      if (existing.status === 'pagada' && (!d.totalInstallments || d.paidInstallments < d.totalInstallments)) changes.status = 'pendiente';
+    }
+    const rec = existing ? reviseObligation(existing, changes, effectiveFrom, 'Edición manual', now, today) : { ...d, revisions: [] };
     await saveRecord<Obligation>('obligations', rec as Obligation, `${existing ? 'Modificación' : 'Alta'} de obligación "${d.concept}"`);
     toast('Obligación guardada');
     onClose();
@@ -97,8 +110,18 @@ function ObligationForm({ initial, onClose }: { initial: ObDraft; onClose: () =>
 
 function ObligationDetail({ ob, onClose }: { ob: Obligation; onClose: () => void }) {
   const { today } = useApp();
+  const { toast } = useApp();
   const sched = buildSchedule(ob, today);
   const pr = obligationProgress(ob, today);
+  const dueBy = installmentsDueBy(ob, todayIso());
+  const [paidInput, setPaidInput] = useState(String(ob.paidInstallments));
+  const nowS = () => new Date().toISOString();
+  const applyCount = async (k: number, why: string) => {
+    if (!(await confirmDialog(`¿Dejar ${k} cuota(s) pagada(s)${ob.totalInstallments ? ` de ${ob.totalInstallments}` : ''}?\nLa próxima a pagar será la ${k + 1}.`, { ok: 'Corregir' }))) return;
+    await saveRecord('obligations', setPaidCount(ob, k, nowS(), `Corrección: pagadas: ${k} (${why})`), `Corrección de cuotas pagadas de "${ob.concept}"`);
+    toast('Cuotas pagadas corregidas.');
+    onClose();
+  };
   const cap = ob.capitalByInstallment;
   return (
     <Modal title={ob.concept} onClose={onClose} wide>
@@ -113,6 +136,30 @@ function ObligationDetail({ ob, onClose }: { ob: Obligation; onClose: () => void
         <div className="kpi"><span>Última cuota</span><strong className="big">{pr.lastDueDate ? formatDate(pr.lastDueDate) : pr.lastDueMonth ? monthLabel(pr.lastDueMonth) : '—'}</strong></div>
       </div>
       {pr.overdueCount > 0 && <p className="err">⚠ {pr.overdueCount} cuota(s) vencida(s) sin pago registrado.</p>}
+      <details className="fix-paid" open={ob.paidInstallments > dueBy}>
+        <summary>Corregir cuotas pagadas</summary>
+        {ob.paidInstallments > dueBy && <p className="warn small">Figuran {ob.paidInstallments} pagadas, pero hasta hoy vencieron {dueBy}.</p>}
+        <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
+          <button className="btn small primary" disabled={dueBy === ob.paidInstallments} onClick={() => applyCount(dueBy, 'vencidas hasta hoy')}>Dejar pagadas las vencidas hasta hoy ({dueBy})</button>
+          <button
+            className="btn small"
+            disabled={ob.paidInstallments === 0}
+            onClick={async () => {
+              const u = undoLastPayment(ob, nowS());
+              if (!u) return;
+              await saveRecord('obligations', u, `Deshacer pago de "${ob.concept}"`);
+              toast(`Listo: quedan ${u.paidInstallments} cuota(s) pagada(s).`);
+              onClose();
+            }}
+          >
+            Deshacer último pago (cuota {ob.paidInstallments})
+          </button>
+        </div>
+        <div className="row" style={{ marginTop: '0.5rem', maxWidth: 360 }}>
+          <input aria-label="Cuotas pagadas" type="number" min={0} max={ob.totalInstallments} value={paidInput} onChange={(e) => setPaidInput(e.target.value)} />
+          <button className="btn small" onClick={() => applyCount(Math.max(0, Math.floor(Number(paidInput) || 0)), 'manual')}>Guardar cantidad pagada</button>
+        </div>
+      </details>
       <div className="table-wrap">
         <table>
           <thead><tr><th>Cuota</th><th>Vencimiento</th>{cap && <th className="num">Capital</th>}<th className="num">Importe</th><th>Estado</th></tr></thead>
@@ -151,6 +198,11 @@ function PaymentForm({ statement, onClose }: { statement?: Statement; onClose: (
   const save = async () => {
     if (!amount || amount <= 0) return setErr('Ingrese el importe pagado');
     await saveRecord<CardPayment>('cardPayments', { entity, statementId: statement?.id, date, month: monthOf(date), amount, source: 'manual' } as CardPayment, `Pago de resumen ${entity} (${formatARS(amount)})`);
+    if (statement) {
+      const db = getDb();
+      await db.transaction('rw', db.obligations, () => applyStatementPayment(db, statement, amount, new Date().toISOString()));
+      notify();
+    }
     onClose();
   };
   return (
@@ -166,7 +218,7 @@ function PaymentForm({ statement, onClose }: { statement?: Statement; onClose: (
 }
 
 export function DeudasPage() {
-  const { data, today } = useApp();
+  const { data, today, toast } = useApp();
   const [editing, setEditing] = useState<ObDraft | null>(null);
   const [detail, setDetail] = useState<Obligation | null>(null);
   const [paying, setPaying] = useState<{ statement?: Statement } | null>(null);
@@ -175,11 +227,30 @@ export function DeudasPage() {
   const payments = [...data.cardPayments].sort((a, b) => b.date.localeCompare(a.date));
   const newOb = (): ObDraft => ({ entity: '', type: 'compra_cuotas', concept: '', paidInstallments: 0, frequency: 'mensual', status: 'pendiente', variableAmount: false, nextDueMonth: today });
   const now = () => new Date().toISOString();
+  const payOne = async (o: Obligation) => {
+    const n = o.paidInstallments + 1;
+    const inst = buildSchedule(o, today).find((i) => i.n === n);
+    const due = inst ? installmentDueDate(o, n, inst.month) : undefined;
+    const early = !!due && due > todayIso();
+    const msg = early
+      ? `⚠ La cuota ${n} vence el ${formatDate(due)} y todavía no venció.\n¿Seguro que ya la pagaste (pago adelantado)?`
+      : `¿Registrar el pago de la cuota ${n}${o.totalInstallments ? ` de ${o.totalInstallments}` : ''}${due ? ` (vencimiento ${formatDate(due)})` : ''}?`;
+    if (!(await confirmDialog(msg, { ok: early ? 'Sí, la pagué' : 'Registrar pago', danger: early }))) return;
+    await saveRecord('obligations', payNextInstallment(o, now()), `Pago de cuota ${n} de "${o.concept}"`);
+    toast(`Cuota ${n} registrada como pagada. Si fue un error, use "Deshacer último pago" en Calendario.`);
+  };
+  const ahead = obs.filter((o) => o.status !== 'cancelada' && o.paidInstallments > installmentsDueBy(o, todayIso()));
+  const fixAhead = async () => {
+    const list = ahead.map((o) => `• ${o.concept}: ${o.paidInstallments} → ${installmentsDueBy(o, todayIso())} pagadas`).join('\n');
+    if (!(await confirmDialog(`Se dejarán como pagadas solo las cuotas vencidas hasta hoy:\n${list}`, { ok: 'Corregir' }))) return;
+    for (const o of ahead) await saveRecord('obligations', setPaidCount(o, installmentsDueBy(o, todayIso()), now(), `Corrección: pagadas: ${installmentsDueBy(o, todayIso())} (vencidas hasta hoy)`), `Corrección de cuotas pagadas de "${o.concept}"`);
+    toast('Cuotas pagadas corregidas.');
+  };
   const actions = (o: Obligation, st: ObligationStatus) => (
     <>
                         <button className="btn small" onClick={() => setDetail(o)}>Calendario</button>
                         {st !== 'pagada' && st !== 'cancelada' && o.nextDueMonth && (
-                          <button className="btn small primary" onClick={async () => (await confirmDialog(`¿Registrar el pago de la cuota ${o.paidInstallments + 1}?`)) && saveRecord('obligations', payNextInstallment(o, now()), `Pago de cuota ${o.paidInstallments + 1} de "${o.concept}"`)}>
+                          <button className="btn small primary" onClick={() => payOne(o)}>
                             Pagar cuota
                           </button>
                         )}
@@ -201,6 +272,17 @@ export function DeudasPage() {
         <a className="btn" href="#/importar">Importar resumen</a>
       </div>
 
+      {ahead.length > 0 && (
+        <Card className="alert" title="Hay cuotas marcadas como pagadas antes de vencer">
+          <ul className="small">
+            {ahead.map((o) => (
+              <li key={o.id}>{o.concept}: {o.paidInstallments} pagadas, pero vencieron {installmentsDueBy(o, todayIso())} hasta hoy.</li>
+            ))}
+          </ul>
+          <p className="small muted">Si las marcó por error, corríjalas de una vez. Si realmente pagó por adelantado, ignore este aviso.</p>
+          <button className="btn primary" onClick={fixAhead}>Dejar pagadas solo las vencidas hasta hoy</button>
+        </Card>
+      )}
       <Card title="Préstamos, compras en cuotas y financiaciones">
         {obs.length > 0 && (
           <div className="ob-cards">

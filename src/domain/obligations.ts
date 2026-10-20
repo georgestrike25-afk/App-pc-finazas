@@ -184,6 +184,7 @@ export function cancelObligation(ob: Obligation, fromMonth: MonthKey, nowIso: st
 /** Registra el pago de la próxima cuota. */
 export function payNextInstallment(ob: Obligation, nowIso: string, amount?: Cents): Obligation {
   if (!ob.nextDueMonth) return ob;
+  if (ob.totalInstallments !== undefined && ob.paidInstallments >= ob.totalInstallments) return ob;
   const n = ob.paidInstallments + 1;
   const step = FREQ_STEP[ob.frequency] ?? 1;
   const overrides = { ...(ob.installmentOverrides ?? {}) };
@@ -355,4 +356,46 @@ export function markPaidThrough(ob: Obligation, n: number, nowIso: string, reaso
     updatedAt: nowIso,
     revisions: [...(ob.revisions ?? []), { at: nowIso, reason, snapshot: snapshot(ob) }],
   };
+}
+
+/** Fecha de vencimiento de la cuota n (exacta si se conoce; si no, el día de vencimiento o el 10 del mes). */
+export function installmentDueDate(ob: Obligation, n: number, month: MonthKey): string {
+  return ob.dueDates?.[n] ?? `${month}-${String(Math.min(28, ob.dueDay ?? 10)).padStart(2, '0')}`;
+}
+
+/** Cantidad de cuotas cuyo vencimiento ya pasó (o es hoy). */
+export function installmentsDueBy(ob: Obligation, todayIso: string): number {
+  const today = todayIso.slice(0, 7);
+  let k = 0;
+  for (const i of buildSchedule(ob, today)) {
+    if (i.status === 'cancelada') continue;
+    if (installmentDueDate(ob, i.n, i.month) <= todayIso) k = Math.max(k, i.n);
+  }
+  return Math.min(k, ob.totalInstallments ?? k);
+}
+
+/**
+ * Fija la cantidad de cuotas pagadas manteniendo el calendario (la cuota k+1 vence
+ * en el mismo mes que antes). Sirve para corregir pagos marcados por error.
+ */
+export function setPaidCount(ob: Obligation, k: number, nowIso: string, reason: string): Obligation {
+  const total = ob.totalInstallments;
+  const target = Math.max(0, total !== undefined ? Math.min(k, total) : k);
+  if (target === ob.paidInstallments || !ob.nextDueMonth) return ob;
+  const step = FREQ_STEP[ob.frequency] ?? 1;
+  const done = total !== undefined && target >= total;
+  return {
+    ...ob,
+    paidInstallments: target,
+    nextDueMonth: addMonths(ob.nextDueMonth, (target - ob.paidInstallments) * step),
+    status: done ? 'pagada' : ob.status === 'pagada' ? 'pendiente' : ob.status,
+    updatedAt: nowIso,
+    revisions: [...(ob.revisions ?? []), { at: nowIso, reason, snapshot: snapshot(ob) }],
+  };
+}
+
+/** Deshace el último pago: la última cuota marcada como pagada vuelve a quedar pendiente. */
+export function undoLastPayment(ob: Obligation, nowIso: string): Obligation | null {
+  if (ob.paidInstallments <= 0) return null;
+  return setPaidCount(ob, ob.paidInstallments - 1, nowIso, `Deshacer pago de cuota ${ob.paidInstallments}`);
 }

@@ -245,3 +245,6 @@ tr.dim { opacity: 0.5; }
   .ob-cards { display: flex; }
   .ob-table { display: none; }
 }
+
+.fix-paid { border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.75rem; margin: 0.75rem 0; }
+.fix-paid summary { cursor: pointer; font-weight: 600; }

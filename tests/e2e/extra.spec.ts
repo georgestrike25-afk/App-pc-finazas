@@ -149,3 +149,29 @@ test('captura de movimientos de cuenta: detecta el sueldo del mes y lo carga', a
   await expect(page.locator('table')).toContainText('1.000.000,00');
   await expect(page.locator('table')).toContainText('13/09/2026');
 });
+
+test('cuotas pagadas por error: aviso antes de pagar y corrección en un toque', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-20T12:00:00'));
+  const { makeLoanPdf } = await import('../fixtures/loanFixture');
+  await go(page, 'importar');
+  await page.locator('#file').setInputFiles({ name: 'cronograma.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await makeLoanPdf(5)) });
+  await page.getByRole('button', { name: 'Incorporar préstamo' }).click();
+  await expect(page.locator('.topbar h1')).toHaveText('Tarjetas y deudas');
+  const row = page.locator('.ob-table tr', { hasText: 'Préstamo personal' });
+  await expect(row).toContainText('5/6 pagadas');
+  // La cuota 6 vence el 05/11: la app advierte que todavía no venció
+  await row.getByRole('button', { name: 'Pagar cuota' }).click();
+  await expect(page.locator('.modal')).toContainText('todavía no venció');
+  await page.locator('.modal').getByRole('button', { name: 'Sí, la pagué' }).click();
+  await expect(row).toContainText('6/6 pagadas');
+  await expect(page.getByText('Hay cuotas marcadas como pagadas antes de vencer')).toBeVisible();
+  await page.getByRole('button', { name: 'Dejar pagadas solo las vencidas hasta hoy' }).click();
+  await page.locator('.modal').getByRole('button', { name: 'Corregir' }).click();
+  await expect(row).toContainText('5/6 pagadas');
+  await expect(page.getByText('Hay cuotas marcadas como pagadas antes de vencer')).toHaveCount(0);
+  // Deshacer último pago desde el calendario
+  await row.getByRole('button', { name: 'Calendario' }).click();
+  await page.getByText('Corregir cuotas pagadas').click();
+  await page.getByRole('button', { name: /Deshacer último pago/ }).click();
+  await expect(row).toContainText('4/6 pagadas');
+});

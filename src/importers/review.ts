@@ -1,4 +1,5 @@
 import { getDb, type FinanzasDB } from '../db/db';
+import { applyStatementPayment } from '../db/cardPayments';
 import { addAudit, getDeviceId, getSettings, notify, nowIso } from '../db/repo';
 import { currentMonth, daysBetween, monthOf, type MonthKey } from '../domain/dates';
 import { applyStatementInstallment, findLoanInstallment, findMatchingObligation, impliedStartMonth, markPaidThrough, obligationFingerprintKey } from '../domain/obligations';
@@ -421,6 +422,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           totalInstallments: hasInst ? it.installmentTotal : undefined,
           installmentAmount: it.amount,
           nextDueMonth: it.month,
+          dueDay: s.dueDate ? Number(s.dueDate.slice(8, 10)) : undefined,
           frequency: 'mensual',
           status: hasInst ? 'pendiente' : 'por_confirmar',
           variableAmount: false,
@@ -452,6 +454,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         const p: CardPayment = { ...base(), entity: linked?.entity || s.entity || 'Sin identificar', statementId: linked?.id ?? statementId, date, month: monthOf(date), amount: Math.abs(it.amount), source: 'importado', lineFingerprint: it.fingerprint };
         await db.cardPayments.put(p);
         await fp(it, 'pago', p.id);
+        if (linked) await applyStatementPayment(db, linked, p.amount, now, deviceId);
         created.pagos++;
       } else if (it.action === 'sancor') {
         const c: SancorCharge = { ...base(), month: it.month, chargeAmount: it.amount, partnerPct: settings.sancorPartnerPct, statementId, documentId, lineFingerprint: it.fingerprint, received: [] };
