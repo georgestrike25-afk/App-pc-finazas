@@ -3,7 +3,7 @@ name: Compilar APK Android
 on:
   push:
     branches: [main, ccr-d0ab1290-u3vi9s]
-    paths-ignore: ['**.md']
+    paths-ignore: ['**.md', 'release/**']
   workflow_dispatch:
 permissions:
   contents: write
