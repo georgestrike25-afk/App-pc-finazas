@@ -116,6 +116,12 @@ export interface Obligation extends BaseRecord {
   documentId?: string;
   /** Huella estable para reconocer la misma compra en resúmenes sucesivos. */
   fingerprint?: string;
+  /** Número de préstamo informado por la entidad. */
+  loanNumber?: string;
+  /** Capital incluido en cada cuota (cronogramas de préstamos). */
+  capitalByInstallment?: Record<number, Cents>;
+  /** Fecha exacta de vencimiento de cada cuota (cronogramas de préstamos). */
+  dueDates?: Record<number, string>;
   notes?: string;
   revisions: ObligationRevision[];
 }

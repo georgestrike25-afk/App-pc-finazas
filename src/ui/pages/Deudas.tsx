@@ -7,6 +7,7 @@ import {
   computedBalance,
   derivedStatus,
   obligationIssues,
+  obligationProgress,
   OBLIGATION_TYPE_LABEL,
   payNextInstallment,
   reviseObligation,
@@ -97,16 +98,30 @@ function ObligationForm({ initial, onClose }: { initial: ObDraft; onClose: () =>
 function ObligationDetail({ ob, onClose }: { ob: Obligation; onClose: () => void }) {
   const { today } = useApp();
   const sched = buildSchedule(ob, today);
+  const pr = obligationProgress(ob, today);
+  const cap = ob.capitalByInstallment;
   return (
     <Modal title={ob.concept} onClose={onClose} wide>
+      <p className="muted small">{ob.entity} · {OBLIGATION_TYPE_LABEL[ob.type]}</p>
+      <div className="kpis" data-testid="progreso">
+        <div className="kpi"><span>Vas por la cuota</span><strong className="big">{pr.currentN ? `${pr.currentN}${pr.total ? ` de ${pr.total}` : ''}` : 'Completada'}</strong>{pr.nextDueDate && <small className="muted">vence el {formatDate(pr.nextDueDate)}</small>}</div>
+        <div className="kpi"><span>Próxima cuota</span><Money value={pr.nextAmount ?? 0} /></div>
+        <div className="kpi"><span>Cuotas pagadas</span><strong className="big">{pr.paid}{pr.total ? ` de ${pr.total}` : ''}</strong>{pr.paidPct !== undefined && <small className="muted">{String(pr.paidPct).replace('.', ',')} % {cap ? 'del capital' : 'de las cuotas'}</small>}</div>
+        <div className="kpi"><span>Total que falta pagar</span><Money value={pr.remainingTotal} /><small className="muted">{pr.remainingCount} cuota(s)</small></div>
+        {pr.remainingCapital !== undefined && <div className="kpi"><span>Capital adeudado</span><Money value={pr.remainingCapital} /></div>}
+        {pr.remainingInterest !== undefined && <div className="kpi"><span>Intereses e impuestos que faltan</span><Money value={pr.remainingInterest} /></div>}
+        <div className="kpi"><span>Última cuota</span><strong className="big">{pr.lastDueDate ? formatDate(pr.lastDueDate) : pr.lastDueMonth ? monthLabel(pr.lastDueMonth) : '—'}</strong></div>
+      </div>
+      {pr.overdueCount > 0 && <p className="err">⚠ {pr.overdueCount} cuota(s) vencida(s) sin pago registrado.</p>}
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Cuota</th><th>Mes</th><th className="num">Importe</th><th>Estado</th></tr></thead>
+          <thead><tr><th>Cuota</th><th>Vencimiento</th>{cap && <th className="num">Capital</th>}<th className="num">Importe</th><th>Estado</th></tr></thead>
           <tbody>
             {sched.map((i) => (
-              <tr key={i.n} className={i.status === 'cancelada' ? 'dim' : ''}>
+              <tr key={i.n} className={i.status === 'cancelada' || i.status === 'pagada' ? 'dim' : ''}>
                 <td>{i.n}{i.total ? `/${i.total}` : ''}</td>
-                <td>{monthLabel(i.month)}</td>
+                <td>{ob.dueDates?.[i.n] ? formatDate(ob.dueDates[i.n]) : monthLabel(i.month)}</td>
+                {cap && <td className="num"><Money value={cap[i.n]} /></td>}
                 <td className="num"><Money value={i.amount} estimated={i.estimated} /></td>
                 <td><Badge tone={i.status === 'pagada' ? 'ok' : i.status === 'vencida' ? 'bad' : i.status === 'cancelada' ? 'neutral' : 'info'}>{i.status}</Badge></td>
               </tr>
@@ -160,46 +175,8 @@ export function DeudasPage() {
   const payments = [...data.cardPayments].sort((a, b) => b.date.localeCompare(a.date));
   const newOb = (): ObDraft => ({ entity: '', type: 'compra_cuotas', concept: '', paidInstallments: 0, frequency: 'mensual', status: 'pendiente', variableAmount: false, nextDueMonth: today });
   const now = () => new Date().toISOString();
-
-  return (
-    <div className="page">
-      <div className="page-actions">
-        <button className="btn primary" onClick={() => setEditing(newOb())}>+ Nueva obligación</button>
-        <button className="btn" onClick={() => setPaying({})}>Registrar pago de resumen</button>
-        <a className="btn" href="#/importar">Importar resumen</a>
-      </div>
-
-      <Card title="Préstamos, compras en cuotas y financiaciones">
-        {obs.length === 0 ? (
-          <Empty title="No hay obligaciones registradas">Agregue compras en cuotas, Plan V, préstamos o financiaciones, o impórtelas desde un resumen.</Empty>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th>Concepto</th><th>Tipo</th><th>Cuotas</th><th className="num">Cuota</th><th>Próximo venc.</th><th className="num">Saldo a pagar</th><th>Estado</th><th></th></tr>
-              </thead>
-              <tbody>
-                {obs.map((o) => {
-                  const st = derivedStatus(o, today);
-                  const bal = computedBalance(o, today);
-                  const issues = obligationIssues(o);
-                  return (
-                    <tr key={o.id}>
-                      <td>
-                        <strong>{o.concept}</strong>
-                        <small className="muted d-block">{o.entity}</small>
-                        {issues.filter((i) => i.code !== 'variable').map((i) => <small key={i.code} className="warn d-block">⚠ {i.message}</small>)}
-                      </td>
-                      <td>{OBLIGATION_TYPE_LABEL[o.type]}</td>
-                      <td>{o.paidInstallments}{o.totalInstallments ? `/${o.totalInstallments}` : '/?'} pagadas</td>
-                      <td className="num"><Money value={o.installmentAmount} estimated={o.variableAmount} /></td>
-                      <td>{st === 'pagada' || st === 'cancelada' ? '—' : o.nextDueMonth ? monthLabel(o.nextDueMonth) : '—'}</td>
-                      <td className="num">
-                        <Money value={bal.amount} estimated={bal.estimated || !bal.complete} />
-                        {o.knownBalance !== undefined && <small className="muted d-block">Informado: {formatARS(o.knownBalance)}</small>}
-                      </td>
-                      <td><Badge tone={STATUS_TONE[st]}>{STATUS_LABEL[st]}</Badge></td>
-                      <td className="actions">
+  const actions = (o: Obligation, st: ObligationStatus) => (
+    <>
                         <button className="btn small" onClick={() => setDetail(o)}>Calendario</button>
                         {st !== 'pagada' && st !== 'cancelada' && o.nextDueMonth && (
                           <button className="btn small primary" onClick={async () => (await confirmDialog(`¿Registrar el pago de la cuota ${o.paidInstallments + 1}?`)) && saveRecord('obligations', payNextInstallment(o, now()), `Pago de cuota ${o.paidInstallments + 1} de "${o.concept}"`)}>
@@ -213,7 +190,79 @@ export function DeudasPage() {
                           </button>
                         )}
                         <button className="btn small ghost danger" onClick={async () => (await confirmDialog(`¿Eliminar definitivamente "${o.concept}" y todo su calendario?`, { danger: true, ok: 'Eliminar' })) && softDelete('obligations', o.id, `Eliminación de "${o.concept}"`)}>Eliminar</button>
+    </>
+  );
+
+  return (
+    <div className="page">
+      <div className="page-actions">
+        <button className="btn primary" onClick={() => setEditing(newOb())}>+ Nueva obligación</button>
+        <button className="btn" onClick={() => setPaying({})}>Registrar pago de resumen</button>
+        <a className="btn" href="#/importar">Importar resumen</a>
+      </div>
+
+      <Card title="Préstamos, compras en cuotas y financiaciones">
+        {obs.length > 0 && (
+          <div className="ob-cards">
+            {obs.map((o) => {
+              const st = derivedStatus(o, today);
+              const pr = obligationProgress(o, today);
+              const active = st !== 'pagada' && st !== 'cancelada';
+              return (
+                <div key={o.id} className="ob-card" data-testid="ob-card">
+                  <div className="ob-card-h">
+                    <strong>{o.concept}</strong>
+                    <Badge tone={STATUS_TONE[st]}>{STATUS_LABEL[st]}</Badge>
+                  </div>
+                  <small className="muted">{o.entity} · {OBLIGATION_TYPE_LABEL[o.type]}</small>
+                  <dl className="dl">
+                    {active && pr.currentN && <><dt>Vas por la cuota</dt><dd>{pr.currentN}{pr.total ? ` de ${pr.total}` : ''}</dd></>}
+                    {active && <><dt>Próxima cuota{pr.nextDueDate ? ` (${formatDate(pr.nextDueDate)})` : pr.nextDueMonth ? ` (${monthLabel(pr.nextDueMonth)})` : ''}</dt><dd><Money value={pr.nextAmount} estimated={o.variableAmount} /></dd></>}
+                    <dt>Falta pagar ({pr.remainingCount} cuota{pr.remainingCount === 1 ? '' : 's'})</dt><dd><Money value={pr.remainingTotal} /></dd>
+                    {pr.remainingCapital !== undefined && <><dt>Capital adeudado</dt><dd><Money value={pr.remainingCapital} /></dd></>}
+                    {active && pr.lastDueMonth && <><dt>Termina</dt><dd>{pr.lastDueDate ? formatDate(pr.lastDueDate) : monthLabel(pr.lastDueMonth)}</dd></>}
+                  </dl>
+                  {obligationIssues(o).filter((i) => i.code !== 'variable').map((i) => <small key={i.code} className="warn d-block">⚠ {i.message}</small>)}
+                  <div className="row-actions">{actions(o, st)}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {obs.length === 0 ? (
+          <Empty title="No hay obligaciones registradas">Agregue compras en cuotas, Plan V, préstamos o financiaciones, o impórtelas desde un resumen.</Empty>
+        ) : (
+          <div className="table-wrap ob-table">
+            <table>
+              <thead>
+                <tr><th>Concepto</th><th>Tipo</th><th>Cuotas</th><th className="num">Próxima cuota</th><th>Próximo venc.</th><th className="num">Saldo a pagar</th><th>Estado</th><th></th></tr>
+              </thead>
+              <tbody>
+                {obs.map((o) => {
+                  const st = derivedStatus(o, today);
+                  const bal = computedBalance(o, today);
+                  const issues = obligationIssues(o);
+                  const pr = obligationProgress(o, today);
+                  return (
+                    <tr key={o.id}>
+                      <td>
+                        <strong>{o.concept}</strong>
+                        <small className="muted d-block">{o.entity}</small>
+                        {issues.filter((i) => i.code !== 'variable').map((i) => <small key={i.code} className="warn d-block">⚠ {i.message}</small>)}
                       </td>
+                      <td>{OBLIGATION_TYPE_LABEL[o.type]}</td>
+                      <td>
+                        {o.paidInstallments}{o.totalInstallments ? `/${o.totalInstallments}` : '/?'} pagadas
+                        {pr.currentN && st !== 'cancelada' && <small className="muted d-block">Vas por la {pr.currentN}{pr.total ? ` de ${pr.total}` : ''}</small>}
+                      </td>
+                      <td className="num"><Money value={st === 'pagada' || st === 'cancelada' ? o.installmentAmount : pr.nextAmount ?? o.installmentAmount} estimated={o.variableAmount} /></td>
+                      <td>{st === 'pagada' || st === 'cancelada' ? '—' : pr.nextDueDate ? formatDate(pr.nextDueDate) : o.nextDueMonth ? monthLabel(o.nextDueMonth) : '—'}{pr.lastDueMonth && st !== 'pagada' && st !== 'cancelada' && <small className="muted d-block">termina {pr.lastDueDate ? formatDate(pr.lastDueDate) : monthLabel(pr.lastDueMonth)}</small>}</td>
+                      <td className="num">
+                        <Money value={bal.amount} estimated={bal.estimated || !bal.complete} />
+                        {pr.remainingCapital !== undefined ? <small className="muted d-block">Capital: {formatARS(pr.remainingCapital)}</small> : o.knownBalance !== undefined && <small className="muted d-block">Informado: {formatARS(o.knownBalance)}</small>}
+                      </td>
+                      <td><Badge tone={STATUS_TONE[st]}>{STATUS_LABEL[st]}</Badge></td>
+                      <td className="actions">{actions(o, st)}</td>
                     </tr>
                   );
                 })}

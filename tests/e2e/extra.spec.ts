@@ -81,3 +81,20 @@ test.describe('15. sincronización entre dos dispositivos con el servidor autoho
     }
   });
 });
+
+test('cronograma de préstamo: muestra en qué cuota voy y cuánto falta', async ({ page }) => {
+  const { makeLoanPdf } = await import('../fixtures/loanFixture');
+  await go(page, 'importar');
+  await page.locator('#file').setInputFiles({ name: 'cronogramaPrestamo.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await makeLoanPdf(3)) });
+  await expect(page.getByText('Cronograma de préstamo')).toBeVisible();
+  await expect(page.locator('.kpi', { hasText: 'Vas por la cuota' })).toContainText('4 de 6');
+  await expect(page.locator('.kpi', { hasText: 'Total que falta pagar' })).toContainText('69.000,00');
+  await expect(page.locator('.kpi', { hasText: 'Capital adeudado' })).toContainText('42.000,00');
+  await page.getByRole('button', { name: 'Incorporar préstamo' }).click();
+  await expect(page.locator('.topbar h1')).toHaveText('Tarjetas y deudas');
+  const row = page.locator('tr', { hasText: 'Préstamo personal' });
+  await expect(row).toContainText('3/6 pagadas');
+  await expect(row).toContainText('Vas por la 4 de 6');
+  await row.getByRole('button', { name: 'Calendario' }).click();
+  await expect(page.getByTestId('progreso')).toContainText('Intereses e impuestos que faltan');
+});

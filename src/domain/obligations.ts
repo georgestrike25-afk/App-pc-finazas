@@ -275,3 +275,50 @@ export function applyStatementInstallment(ob: Obligation, c: InstallmentCandidat
   };
   return next;
 }
+
+export interface ObligationProgress {
+  /** Número de la próxima cuota a pagar (la "cuota en la que vas"). */
+  currentN?: number;
+  total?: number;
+  paid: number;
+  remainingCount: number;
+  remainingTotal: Cents;
+  remainingCapital?: Cents;
+  remainingInterest?: Cents;
+  nextAmount?: Cents;
+  nextDueDate?: string;
+  nextDueMonth?: MonthKey;
+  lastDueDate?: string;
+  lastDueMonth?: MonthKey;
+  paidPct?: number;
+  overdueCount: number;
+}
+
+/** Resumen de avance de una obligación: cuota actual, cuánto falta y cuándo termina. */
+export function obligationProgress(ob: Obligation, today: MonthKey): ObligationProgress {
+  const sched = buildSchedule(ob, today);
+  const pending = sched.filter((i) => i.status === 'pendiente' || i.status === 'vencida');
+  const next = pending[0];
+  const last = sched.filter((i) => i.status !== 'cancelada').at(-1);
+  const cap = ob.capitalByInstallment;
+  const hasCap = !!cap && pending.every((i) => cap[i.n] !== undefined);
+  const remainingTotal = sum(pending.map((i) => i.amount));
+  const remainingCapital = hasCap ? sum(pending.map((i) => cap![i.n])) : undefined;
+  const totalCap = cap ? sum(Object.values(cap)) : undefined;
+  return {
+    currentN: next?.n,
+    total: ob.totalInstallments,
+    paid: sched.filter((i) => i.status === 'pagada').length,
+    remainingCount: pending.length,
+    remainingTotal,
+    remainingCapital,
+    remainingInterest: remainingCapital !== undefined ? remainingTotal - remainingCapital : undefined,
+    nextAmount: next?.amount,
+    nextDueDate: next ? ob.dueDates?.[next.n] : undefined,
+    nextDueMonth: next?.month,
+    lastDueDate: last ? ob.dueDates?.[last.n] : undefined,
+    lastDueMonth: last?.month,
+    paidPct: remainingCapital !== undefined && totalCap ? Math.round(((totalCap - remainingCapital) / totalCap) * 1000) / 10 : ob.totalInstallments ? Math.round((sched.filter((i) => i.status === 'pagada').length / ob.totalInstallments) * 1000) / 10 : undefined,
+    overdueCount: pending.filter((i) => i.status === 'vencida').length,
+  };
+}

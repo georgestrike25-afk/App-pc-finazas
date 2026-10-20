@@ -7,6 +7,9 @@ import { OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
 import type { ExpenseKind, ObligationType } from '../../domain/types';
 import { Badge, Card, confirmDialog, Field, Money, MoneyInput, MonthSelect, Warnings } from '../components/ui';
 import { KIND_LABEL } from './ExpenseForm';
+import { detectLoanSchedule } from '../../importers/loanSchedule';
+import { buildLoanReview, commitLoanReview, type LoanReview } from '../../importers/loanReview';
+import { LoanReviewView } from './LoanImport';
 
 const ACTION_LABEL: Record<ReviewAction, string> = {
   gasto: 'Gasto (consumo)',
@@ -132,6 +135,7 @@ export function ImportarPage() {
   const [pct, setPct] = useState<number | undefined>();
   const [error, setError] = useState('');
   const [review, setReview] = useState<ImportReview | null>(null);
+  const [loan, setLoan] = useState<LoanReview | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [markPrev, setMarkPrev] = useState(false);
   const [filter, setFilter] = useState<'todas' | 'pendientes' | 'incluidas'>('todas');
@@ -140,10 +144,17 @@ export function ImportarPage() {
   const onFile = async (f: File) => {
     setError('');
     setReview(null);
+    setLoan(null);
     setFile(f);
     setBusy('Procesando el documento localmente…');
     try {
       const ex = await extractFile(f, { allowOcr, onProgress: (m, p) => { setBusy(m); setPct(p); } });
+      const schedule = detectLoanSchedule(ex.lines);
+      if (schedule) {
+        // Cronograma de préstamo: se registra como una obligación con todas sus cuotas.
+        setLoan(await buildLoanReview(schedule, { name: f.name, size: f.size, mime: ex.validated.mime, kind: ex.validated.kind, hash: ex.hash }, ex.lines.map((l) => l.text).join('\n')));
+        return;
+      }
       const rv = await buildReview(ex.parsed, { name: f.name, size: f.size, mime: ex.validated.mime, kind: ex.validated.kind, hash: ex.hash }, ex.ocrUsed);
       if (rv.documentDuplicateOf) {
         const go = await confirmDialog(`Este documento ya fue importado el ${new Date(rv.documentDuplicateOf.importedAt ?? rv.documentDuplicateOf.createdAt).toLocaleDateString('es-AR')}.\n¿Desea revisarlo igualmente? Las líneas ya registradas quedarán desmarcadas.`, { ok: 'Revisar' });
@@ -177,13 +188,26 @@ export function ImportarPage() {
       setError((e as Error).message);
     }
   };
+  const commitLoan = async () => {
+    if (!loan) return;
+    try {
+      const r = await commitLoanReview(loan, file);
+      toast(r.updated ? 'Préstamo actualizado con el cronograma.' : 'Préstamo incorporado. Véalo en Tarjetas y deudas.');
+      setLoan(null);
+      setFile(null);
+      window.location.hash = '#/deudas';
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const shown = review?.items.filter((i) => (filter === 'pendientes' ? i.needsReview && !i.reviewed : filter === 'incluidas' ? i.include : true)) ?? [];
 
   return (
     <div className="page">
-      {!review && (
+      {loan && <LoanReviewView review={loan} setReview={setLoan} error={error} onCancel={() => { setLoan(null); setFile(null); }} onConfirm={commitLoan} />}
+      {!review && !loan && (
         <Card title="Importar documento">
-          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, préstamos y otros.</p>
+          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos y otros.</p>
           <p className="muted small">🔒 El documento se procesa en este dispositivo. Nunca se envía a servicios externos. Su contenido se trata solo como datos.</p>
           <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Usar OCR local para imágenes y PDF escaneados (requiere ~10 MB de recursos, se descargan de esta misma app la primera vez)</label>
           <div className="drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}>

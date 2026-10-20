@@ -72,7 +72,7 @@ test('4, 6, 7. importación de PDF con texto, corrección de importe y reimporta
   await expect(page.getByText(/Importación completa: 2 gasto/)).toBeVisible();
 
   await go(page, 'deudas');
-  await expect(page.getByText('MERCADOLIBRE*TIENDA')).toBeVisible();
+  await expect(page.locator('.ob-table').getByText('MERCADOLIBRE*TIENDA')).toBeVisible();
   await expect(page.getByText('3/10 pagadas')).toBeVisible();
   await expect(page.locator('table').nth(1)).toContainText('141.700,50');
 
@@ -86,7 +86,7 @@ test('4, 6, 7. importación de PDF con texto, corrección de importe y reimporta
   await page.getByRole('button', { name: 'Confirmar e incorporar' }).click();
   await expect(page.getByText(/Importación completa: 0 gasto\(s\), 0 obligación/)).toBeVisible();
   await go(page, 'deudas');
-  await expect(page.getByText('MERCADOLIBRE*TIENDA')).toHaveCount(1);
+  await expect(page.locator('.ob-table').getByText('MERCADOLIBRE*TIENDA')).toHaveCount(1);
 
   // Sancor detectado: total tarjeta, reintegro esperado y neto
   await go(page, 'compartidos');
@@ -174,7 +174,7 @@ test('13. exportación y restauración de una copia de seguridad cifrada', async
   await page.locator('input[name="totalInstallments"]').fill('6');
   await page.locator('input[name="installmentAmount"]').fill('10.000');
   await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.getByText('Heladera')).toBeVisible();
+  await expect(page.locator('.ob-table').getByText('Heladera')).toBeVisible();
   await go(page, 'copias');
   await page.getByLabel('Contraseña (opcional, mínimo 8 caracteres)').fill('clave-e2e-1234');
   await page.getByLabel('Repetir contraseña').fill('clave-e2e-1234');
@@ -201,7 +201,7 @@ test('13. exportación y restauración de una copia de seguridad cifrada', async
   await page.locator('.modal').getByRole('button', { name: 'Reemplazar' }).click();
   await expect(page.getByText(/Copia restaurada/)).toBeVisible();
   await go(page, 'deudas');
-  await expect(page.getByText('Heladera')).toBeVisible();
+  await expect(page.locator('.ob-table').getByText('Heladera')).toBeVisible();
 });
 
 test('14. funcionamiento sin conexión de las funciones esenciales', async ({ page, context }) => {

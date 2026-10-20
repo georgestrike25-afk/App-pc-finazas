@@ -217,6 +217,8 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Visa Banco Patagonia** (probado con un resumen real, que no se guarda en el repositorio): datos en columnas (vencimiento, saldo y pago mínimo debajo de su etiqueta), fechas `dd.mm.aa`, créditos con el signo al final (`493.391,53-`), Plan V `5-05` / `1-03`, Sancor como `ASOC MUTUAL SANC`, comisiones `COMIS. PROD. PAT.`, bonificaciones y crédito de IVA. El crédito `CR.$ PLAN V` (saldo anterior refinanciado) no se importa porque esa deuda continúa como cuotas del Plan V; las bonificaciones se registran **restando** del gasto correspondiente.
 
+**Cronogramas de préstamos** (p. ej. "Cronograma – Préstamo PERSONAL" de Banco Patagonia, probado con cronogramas reales que no se guardan en el repositorio): se reconoce la tabla *Cuota · Vencimiento · Capital · Total · Estado* y se crea **un préstamo** con el importe exacto de cada cuota, su capital y su fecha. Las cuotas "PAGA" quedan pagadas y "NO VENCIDA" pendientes. La ficha del préstamo (*Tarjetas y deudas → Calendario*) muestra en qué cuota va, la próxima cuota y su vencimiento, cuotas pagadas, total que falta pagar, capital adeudado, intereses e impuestos que faltan, % de capital pagado y fecha de la última cuota. Al importar un cronograma más nuevo del mismo préstamo (mismo número) **se actualiza** sin duplicarlo. Si el cronograma no indica la entidad, se sugiere y debe confirmarse.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites
