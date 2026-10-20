@@ -213,6 +213,10 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Revisión**: antes de incorporar se muestran documento de origen, hash SHA-256, campos detectados y no determinados, cada movimiento con acción (gasto, cuota, pago, Sancor, vincular, no importar), fecha, concepto, importe, mes, cuota/total, categoría, **nivel de confianza** y advertencias, más el texto de origen. Las líneas con lectura dudosa (OCR < 60 %, separador ambiguo, dólares, sin concepto) quedan **"Pendiente de corrección"** y el botón *Confirmar* se bloquea hasta corregirlas o marcarlas como revisadas. Nada se incorpora sin confirmación.
 
+**Verificación de la lectura**: cuando el resumen informa el saldo anterior y el saldo actual, la revisión comprueba que *saldo anterior − pagos − créditos + consumos + cuotas + cargos + Sancor − bonificaciones = total del resumen*. Si coincide se muestra ✓ ("no falta ni sobra ninguna línea"); si no, se indica la diferencia. Si el resumen trae el cuadro **"Cuotas a vencer"**, también se compara con las cuotas leídas.
+
+**Visa Banco Patagonia** (probado con un resumen real, que no se guarda en el repositorio): datos en columnas (vencimiento, saldo y pago mínimo debajo de su etiqueta), fechas `dd.mm.aa`, créditos con el signo al final (`493.391,53-`), Plan V `5-05` / `1-03`, Sancor como `ASOC MUTUAL SANC`, comisiones `COMIS. PROD. PAT.`, bonificaciones y crédito de IVA. El crédito `CR.$ PLAN V` (saldo anterior refinanciado) no se importa porque esa deuda continúa como cuotas del Plan V; las bonificaciones se registran **restando** del gasto correspondiente.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites
