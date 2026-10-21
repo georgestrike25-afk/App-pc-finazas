@@ -112,9 +112,20 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
 
 function VerificationCard({ review }: { review: ImportReview }) {
   const v = verifyReview(review);
-  if (!v.balance && !v.upcoming.length) return null;
+  const ac = review.summary.accountCheck;
+  if (!v.balance && !v.upcoming.length && !ac) return null;
+  const okD = ac?.debits === undefined || Math.abs(ac.debits - ac.parsedDebits) <= 1;
+  const okC = ac?.credits === undefined || Math.abs(ac.credits - ac.parsedCredits) <= 1;
   return (
     <Card title="Verificación de la lectura">
+      {ac && (ac.debits !== undefined || ac.credits !== undefined) && (
+        <p className={okD && okC ? 'ok-text' : 'warn'} data-testid="verif-cuenta">
+          {okD && okC ? '✓ ' : '⚠ '}
+          Egresos leídos <Money value={ac.parsedDebits} />{ac.debits !== undefined && <> (extracto: <Money value={ac.debits} />)</>} · ingresos leídos <Money value={ac.parsedCredits} />
+          {ac.credits !== undefined && <> (extracto: <Money value={ac.credits} />)</>}
+          {okD && okC ? ' — coincide: no falta ninguna línea.' : ' — no coincide: puede faltar una línea.'}
+        </p>
+      )}
       {v.balance && (
         <p className={v.balance.ok ? 'ok-text' : 'warn'} data-testid="verif-saldo">
           {v.balance.ok ? '✓ ' : '⚠ '}
@@ -153,7 +164,7 @@ export function ImportarPage() {
   const [plan, setPlan] = useState<PlanReview | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [markPrev, setMarkPrev] = useState(false);
-  const [filter, setFilter] = useState<'todas' | 'pendientes' | 'incluidas'>('todas');
+  const [filter, setFilter] = useState<'todas' | 'pendientes' | 'incluidas' | 'excluidas'>('todas');
   const input = useRef<HTMLInputElement>(null);
 
   const onFile = async (f: File) => {
@@ -187,6 +198,8 @@ export function ImportarPage() {
         }
       }
       setReview(rv);
+      // Listas largas (extractos de cuenta): primero solo lo que se va a cargar.
+      setFilter(rv.items.length > 25 ? 'incluidas' : 'todas');
     } catch (e) {
       setError((e as Error).message || 'No se pudo procesar el archivo.');
     } finally {
@@ -234,7 +247,7 @@ export function ImportarPage() {
       setError((e as Error).message);
     }
   };
-  const shown = review?.items.filter((i) => (filter === 'pendientes' ? i.needsReview && !i.reviewed : filter === 'incluidas' ? i.include : true)) ?? [];
+  const shown = review?.items.filter((i) => (filter === 'pendientes' ? i.needsReview && !i.reviewed : filter === 'incluidas' ? i.include : filter === 'excluidas' ? !i.include : true)) ?? [];
 
   return (
     <div className="page">
@@ -288,7 +301,7 @@ export function ImportarPage() {
             title={`Movimientos detectados (${review.items.length})`}
             actions={
               <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar">
-                <option value="todas">Todas</option><option value="pendientes">Pendientes de corrección</option><option value="incluidas">Incluidas</option>
+                <option value="todas">Todas</option><option value="pendientes">Pendientes de corrección</option><option value="incluidas">Se van a cargar</option><option value="excluidas">No se cargan</option>
               </select>
             }
           >

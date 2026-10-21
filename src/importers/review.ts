@@ -70,6 +70,8 @@ export interface ReviewSummary {
   nextClosingDate?: string;
   nextDueDate?: string;
   upcoming: UpcomingInstallments[];
+  accountCheck?: ParsedDocument['accountCheck'];
+  docType?: ParsedDocument['docType'];
   currency: ParsedDocument['currency'];
   registerStatement: boolean;
 }
@@ -224,6 +226,10 @@ export async function buildReview(
         warnings.push(cur ? `Se sumará como ingreso adicional al ingreso ya cargado de ${monthLabel(itemMonth)} (${formatARS(incomeNet(cur))}).` : `Se registrará como ingreso cobrado de ${monthLabel(itemMonth)}.`);
       }
     }
+    if (p.cancelsOut) {
+      include = false;
+      action = 'ignorar';
+    }
     if (isAccount && include && parsed.month && itemMonth !== parsed.month) {
       include = false;
       warnings.push(`Movimiento de ${monthLabel(itemMonth)}: no se incluye por defecto (márquelo si corresponde).`);
@@ -274,6 +280,8 @@ export async function buildReview(
       nextClosingDate: parsed.nextClosingDate.value,
       nextDueDate: parsed.nextDueDate.value,
       upcoming: parsed.upcoming,
+      accountCheck: parsed.accountCheck,
+      docType: parsed.docType,
       currency: parsed.currency,
       registerStatement: !isAccount && (parsed.total.value !== undefined || !!parsed.dueDate.value),
     },
@@ -376,9 +384,10 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           month: it.month,
           totalAmount: it.amount,
           userPct: it.expenseKind === 'hogar' ? it.userPct : 100,
-          paid: false,
+          // En una cuenta el dinero ya salió (débito); en una tarjeta queda pendiente hasta pagar el resumen.
+          paid: s.docType === 'cuenta',
           frequency: 'unica',
-          paymentMethod: 'tarjeta',
+          paymentMethod: s.docType === 'cuenta' ? 'debito' : 'tarjeta',
           documentId,
           linkedLineFingerprints: [it.fingerprint],
           source: 'importado',
@@ -398,9 +407,9 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           month: it.month,
           totalAmount: -Math.abs(it.amount),
           userPct: it.expenseKind === 'hogar' ? it.userPct : 100,
-          paid: false,
+          paid: s.docType === 'cuenta',
           frequency: 'unica',
-          paymentMethod: 'tarjeta',
+          paymentMethod: s.docType === 'cuenta' ? 'debito' : 'tarjeta',
           documentId,
           linkedLineFingerprints: [it.fingerprint],
           source: 'importado',

@@ -2,6 +2,7 @@ import { sha256Hex } from '../domain/text';
 import { extractPdfText, type PdfLib } from './pdf';
 import { parseStatementText, type ParsedDocument, type SourceLine } from './statementParser';
 import { parseAccountMovements } from './accountMovements';
+import { parseBankExtract } from './bankExtract';
 import { decodeText, parseCsv, parseSpreadsheet, rowsToLines } from './tabular';
 import { validateFile, type ValidatedFile } from './fileValidation';
 
@@ -83,7 +84,7 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     }
   }
   // Primero se prueba el formato de movimientos de cuenta (capturas de home banking).
-  const parsed = parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
+  const parsed = parseBankExtract(lines) ?? parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
   parsed.warnings.unshift(...notes);
   return { validated, hash, lines, parsed, ocrUsed, notes };
 }

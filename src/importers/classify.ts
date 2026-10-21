@@ -6,7 +6,7 @@ export const ENTITY_PATTERNS: Array<{ entity: string; re: RegExp }> = [
   { entity: 'Mercado Crédito', re: /mercado\s*cr[eé]dito/i },
   { entity: 'Mercado Pago', re: /mercado\s*pago/i },
   { entity: 'Naranja X', re: /naranja/i },
-  { entity: 'Ualá', re: /ual[aá]\b/i },
+  { entity: 'Ualá', re: /\bual[aá](?![a-z])/i },
   { entity: 'Plan V', re: /plan\s*v\b/i },
 ];
 
@@ -29,8 +29,9 @@ const CATEGORY_RULES: Array<{ category: string; kind: ExpenseKind; words: string
   { category: 'Supermercado', kind: 'cotidiano', words: ['coto', 'carrefour', 'jumbo', 'disco', 'vea', 'changomas', 'supermerc', 'super ', 'dia tienda', 'autoservicio', 'almacen', 'dietetica', 'verduleria', 'carniceria'] },
   { category: 'Combustible', kind: 'cotidiano', words: ['ypf', 'shell', 'axion', 'puma energy', 'combustible', 'nafta'] },
   { category: 'Farmacia', kind: 'cotidiano', words: ['farmacia', 'farmacity', 'drogueria'] },
-  { category: 'Delivery y comidas', kind: 'cotidiano', words: ['rappi', 'pedidosya', 'pedidos ya', 'mcdonald', 'burger', 'restaurant', 'resto', 'cafe', 'pizzeria', 'panaderia'] },
+  { category: 'Delivery y comidas', kind: 'cotidiano', words: ['uber eats', 'ubereats', 'rappi', 'pedidosya', 'pedidos ya', 'mcdonald', 'burger', 'restaurant', 'resto', 'cafe', 'pizzeria', 'panaderia'] },
   { category: 'Transporte', kind: 'cotidiano', words: ['sube', 'uber', 'cabify', 'didi', 'peaje', 'estacionamiento', 'trenes', 'subte'] },
+  { category: 'Telefonía', kind: 'personal', words: ['movistar movil', 'claro movil', 'personal movil', 'tuenti'] },
   { category: 'Servicios del hogar', kind: 'hogar', words: ['edenor', 'edesur', 'epec', 'metrogas', 'naturgy', 'camuzzi', 'ecogas', 'aysa', 'telecom', 'fibertel', 'telecentro', 'personal flow', 'movistar', 'claro', 'expensas', 'alquiler', 'abl'] },
   { category: 'Suscripciones', kind: 'personal', words: ['netflix', 'spotify', 'disney', 'hbo', 'max ', 'youtube', 'prime video', 'amazon prime', 'apple com', 'google', 'paramount', 'star plus'] },
   { category: 'Compras en línea', kind: 'personal', words: ['mercadolibre', 'mercado libre', 'merpago', 'tiendanube', 'amazon'] },
@@ -58,6 +59,8 @@ export const DEFAULT_CATEGORIES = [
   'Gas',
   'Internet',
   'Suscripciones',
+  'Telefonía',
+  'Transferencias',
   'Compras en línea',
   'Salud',
   'Obra social',

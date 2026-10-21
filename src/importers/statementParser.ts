@@ -49,6 +49,10 @@ export interface ParsedItem {
   installmentConfidence?: Confidence;
   /** Crédito por refinanciación (el saldo pasó a cuotas, p. ej. Plan V). */
   refinancing?: boolean;
+  /** Débito y devolución del mismo importe que se anulan entre sí (no se importan). */
+  cancelsOut?: boolean;
+  /** Extractos de cuenta: si el movimiento fue un débito o un crédito. */
+  direction?: 'debito' | 'credito';
   suggestedCategory: string;
   suggestedKind: ExpenseKind;
   confidence: Confidence;
@@ -80,6 +84,8 @@ export interface ParsedDocument {
   upcoming: UpcomingInstallments[];
   /** Mes de imputación sugerido (mes de vencimiento). */
   month?: MonthKey;
+  /** Extractos de cuenta: totales informados vs. leídos (para verificar que no falte ninguna línea). */
+  accountCheck?: { opening?: Cents; closing?: Cents; credits?: Cents; debits?: Cents; parsedCredits: Cents; parsedDebits: Cents };
   items: ParsedItem[];
   warnings: string[];
   undetermined: string[];
@@ -96,7 +102,7 @@ const INSTALLMENT_EXPLICIT = /(?:\bc(?:uota)?\.?\s?|\bcuota\s+)(\d{1,2})\s*(?:\/
 const INSTALLMENT_PLANV = /\bplan\s*v\s+(\d{1,2})-(\d{1,2})\b/i;
 const INSTALLMENT_BARE = /(?<![\d/.-])(\d{1,2})\s?\/\s?(\d{1,2})(?![\d/.-])/;
 
-const RE_PAYMENT = /\b(su pago|pago recibido|pago en pesos|pago en dolares|pago tarjeta|gracias por su pago|pago de resumen|pago resumen)\b/;
+const RE_PAYMENT = /\b(su pago|pago con saldo|pago recibido|pago en pesos|pago en dolares|pago tarjeta|gracias por su pago|pago de resumen|pago resumen)\b/;
 const RE_CHARGE = /\b(interes(es)?|iva|impuesto|imp|sellos|percepcion|perc|comis\w*|cargo|mantenimiento|seguro de vida|punitorio|db iva|rg ?\d{4}|ganancias|bienes personales)\b/;
 const RE_OBLIG = /\b(plan v|prestamo|refinanc\w*|financiacion|plan de pagos|adelanto)\b/;
 const RE_REFI = /\b(plan v|refinanc\w*|financiacion|plan de pagos)\b/;
@@ -117,7 +123,9 @@ const LBL_NEXT_CLOSING = /(pr[oó]x(?:imo|\.)?\s+cierre)/i;
 const LBL_NEXT_DUE = /(pr[oó]x(?:imo|\.)?\s+(?:vto\.?|vencimiento))/i;
 // Encabezados en columnas (la etiqueta en una fila y el valor debajo).
 const CELL_DUE = /^(vencimiento|vto\.?|fecha de vencimiento)$/i;
-const CELL_TOTAL = /^(saldo\s*\$|saldo actual|total a pagar|saldo)$/i;
+const CELL_TOTAL = /^(saldo\s*\$|saldo actual|total a pagar|saldo|tu deuda en pesos:?)$/i;
+const CELL_PREV = /^(resumen anterior|saldo anterior)$/i;
+const CELL_CLOSING = /^(fecha de cierre|cierre actual)$/i;
 const CELL_MIN = /^(pago\s*m[ií]n(?:imo)?\.?\s*\$?)$/i;
 const CELL_NEXT_DUE = /^(pr[oó]x(?:imo|\.)?\s*vto\.?|pr[oó]ximo vencimiento)$/i;
 
@@ -202,12 +210,14 @@ interface Columns {
 /** Encabezado del detalle de movimientos: columnas de pesos y dólares (y, si hay, detalle y cuota). */
 function headerColumns(l: SourceLine): Columns | null {
   if (!l.cells) return null;
-  const p = l.cells.find((c) => /^(pesos|\$|\$ ?ars)$/i.test(c.s));
-  const u = l.cells.find((c) => /^(d[oó]lares|u\$s|usd)$/i.test(c.s));
-  if (!p || !u || !l.cells.some((c) => /^fecha$/i.test(c.s))) return null;
-  const d = l.cells.find((c) => /^detalle/i.test(c.s));
+  const p = l.cells.find((c) => /^(pesos|\$|\$ ?ars|pago en pesos)$/i.test(c.s));
+  const u = l.cells.find((c) => /^(d[oó]lares|u\$s|usd|pago en d[oó]lares)$/i.test(c.s));
+  if (!p || !l.cells.some((c) => /^fecha$/i.test(c.s))) return null;
+  // Sin columna de dólares solo se acepta si hay columna de detalle/descripción.
+  if (!u && !l.cells.some((c) => /^(detalle|descripci[oó]n)/i.test(c.s))) return null;
+  const d = l.cells.find((c) => /^(detalle|descripci[oó]n)/i.test(c.s));
   const q = l.cells.find((c) => /^cuota(\/plan)?s?$/i.test(c.s));
-  return { pesos: p.x, usd: u.x, detalle: d?.x, cuota: q?.x };
+  return { pesos: p.x, usd: u?.x, detalle: d?.x, cuota: q?.x };
 }
 
 function findColumns(lines: SourceLine[]): Columns {
@@ -373,6 +383,10 @@ export function parseStatementText(lines: SourceLine[], opts: { fallbackYear?: n
         setMoney(doc.total, valueBelow(clean, idx, cell.x, 'importe', fmt) as Cents | undefined, 'alta', `${cell.s} (columna)`);
       } else if (doc.minimumPayment.value === undefined && CELL_MIN.test(cell.s)) {
         setMoney(doc.minimumPayment, valueBelow(clean, idx, cell.x, 'importe', fmt) as Cents | undefined, 'alta', `${cell.s} (columna)`);
+      } else if (doc.previousBalance.value === undefined && CELL_PREV.test(cell.s)) {
+        setMoney(doc.previousBalance, valueBelow(clean, idx, cell.x, 'importe', fmt) as Cents | undefined, 'alta', `${cell.s} (columna)`);
+      } else if (doc.closingDate.value === undefined && CELL_CLOSING.test(cell.s)) {
+        setDate(doc.closingDate, valueBelow(clean, idx, cell.x, 'fecha', fmt) as string | undefined, 'alta', `${cell.s} (columna)`);
       }
     }
   });
@@ -424,7 +438,7 @@ export function parseStatementText(lines: SourceLine[], opts: { fallbackYear?: n
       inSection = false;
       pending = '';
     }
-    const item = parseMovementLine(l, idx, fmt, fallbackYear, refDate, cols);
+    const item = parseMovementLine(l, idx, fmt, fallbackYear, refDate, cols, { prev: clean[idx - 1], next: clean[idx + 1] });
     if (item) {
       doc.items.push(item);
       pending = '';
@@ -440,6 +454,18 @@ export function parseStatementText(lines: SourceLine[], opts: { fallbackYear?: n
       }
     }
   });
+
+  // Compra en cuotas anulada: la devolución cubre el total de la compra (cuota × cantidad de cuotas).
+  for (const q of doc.items.filter((i) => i.kind === 'cuota' && i.installment && i.amount)) {
+    const tot = q.amount! * q.installment!.total;
+    const cr = doc.items.find((c) => (c.kind === 'credito' || c.kind === 'bonificacion') && !c.cancelsOut && normalizeText(c.concept) === normalizeText(q.concept) && Math.abs((c.amount ?? 0) - tot) <= q.installment!.total * 100);
+    if (cr) {
+      q.cancelsOut = true;
+      cr.cancelsOut = true;
+      q.warnings.push('Compra anulada: la devolución cubre todas las cuotas. No se registran cuotas futuras.');
+      cr.warnings.push('Devolución de una compra en cuotas anulada: se compensan entre sí.');
+    }
+  }
 
   const usd = doc.items.filter((i) => i.currency === 'USD').length;
   doc.currency = usd === 0 ? 'ARS' : usd === doc.items.length ? 'USD' : 'mixta';
@@ -466,6 +492,7 @@ function parseMovementLine(
   fallbackYear: number | undefined,
   refDate: string | undefined,
   cols: Columns,
+  ctx: { prev?: SourceLine; next?: SourceLine } = {},
 ): ParsedItem | null {
   const dm = l.text.match(DATE_TOKEN);
   if (!dm) return null;
@@ -482,13 +509,14 @@ function parseMovementLine(
   let concept: string;
   let currency: 'ARS' | 'USD' = 'ARS';
 
-  if (l.cells && cols.pesos !== undefined && cols.usd !== undefined) {
+  if (l.cells && cols.pesos !== undefined) {
     // Lectura por columnas: el importe en pesos o en dólares según su posición.
-    const threshold = Math.min(cols.pesos, cols.usd) - 45;
+    const threshold = Math.min(cols.pesos, cols.usd ?? Infinity) - 45;
     const money = l.cells.filter((c) => c.x >= threshold && isMoneyLike(c.s));
     if (!money.length) return null;
-    const pesos = money.filter((c) => Math.abs(c.x - cols.pesos!) <= Math.abs(c.x - cols.usd!));
-    const usd = money.filter((c) => Math.abs(c.x - cols.usd!) < Math.abs(c.x - cols.pesos!));
+    const usdX = cols.usd ?? Infinity;
+    const pesos = money.filter((c) => Math.abs(c.x - cols.pesos!) <= Math.abs(c.x - usdX));
+    const usd = money.filter((c) => Math.abs(c.x - usdX) < Math.abs(c.x - cols.pesos!));
     const usdNonZero = usd.find((c) => parseAmount(c.s, fmt) !== 0);
     if (pesos.length) amountRaw = pesos[pesos.length - 1].s;
     else if (usdNonZero) {
@@ -533,6 +561,15 @@ function parseMovementLine(
 
   const parsed = parseAmount(amountRaw, fmt);
   if (parsed === null) return null;
+
+  // Diseño en tres renglones (p. ej. Ualá): descripción arriba, fecha/cupón/importe, y lugar + cuota debajo.
+  concept = concept.replace(/(^|\s)[A-Z]?\d{4,}[A-Z*]?(?=\s|$)/g, ' ').trim();
+  const plain = (x?: SourceLine) => !!x && !DATE_TOKEN.test(x.text) && !findAmounts(x.text).some((a) => isMoneyLike(a.raw)) && !headerColumns(x);
+  if (!/[a-záéíóúñ]{2,}/i.test(concept) && plain(ctx.prev)) {
+    concept = ctx.prev!.cells && cols.detalle !== undefined ? ctx.prev!.cells.filter((c) => c.x >= cols.detalle! - 15).map((c) => c.s).join(' ') : ctx.prev!.text;
+  }
+  const below = plain(ctx.next) ? ctx.next!.text.match(/\((\d{1,2})\/(\d{1,2})\)/) : null;
+  if (below && !INSTALLMENT_EXPLICIT.test(concept) && !INSTALLMENT_BARE.test(concept)) concept = `${concept} C.${below[1]}/${below[2]}`;
 
   let installment: ParsedItem['installment'];
   let installmentConfidence: Confidence | undefined;
