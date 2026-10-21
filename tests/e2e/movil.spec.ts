@@ -15,3 +15,30 @@ test('diseño adaptable en Android: sin desplazamiento horizontal y navegación 
   await expect(page.locator('.topbar h1')).toHaveText('Objetivo de viaje');
   await page.screenshot({ path: 'test-results/movil-viaje.png', fullPage: true });
 });
+
+test.describe('primera vez en el celular', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test('la guía resalta la navegación inferior y las burbujas no se salen de la pantalla', async ({ page }) => {
+    await page.goto('/');
+    const guia = page.getByTestId('guia');
+    await guia.getByRole('button', { name: 'Empezar la guía' }).click();
+    const nav = (await page.locator('nav.bottom [data-tour="nav-inicio"]').boundingBox())!;
+    await expect.poll(async () => Math.abs(((await page.locator('.tour-spot').boundingBox())?.y ?? -99) + 6 - nav.y)).toBeLessThan(2);
+    const spot = (await page.locator('.tour-spot').boundingBox())!;
+    const card = await guia.boundingBox();
+    const vw = page.viewportSize()!.width;
+    expect(card!.x).toBeGreaterThanOrEqual(0);
+    expect(card!.x + card!.width).toBeLessThanOrEqual(vw);
+    // La tarjeta no tapa el elemento resaltado
+    expect(card!.y + card!.height).toBeLessThanOrEqual(spot.y);
+    await page.screenshot({ path: 'test-results/movil-guia.png' });
+    await guia.getByRole('button', { name: 'Salir' }).click();
+    await expect(guia).toHaveCount(0);
+    await page.getByRole('button', { name: 'Qué es la pantalla Este mes' }).click();
+    const b = await page.locator('.help-bubble').boundingBox();
+    expect(b!.x).toBeGreaterThanOrEqual(0);
+    expect(b!.x + b!.width).toBeLessThanOrEqual(vw);
+    await page.screenshot({ path: 'test-results/movil-burbuja.png' });
+  });
+});

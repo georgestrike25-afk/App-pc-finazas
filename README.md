@@ -27,6 +27,7 @@ Aplicación para **Android (APK)**, **Windows** y navegador (PWA) para gestionar
 | Módulo | Qué hace |
 |---|---|
 | **Este mes** (pantalla de inicio) | Cuánto te queda este mes (solo con lo real: sueldo cobrado y gastos anotados), lo que entró, lo que gastaste y las cuotas, la barra del presupuesto diario y la lista **Pendientes** (sueldo, resúmenes a pagar, cuotas del mes, reintegro de Sancor, copia de seguridad) con botones "Ya lo pagué". Navegación en 5 secciones: *Este mes · Subir · Deudas · Gastos · Viaje* y *Más* (Cómo usar, Configuración, Copias, Historial). |
+| **Ayuda en pantalla** | Signo **?** al lado de cada título, dato y campo importante: al tocarlo aparece una burbuja que explica qué es y qué poner. **Guía paso a paso** que se abre sola la primera vez en cada dispositivo (recorre Este mes, Subir, Deudas, Gastos, Viaje y Más resaltando cada parte); se puede volver a ver desde *Más → Cómo usar*. |
 | **Detalle del mes** | Indicadores del mes (ingresos cobrados, gastos, cuotas, saldo disponible, deudas pendientes, avance del ahorro), calculadora desplegable con el detalle de cada operación, advertencias y gráfico de 6 meses. |
 | **Ingresos** | Registro por mes: ingreso cobrado, fecha, adicionales, deducciones, observaciones y neto. Estado *confirmado* / *estimado* / *sin cargar*. Nunca se copia al mes siguiente. Las ediciones guardan el historial de versiones. |
 | **Gastos** | Gastos cotidianos (contra el presupuesto) y personales (no se dividen); únicos o recurrentes, con ajuste por mes. |

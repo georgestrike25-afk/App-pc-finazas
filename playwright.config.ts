@@ -13,6 +13,8 @@ export default defineConfig({
     timezoneId: 'America/Argentina/Buenos_Aires',
     acceptDownloads: true,
     trace: 'retain-on-failure',
+    // La guía paso a paso se abre sola la primera vez; las pruebas la dan por vista (tiene su propia prueba).
+    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'fp.guiaVista', value: '1' }] }] },
   },
   projects: [
     { name: 'escritorio', use: { ...devices['Desktop Chrome'] }, testIgnore: /movil\.spec\.ts/ },

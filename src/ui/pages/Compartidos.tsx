@@ -26,7 +26,7 @@ function SancorForm({ initial, onClose }: { initial: Partial<SancorCharge> & { m
       <div className="form-grid">
         <Field label="Mes del resumen">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
         <Field label="Importe total del cupón (cobrado en la tarjeta)" error={err}>{(id) => <MoneyInput id={id} value={d.chargeAmount} onChange={(v) => setD({ ...d, chargeAmount: v })} />}</Field>
-        <Field label="Porcentaje que corresponde a la pareja">{(id) => <input id={id} type="number" min={0} max={100} value={d.partnerPct} onChange={(e) => setD({ ...d, partnerPct: Number(e.target.value) })} />}</Field>
+        <Field label="Porcentaje que corresponde a la pareja" help="Qué parte de la cuota de Sancor le toca pagar a tu pareja (y te la devuelve).">{(id) => <input id={id} type="number" min={0} max={100} value={d.partnerPct} onChange={(e) => setD({ ...d, partnerPct: Number(e.target.value) })} />}</Field>
       </div>
       <Field label="Observaciones">{(id) => <textarea id={id} rows={2} value={d.notes ?? ''} onChange={(e) => setD({ ...d, notes: e.target.value })} />}</Field>
     </Modal>
@@ -77,12 +77,13 @@ export function CompartidosPage() {
         <div className="kpi"><span>Parte de {p}</span><Money value={sum(occ.map((o) => o.partnerShare))} /></div>
         <div className="kpi"><span>{bal >= 0 ? `${p} me debe` : `Le debo a ${p}`}</span><Money value={Math.abs(bal)} /></div>
       </div>
-      <Card title="Gastos del hogar (alquiler, servicios, supermercado compartido…)">
+      <Card title="Gastos del hogar (alquiler, servicios, supermercado compartido…)" help="Gastos que dividís con tu pareja. En cada uno podés elegir qué parte es tuya (por defecto 50 %) y quién lo pagó; arriba ves quién le debe a quién.">
         <ExpenseTable kinds={['hogar']} emptyText="Registre alquiler, electricidad, gas, internet, supermercado compartido u otros. El reparto inicial es 50/50 y se puede editar en cada gasto." />
       </Card>
 
       <Card
         title="Sancor Salud"
+        help="La tarjeta te cobra la cuota entera de Sancor, pero tu pareja te devuelve su parte. Acá ves cuánto te tienen que devolver y anotás cuando te lo dan."
         actions={<button className="btn small" onClick={() => setSancorEdit({ id: uid(), month, partnerPct: data.settings.sancorPartnerPct })}>+ Asociar cargo manualmente</button>}
       >
         <p className="muted small">

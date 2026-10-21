@@ -75,10 +75,10 @@ function ObligationForm({ initial, onClose }: { initial: ObDraft; onClose: () =>
         </Field>
         <Field label="Concepto" error={errors.concept}>{(id) => <input id={id} name="concept" value={d.concept} onChange={(e) => setD({ ...d, concept: e.target.value })} />}</Field>
         <Field label="Importe original (opcional)">{(id) => <MoneyInput id={id} value={d.originalAmount} onChange={(v) => setD({ ...d, originalAmount: v })} />}</Field>
-        <Field label="Saldo pendiente conocido (opcional)" hint="Informado por la entidad.">{(id) => <MoneyInput id={id} value={d.knownBalance} onChange={(v) => setD({ ...d, knownBalance: v })} />}</Field>
+        <Field label="Saldo pendiente conocido (opcional)" help="Si el banco te dice cuánto debés en total, ponelo acá. Si no, la app lo calcula con las cuotas." hint="Informado por la entidad.">{(id) => <MoneyInput id={id} value={d.knownBalance} onChange={(v) => setD({ ...d, knownBalance: v })} />}</Field>
         <Field label="Fecha de origen">{(id) => <input id={id} type="date" value={d.originDate ?? ''} onChange={(e) => setD({ ...d, originDate: e.target.value || undefined })} />}</Field>
         <Field label="Cantidad total de cuotas" hint="Vacío si se desconoce (la proyección será estimada).">{(id) => <input id={id} name="totalInstallments" type="number" min={1} value={d.totalInstallments ?? ''} onChange={(e) => setD({ ...d, totalInstallments: num(e.target.value) })} />}</Field>
-        <Field label="Cuotas ya pagadas" error={errors.paid}>{(id) => <input id={id} name="paidInstallments" type="number" min={0} value={d.paidInstallments} onChange={(e) => setD({ ...d, paidInstallments: num(e.target.value) ?? 0 })} />}</Field>
+        <Field label="Cuotas ya pagadas" help="Cuántas cuotas pagaste hasta hoy. Por ejemplo, si vas por la cuota 5 y ya la pagaste, poné 5." error={errors.paid}>{(id) => <input id={id} name="paidInstallments" type="number" min={0} value={d.paidInstallments} onChange={(e) => setD({ ...d, paidInstallments: num(e.target.value) ?? 0 })} />}</Field>
         <Field label="Importe de cada cuota">{(id) => <MoneyInput id={id} name="installmentAmount" value={d.installmentAmount} onChange={(v) => setD({ ...d, installmentAmount: v })} />}</Field>
         <Field label={`Mes de vencimiento de la cuota ${d.paidInstallments + 1}`}>{(id) => <MonthSelect id={id} value={d.nextDueMonth ?? today} onChange={(m) => setD({ ...d, nextDueMonth: m })} />}</Field>
         <Field label="Día de vencimiento (opcional)">{(id) => <input id={id} type="number" min={1} max={31} value={d.dueDay ?? ''} onChange={(e) => setD({ ...d, dueDay: num(e.target.value) })} />}</Field>
@@ -99,7 +99,7 @@ function ObligationForm({ initial, onClose }: { initial: ObDraft; onClose: () =>
       </div>
       <label className="check"><input type="checkbox" checked={d.variableAmount} onChange={(e) => setD({ ...d, variableAmount: e.target.checked })} /> Importe variable (intereses, ajustes): las cuotas futuras se marcan como estimadas</label>
       {existing && (
-        <Field label="Los cambios de importe o calendario rigen desde" hint="Las cuotas de meses anteriores conservan su importe (no se alteran en silencio).">
+        <Field label="Los cambios de importe o calendario rigen desde" help="Desde qué mes vale el cambio. Los meses anteriores no se tocan." hint="Las cuotas de meses anteriores conservan su importe (no se alteran en silencio).">
           {(id) => <MonthSelect id={id} value={effectiveFrom} onChange={setEffectiveFrom} />}
         </Field>
       )}
@@ -283,7 +283,7 @@ export function DeudasPage() {
           <button className="btn primary" onClick={fixAhead}>Dejar pagadas solo las vencidas hasta hoy</button>
         </Card>
       )}
-      <Card title="Préstamos, compras en cuotas y financiaciones">
+      <Card title="Préstamos, compras en cuotas y financiaciones" help="Cada deuda con sus cuotas. Tocá Ver cuotas para ver en qué cuota vas, cuánto falta o corregir una cuota que marcaste como pagada por error.">
         {obs.length > 0 && (
           <div className="ob-cards">
             {obs.map((o) => {
@@ -354,7 +354,7 @@ export function DeudasPage() {
         )}
       </Card>
 
-      <Card title="Resúmenes de tarjeta">
+      <Card title="Resúmenes de tarjeta" help="Los resúmenes que subiste: total a pagar, vencimiento y si ya está pagado.">
         <Warnings items={statements.length ? ['El total del resumen es lo que exige la tarjeta. No se suma como deuda nueva: los consumos y cuotas ya se computan por separado.'] : []} />
         {statements.length === 0 ? (
           <Empty title="Sin resúmenes registrados">Los resúmenes se registran al importar un documento.</Empty>
@@ -387,7 +387,7 @@ export function DeudasPage() {
         )}
       </Card>
 
-      <Card title="Pagos de resúmenes registrados">
+      <Card title="Pagos de resúmenes registrados" help="Los pagos de tarjeta que se registraron, desde la captura del banco o con Ya lo pagué. No se cuentan como gasto: el gasto son las compras del resumen.">
         {payments.length === 0 ? (
           <Empty title="Sin pagos registrados" />
         ) : (

@@ -201,7 +201,7 @@ test('13. exportación y restauración de una copia de seguridad cifrada', async
 
   // Restaurar
   await go(page, 'copias');
-  await page.getByLabel('Modo').selectOption('reemplazar');
+  await page.getByLabel('Modo', { exact: true }).selectOption('reemplazar');
   await page.getByLabel('Archivo de copia').setInputFiles(path!);
   await page.getByLabel('Contraseña de la copia').fill('clave-e2e-1234');
   await page.getByRole('button', { name: 'Descifrar y continuar' }).click();

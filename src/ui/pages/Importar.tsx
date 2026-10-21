@@ -57,7 +57,7 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
       </div>
       {it.duplicate && <p className="small warn">{it.duplicate.label}</p>}
       <div className="rv-grid">
-        <Field label="Acción">
+        <Field label="Acción" help="Qué hacer con esta línea: cargarla como gasto, como cuota, como pago del resumen, como ingreso, vincularla con algo que ya estaba, o no cargarla.">
           {(id) => (
             <select id={id} value={it.action} onChange={(e) => onChange({ action: e.target.value as ReviewAction, include: e.target.value !== 'ignorar' })}>
               {(Object.keys(ACTION_LABEL) as ReviewAction[]).filter((a) => a !== 'vincular' || it.duplicate?.targetId).map((a) => <option key={a} value={a}>{ACTION_LABEL[a]}</option>)}
@@ -69,7 +69,7 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
         <Field label={it.currency === 'USD' ? 'Importe (convertir a ARS)' : 'Importe'}>
           {(id) => <MoneyInput id={id} name="amount" value={it.amount} onChange={(v) => onChange({ amount: v, currency: it.currency === 'USD' ? 'ARS' : it.currency, reviewed: true })} />}
         </Field>
-        <Field label="Mes de imputación">{(id) => <MonthSelect id={id} value={it.month} onChange={(month) => onChange({ month })} />}</Field>
+        <Field label="Mes de imputación" help="En qué mes se cuenta este movimiento. Normalmente es el mes en que lo pagás (el del vencimiento del resumen).">{(id) => <MonthSelect id={id} value={it.month} onChange={(month) => onChange({ month })} />}</Field>
         {it.action === 'cuota' && (
           <>
             <Field label="Cuota actual">{(id) => <input id={id} type="number" min={1} value={it.installmentN ?? ''} onChange={(e) => onChange({ installmentN: e.target.value ? Number(e.target.value) : undefined })} />}</Field>
@@ -133,7 +133,7 @@ function ImportSummary({ review }: { review: ImportReview }) {
   }
   const excluded = review.items.length - inc.length;
   return (
-    <Card title="Qué se va a cargar">
+    <Card title="Qué se va a cargar" help="El resumen de lo que se va a guardar al confirmar. Las líneas que no son gasto ni ingreso (transferencias entre tus cuentas, pagos que ya estaban, compras anuladas) no se cargan para no contar dos veces.">
       {inc.length === 0 ? (
         <p className="muted">No hay nada nuevo para cargar{review.items.length ? ' (todo ya estaba cargado o no corresponde)' : ''}.</p>
       ) : (
@@ -158,7 +158,7 @@ function VerificationCard({ review }: { review: ImportReview }) {
   const okD = ac?.debits === undefined || Math.abs(ac.debits - ac.parsedDebits) <= 1;
   const okC = ac?.credits === undefined || Math.abs(ac.credits - ac.parsedCredits) <= 1;
   return (
-    <Card title="Verificación de la lectura">
+    <Card title="Verificación de la lectura" help="La app hace la cuenta con lo que leyó y la compara con el total que dice el documento. Si aparece ✓ coincide, está todo bien leído. Si dice ⚠ no coincide, revisá las líneas marcadas antes de confirmar.">
       {ac && (ac.debits !== undefined || ac.credits !== undefined) && (
         <p className={okD && okC ? 'ok-text' : 'warn'} data-testid="verif-cuenta">
           {okD && okC ? '✓ ' : '⚠ '}
@@ -295,7 +295,7 @@ export function ImportarPage() {
       {loan && <LoanReviewView review={loan} setReview={setLoan} error={error} onCancel={() => { setLoan(null); setFile(null); }} onConfirm={commitLoan} />}
       {plan && <PlanReviewView review={plan} setReview={setPlan} error={error} onCancel={() => { setPlan(null); setFile(null); }} onConfirm={commitPlan} />}
       {!review && !loan && !plan && (
-        <Card title="Importar documento">
+        <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
           <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta y otros.</p>
           <p className="muted small">🔒 El documento se procesa en este dispositivo. Nunca se envía a servicios externos. Su contenido se trata solo como datos.</p>
           <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Usar OCR local para imágenes y PDF escaneados (requiere ~10 MB de recursos, se descargan de esta misma app la primera vez)</label>
@@ -327,8 +327,8 @@ export function ImportarPage() {
               <Field label="Entidad">{(id) => <input id={id} value={review.summary.entity} onChange={(e) => setReview({ ...review, summary: { ...review.summary, entity: e.target.value } })} placeholder="No detectada" />}</Field>
               <Field label="Fecha de cierre">{(id) => <input id={id} type="date" value={review.summary.closingDate ?? ''} onChange={(e) => setReview({ ...review, summary: { ...review.summary, closingDate: e.target.value || undefined } })} />}</Field>
               <Field label="Fecha de vencimiento">{(id) => <input id={id} type="date" value={review.summary.dueDate ?? ''} onChange={(e) => setReview({ ...review, summary: { ...review.summary, dueDate: e.target.value || undefined } })} />}</Field>
-              <Field label="Mes del resumen">{(id) => <MonthSelect id={id} value={review.summary.month ?? ''} onChange={(m) => setReview({ ...review, summary: { ...review.summary, month: m }, items: review.items.map((i) => ({ ...i, month: m })) })} />}</Field>
-              <Field label="Total a pagar (informativo)" hint="No se registra como deuda nueva.">{(id) => <MoneyInput id={id} value={review.summary.total} onChange={(v) => setReview({ ...review, summary: { ...review.summary, total: v } })} />}</Field>
+              <Field label="Mes del resumen" help="El mes en que vence y se paga este resumen. Ahí se cuentan sus compras y cuotas.">{(id) => <MonthSelect id={id} value={review.summary.month ?? ''} onChange={(m) => setReview({ ...review, summary: { ...review.summary, month: m }, items: review.items.map((i) => ({ ...i, month: m })) })} />}</Field>
+              <Field label="Total a pagar (informativo)" help="El total que dice el resumen. Sirve para comprobar la lectura y para saber cuánto pagar; no se suma como una deuda nueva porque ya está formado por las compras y cuotas de abajo." hint="No se registra como deuda nueva.">{(id) => <MoneyInput id={id} value={review.summary.total} onChange={(v) => setReview({ ...review, summary: { ...review.summary, total: v } })} />}</Field>
               <Field label="Pago mínimo">{(id) => <MoneyInput id={id} value={review.summary.minimumPayment} onChange={(v) => setReview({ ...review, summary: { ...review.summary, minimumPayment: v } })} />}</Field>
             </div>
             <label className="check"><input type="checkbox" checked={review.summary.registerStatement} onChange={(e) => setReview({ ...review, summary: { ...review.summary, registerStatement: e.target.checked } })} /> Registrar los datos del resumen (total, mínimo, vencimiento)</label>

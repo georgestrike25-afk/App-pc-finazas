@@ -256,6 +256,7 @@ tr.dim { opacity: 0.5; }
 .tabs { display: flex; gap: 0.25rem; overflow-x: auto; margin: -0.25rem 0 1rem; padding-bottom: 0.25rem; }
 .tabs a { white-space: nowrap; padding: 0.45rem 0.85rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); text-decoration: none; font-size: 0.9rem; }
 .tabs a.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); font-weight: 600; }
+.side-more { display: flex; flex-direction: column; gap: 2px; }
 .side-sep { margin: 0.75rem 0.7rem 0.25rem; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .hero { display: flex; flex-direction: column; gap: 0.5rem; }
 .hero-label { color: var(--muted); font-size: 0.95rem; }
@@ -285,3 +286,36 @@ tr.dim { opacity: 0.5; }
 
 .content, .page { min-width: 0; max-width: 100%; }
 .card { overflow-wrap: anywhere; }
+
+/* Ayuda: signo de pregunta con burbuja */
+.help-btn { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; min-width: 1.35rem; padding: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--primary) 60%, var(--border)); background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); font: 700 0.78rem/1 system-ui, sans-serif; cursor: pointer; vertical-align: middle; flex-shrink: 0; position: relative; }
+.help-btn::after { content: ''; position: absolute; inset: -0.6rem; }
+.help-btn:hover, .help-btn.on { background: var(--primary); color: var(--primary-ink); }
+.help-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.help-bubble { position: fixed; z-index: 60; background: var(--text); color: var(--bg); border-radius: 12px; padding: 0.75rem 0.85rem 0.5rem; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3); font-size: 0.9rem; line-height: 1.45; font-weight: 400; text-align: left; }
+.help-bubble.up { transform: translateY(-100%); }
+.help-bubble::before { content: ''; position: absolute; left: calc(var(--arrow) - 7px); top: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--text); }
+.help-bubble.up::before { top: auto; bottom: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: var(--text); }
+.help-bubble .help-body p { margin: 0 0 0.4rem; }
+.help-bubble .help-body ul { margin: 0 0 0.4rem; padding-left: 1.1rem; }
+.help-bubble .btn { color: var(--bg); border-color: transparent; float: right; margin-top: 0.15rem; }
+.help-bubble::after { content: ''; display: block; clear: both; }
+.card-t, .field-l, .topbar-t, .inline-help { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.topbar-t { flex: 1; }
+.topbar-t h1 { flex: 0 1 auto; }
+.check-inline { display: flex; align-items: center; gap: 0.5rem; }
+.check-inline .check { margin: 0.4rem 0; }
+.linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--primary); text-decoration: underline; cursor: pointer; }
+
+/* Guía paso a paso */
+.tour-block { position: fixed; inset: 0; z-index: 70; }
+.tour-spot { position: fixed; z-index: 71; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.68); outline: 3px solid var(--primary); pointer-events: none; transition: all 0.2s ease; }
+.tour-dim { position: fixed; inset: 0; z-index: 71; background: rgba(2, 6, 23, 0.68); pointer-events: none; }
+.tour-card { position: fixed; z-index: 72; width: min(360px, calc(100vw - 24px)); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 1rem; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); }
+.tour-card h2 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+.tour-card p { margin: 0 0 0.75rem; }
+.tour-card .tour-foot { display: flex; align-items: center; gap: 0.4rem; justify-content: space-between; flex-wrap: wrap; }
+.tour-card .tour-step { color: var(--muted); font-size: 0.8rem; }
+.tour-dots { display: flex; gap: 4px; margin-bottom: 0.6rem; }
+.tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+.tour-dots i.on { background: var(--primary); }

@@ -1,4 +1,5 @@
 import { Card } from '../components/ui';
+import { startTour } from '../components/Tour';
 
 /** Guía corta de uso, en lenguaje simple. */
 export function AyudaPage() {
@@ -6,6 +7,10 @@ export function AyudaPage() {
     <div className="page ayuda">
       <Card title="La idea">
         <p>Casi todo lo cargan tus documentos. Vos subís los PDF o capturas y la app arma las cuentas. A mano solo anotás lo que pagás en efectivo.</p>
+        <p>¿No entendés algo? Tocá el signo <span className="help-btn" aria-hidden>?</span> que está al lado de los títulos y datos: aparece una burbuja que te explica qué es.</p>
+        <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
+          <button className="btn primary" onClick={startTour}>Ver la guía paso a paso</button>
+        </div>
       </Card>
       <Card title="Una sola vez">
         <ol>

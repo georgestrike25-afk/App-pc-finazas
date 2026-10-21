@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppProvider, useAppMaybe } from './store';
-import { ConfirmHost } from './components/ui';
+import { ConfirmHost, Help } from './components/ui';
+import { Tour } from './components/Tour';
 import { getLock, verifyPin } from './lock';
 import { ResumenPage } from './pages/Resumen';
 import { EsteMesPage } from './pages/EsteMes';
@@ -38,25 +39,27 @@ interface RouteDef {
   nav: Nav;
   /** Sección principal a la que pertenece (para marcarla activa y mostrar pestañas). */
   group?: 'deudas' | 'plata';
+  /** Qué es esta pantalla, para la burbuja de ayuda del título. */
+  help: string;
 }
 
 export const ROUTES: RouteDef[] = [
-  { path: 'inicio', label: 'Este mes', icon: '◎', el: EsteMesPage, nav: 'main' },
-  { path: 'importar', label: 'Subir documento', short: 'Subir', icon: '⇪', el: ImportarPage, nav: 'main' },
-  { path: 'entidades', label: 'Deuda por entidad', short: 'Deudas', icon: '▤', el: EntidadesPage, nav: 'main', group: 'deudas' },
-  { path: 'gastos', label: 'Gastos', icon: '↑', el: GastosPage, nav: 'main', group: 'plata' },
-  { path: 'viaje', label: 'Objetivo de viaje', short: 'Viaje', icon: '✈', el: ViajePage, nav: 'main' },
-  { path: 'ayuda', label: 'Cómo usar', icon: '?', el: AyudaPage, nav: 'more' },
-  { path: 'configuracion', label: 'Configuración', icon: '⚙', el: ConfiguracionPage, nav: 'more' },
-  { path: 'copias', label: 'Copias y sincronización', icon: '⟳', el: CopiasPage, nav: 'more' },
-  { path: 'historial', label: 'Historial', icon: '☰', el: HistorialPage, nav: 'more' },
+  { path: 'inicio', label: 'Este mes', icon: '◎', el: EsteMesPage, nav: 'main', help: 'Lo principal del mes: cuánto te queda, lo que entró, lo que gastaste, las cuotas y la lista de lo que falta hacer. Con las flechas de arriba podés ver otros meses.' },
+  { path: 'importar', label: 'Subir documento', short: 'Subir', icon: '⇪', el: ImportarPage, nav: 'main', help: 'Subí un PDF o una captura (resumen de tarjeta, cronograma de préstamo, movimientos del banco, plan de Mercado Pago). La app lo lee, te muestra lo que va a cargar y vos confirmás. Si subís algo dos veces, no se duplica.' },
+  { path: 'entidades', label: 'Deuda por entidad', short: 'Deudas', icon: '▤', el: EntidadesPage, nav: 'main', group: 'deudas', help: 'Cuánto le debés en total a cada banco o billetera, sumando préstamos y cuotas de tarjeta, y en qué mes terminás de pagar.' },
+  { path: 'gastos', label: 'Gastos', icon: '↑', el: GastosPage, nav: 'main', group: 'plata', help: 'Todos los gastos del mes. Lo de la tarjeta llega solo con el resumen; acá anotás lo que pagás en efectivo o transferencia.' },
+  { path: 'viaje', label: 'Objetivo de viaje', short: 'Viaje', icon: '✈', el: ViajePage, nav: 'main', help: 'Tu objetivo de ahorro para el viaje: cuánto cuesta, cuánto llevás ahorrado y si llegás a la fecha.' },
+  { path: 'ayuda', label: 'Cómo usar', icon: '?', el: AyudaPage, nav: 'more', help: 'Explicación corta de cómo usar la app y la guía paso a paso.' },
+  { path: 'configuracion', label: 'Configuración', icon: '⚙', el: ConfiguracionPage, nav: 'more', help: 'Nombre de tu pareja, cómo se reparten los gastos, el presupuesto diario, el PIN de bloqueo y otras opciones.' },
+  { path: 'copias', label: 'Copias y sincronización', icon: '⟳', el: CopiasPage, nav: 'more', help: 'Guardá una copia de tus datos en un archivo (hacé una por mes) o conectá el celular con la PC para que tengan los mismos datos.' },
+  { path: 'historial', label: 'Historial', icon: '☰', el: HistorialPage, nav: 'more', help: 'Todo lo que se cargó o se cambió, con fecha, y los documentos que subiste.' },
   // Pantallas a las que se llega desde las pestañas o desde "Este mes".
-  { path: 'cuotas', label: 'Cuotas futuras', icon: '⋯', el: CuotasPage, nav: 'hidden', group: 'deudas' },
-  { path: 'deudas', label: 'Tarjetas y deudas', icon: '▤', el: DeudasPage, nav: 'hidden', group: 'deudas' },
-  { path: 'ingresos', label: 'Ingresos', icon: '↓', el: IngresosPage, nav: 'hidden', group: 'plata' },
-  { path: 'compartidos', label: 'Gastos compartidos', icon: '⚭', el: CompartidosPage, nav: 'hidden', group: 'plata' },
-  { path: 'presupuesto', label: 'Presupuesto mensual', icon: '◔', el: PresupuestoPage, nav: 'hidden', group: 'plata' },
-  { path: 'resumen', label: 'Detalle del mes', icon: '◎', el: ResumenPage, nav: 'hidden' },
+  { path: 'cuotas', label: 'Cuotas futuras', icon: '⋯', el: CuotasPage, nav: 'hidden', group: 'deudas', help: 'Cuánto vas a pagar de cuotas cada mes que viene, y si quedó alguna cuota vencida sin pagar.' },
+  { path: 'deudas', label: 'Tarjetas y deudas', icon: '▤', el: DeudasPage, nav: 'hidden', group: 'deudas', help: 'Cada préstamo, compra en cuotas o plan, y los resúmenes de tarjeta. Tocá "Ver cuotas" para ver en qué cuota vas o corregir una cuota marcada por error.' },
+  { path: 'ingresos', label: 'Ingresos', icon: '↓', el: IngresosPage, nav: 'hidden', group: 'plata', help: 'Tu sueldo y otros ingresos de cada mes. Si subís la captura de los movimientos del banco, el sueldo se carga solo.' },
+  { path: 'compartidos', label: 'Gastos compartidos', icon: '⚭', el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con tu pareja (alquiler, luz, súper…). Solo se cuenta tu parte. También el cargo de Sancor Salud y lo que te devuelve.' },
+  { path: 'presupuesto', label: 'Presupuesto mensual', icon: '◔', el: PresupuestoPage, nav: 'hidden', group: 'plata', help: 'Cuánto querés gastar como máximo en el día a día (comida, transporte, salidas) y cuánto llevás.' },
+  { path: 'resumen', label: 'Detalle del mes', icon: '◎', el: ResumenPage, nav: 'hidden', help: 'La cuenta completa del mes, línea por línea: de dónde sale el número de "Te quedan".' },
 ];
 
 const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
@@ -64,6 +67,8 @@ const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
   plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['presupuesto', 'Presupuesto']],
 };
 const GROUP_HOME = { deudas: 'entidades', plata: 'gastos' } as const;
+
+const tourId = (p: string) => `nav-${p === 'entidades' ? 'deudas' : p}`;
 
 function useHashRoute(): string {
   const get = () => (window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'inicio');
@@ -138,17 +143,19 @@ function Shell() {
           {ROUTES.filter((r) => r.nav === 'main').map((r) => {
             const active = r.path === current.path || (!!r.group && r.group === current.group);
             return (
-              <a key={r.path} href={`#/${r.path}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
+              <a key={r.path} href={`#/${r.path}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} data-tour={tourId(r.path)}>
                 <span className="ico" aria-hidden>{r.icon}</span> {r.short ?? r.label}
               </a>
             );
           })}
-          <div className="side-sep">Más</div>
-          {ROUTES.filter((r) => r.nav === 'more').map((r) => (
-            <a key={r.path} href={`#/${r.path}`} className={r.path === current.path ? 'active' : ''} aria-current={r.path === current.path ? 'page' : undefined}>
-              <span className="ico" aria-hidden>{r.icon}</span> {r.label}
-            </a>
-          ))}
+          <div className="side-more" data-tour="nav-mas">
+            <div className="side-sep">Más</div>
+            {ROUTES.filter((r) => r.nav === 'more').map((r) => (
+              <a key={r.path} href={`#/${r.path}`} className={r.path === current.path ? 'active' : ''} aria-current={r.path === current.path ? 'page' : undefined}>
+                <span className="ico" aria-hidden>{r.icon}</span> {r.label}
+              </a>
+            ))}
+          </div>
         </nav>
         <div className="side-foot">
           <span className={`net ${pwa.online ? 'on' : 'off'}`}>{pwa.online ? 'En línea' : 'Sin conexión'}</span>
@@ -159,7 +166,10 @@ function Shell() {
       <div className="main">
         <header className="topbar">
           <button className="btn ghost icon only-mobile" onClick={() => setMenu(true)} aria-label="Abrir menú">☰</button>
-          <h1>{current.label}</h1>
+          <div className="topbar-t" data-tour="ayuda-pagina">
+            <h1>{current.label}</h1>
+            <Help label={`Qué es la pantalla ${current.label}`}>{current.help}</Help>
+          </div>
           <div className="topbar-r">
             <SyncBadge />
             {!pwa.online && <span className="badge badge-warn">Sin conexión</span>}
@@ -190,13 +200,13 @@ function Shell() {
           {ROUTES.filter((r) => r.nav === 'main').map((r) => {
             const active = r.path === current.path || (!!r.group && r.group === current.group);
             return (
-              <a key={r.path} href={`#/${r.group ? GROUP_HOME[r.group] : r.path}`} className={active ? 'active' : ''}>
+              <a key={r.path} href={`#/${r.group ? GROUP_HOME[r.group] : r.path}`} className={active ? 'active' : ''} data-tour={tourId(r.path)}>
                 <span aria-hidden>{r.icon}</span>
                 <small>{r.short ?? r.label}</small>
               </a>
             );
           })}
-          <button onClick={() => setMenu(true)}>
+          <button onClick={() => setMenu(true)} data-tour="nav-mas">
             <span aria-hidden>☰</span>
             <small>Más</small>
           </button>
@@ -232,6 +242,7 @@ export function App() {
     <AppProvider toast={toast}>
       <Shell />
       <ConfirmHost />
+      <Tour />
       <Toasts items={toasts} />
     </AppProvider>
   );

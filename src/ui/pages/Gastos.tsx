@@ -92,9 +92,9 @@ export function GastosPage() {
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
       <div className="page-actions">
-        <button className="btn primary" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
+        <button className="btn primary" data-tour="anotar-gasto" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
       </div>
-      <Card title={`Gastos de ${monthLabel(month)}`}>
+      <Card title={`Gastos de ${monthLabel(month)}`} help="Todos tus gastos del mes: los que anotaste a mano y los que llegaron con los resúmenes. Si es compartido con tu pareja, se cuenta solo tu parte.">
         <ExpenseTable kinds={['cotidiano', 'personal', 'hogar']} emptyText="Anotá lo que pagás en efectivo o débito. Lo de la tarjeta llega solo cuando subís el resumen." />
       </Card>
       <details className="card more-opts">

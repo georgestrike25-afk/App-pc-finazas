@@ -31,7 +31,7 @@ export function EntidadesPage() {
         <div className="kpi"><span>Este mes</span><Money value={sum(debts.map((d) => d.byMonth[today] ?? 0))} /></div>
         <div className="kpi"><span>Libre de deudas en</span><strong className="big">{last ? monthLabel(last) : '—'}</strong></div>
       </div>
-      <Card title="Cuotas por mes y entidad (próximos 12 meses)">
+      <Card title="Cuotas por mes y entidad (próximos 12 meses)" help="Cuánto vas a pagar cada mes a cada entidad. Cuando una deuda termina, la barra baja: esa plata te queda libre.">
         <BarChart data={chart} ariaLabel="Cuotas por mes y entidad" />
       </Card>
       {debts.map((d) => (

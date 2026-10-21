@@ -39,7 +39,7 @@ export function CuotasPage() {
       </div>
       <Card title="Cuotas por mes"><BarChart data={chart} ariaLabel="Cuotas futuras por mes" /></Card>
       {overdue.length > 0 && (
-        <Card title="Cuotas vencidas sin pago registrado" className="alert">
+        <Card title="Cuotas vencidas sin pago registrado" className="alert" help="Cuotas cuya fecha ya pasó y no figuran pagadas. Si ya las pagaste, subí la captura de los movimientos del banco o marcalas como pagadas en la deuda.">
           <ul className="list">{overdue.map(row)}</ul>
         </Card>
       )}

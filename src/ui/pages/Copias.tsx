@@ -101,7 +101,7 @@ export function CopiasPage() {
 
   return (
     <div className="page">
-      <Card title="Sincronizar con la PC">
+      <Card title="Sincronizar con la PC" help="Para que el celular y la PC tengan los mismos datos. Abrí la app en la PC, copiá el código que muestra y pegalo acá. Los dos tienen que estar en el mismo Wi-Fi. Los datos viajan cifrados.">
         <p className="small muted">
           La sincronización usa un servidor que corre en su propia PC (gratis, sin servicios externos). Los datos viajan cifrados con la frase de sincronización: nadie más puede leerlos.
         </p>
@@ -136,7 +136,7 @@ export function CopiasPage() {
         <p className="small muted">La PC debe estar encendida con la app de escritorio (o <code>npm run sync-server</code>) y ambos dispositivos en la misma red Wi-Fi. Mientras tanto la app funciona normalmente sin conexión y se pone al día en la próxima sincronización.</p>
       </Card>
 
-      <Card title="Exportar copia de seguridad">
+      <Card title="Exportar copia de seguridad" help="Guarda todos tus datos en un archivo. Hacé una por mes y guardala en Drive o mandatela por mail: si cambiás de celular o se borra la app, la recuperás desde Restaurar.">
         <p className="muted small">Genera un archivo con todos sus datos. Recomendado: cifrarlo con contraseña (AES-GCM 256 bits). Si olvida la contraseña, la copia no podrá recuperarse.</p>
         <div className="form-grid">
           <Field label="Contraseña (opcional, mínimo 8 caracteres)">{(id) => <input id={id} type="password" autoComplete="new-password" value={pwd} onChange={(e) => setPwd(e.target.value)} />}</Field>
@@ -157,7 +157,7 @@ export function CopiasPage() {
 
       <Card title="Restaurar o fusionar una copia">
         <div className="form-grid">
-          <Field label="Modo">
+          <Field label="Modo" help="Reemplazar: borra lo que hay y deja solo lo de la copia. Fusionar: junta la copia con lo que ya tenés, sin duplicar.">
             {(id) => (
               <select id={id} value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
                 <option value="fusionar">Fusionar con los datos actuales (sincronización manual)</option>

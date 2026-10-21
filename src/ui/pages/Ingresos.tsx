@@ -113,7 +113,7 @@ export function IngresosPage() {
         </div>
         <p className="muted small">El ingreso de un mes nunca se copia automáticamente al siguiente.</p>
       </Card>
-      <Card title="Registros">
+      <Card title="Registros" help="Un registro por mes. El sueldo se carga solo cuando subís la captura de los movimientos del banco; también lo podés cargar a mano.">
         {sorted.length === 0 ? (
           <Empty title="Todavía no hay ingresos registrados" action={<button className="btn primary" onClick={() => setEditing(newDraft())}>Registrar el primer ingreso</button>}>
             Cargue el ingreso efectivamente cobrado de cada mes. Puede registrar también estimaciones, que se muestran por separado.

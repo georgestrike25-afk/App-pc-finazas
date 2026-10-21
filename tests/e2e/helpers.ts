@@ -1,5 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 
+/** Estado del navegador con la guía inicial ya vista (para contextos creados a mano). */
+export const GUIA_VISTA = { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'fp.guiaVista', value: '1' }] }] };
+
 export async function openFresh(page: Page) {
   await page.goto('/');
   await expect(page.locator('.topbar h1')).toHaveText('Este mes');

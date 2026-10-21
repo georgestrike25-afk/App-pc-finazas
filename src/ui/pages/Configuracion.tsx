@@ -34,10 +34,10 @@ export function ConfiguracionPage() {
       <Card title="Preferencias">
         <div className="form-grid">
           <Field label="Nombre de la pareja (para los repartos)">{(id) => <input id={id} value={s.partnerName} onChange={(e) => setS({ ...s, partnerName: e.target.value })} />}</Field>
-          <Field label="Reparto por defecto de gastos del hogar (% del usuario)">{(id) => <input id={id} type="number" min={0} max={100} value={s.defaultUserPct} onChange={(e) => setS({ ...s, defaultUserPct: Number(e.target.value) })} />}</Field>
+          <Field label="Reparto por defecto de gastos del hogar (% del usuario)" help="Qué parte de los gastos compartidos pagás vos. 50 = mitad y mitad. Se puede cambiar en cada gasto.">{(id) => <input id={id} type="number" min={0} max={100} value={s.defaultUserPct} onChange={(e) => setS({ ...s, defaultUserPct: Number(e.target.value) })} />}</Field>
           <Field label="Sancor Salud: % que corresponde a la pareja">{(id) => <input id={id} type="number" min={0} max={100} value={s.sancorPartnerPct} onChange={(e) => setS({ ...s, sancorPartnerPct: Number(e.target.value) })} />}</Field>
           <Field label="Presupuesto cotidiano por defecto" hint="Valor inicial orientativo: $700.000 (editable).">{(id) => <MoneyInput id={id} value={s.dailyBudgetDefault} onChange={(v) => setS({ ...s, dailyBudgetDefault: v ?? 0, dailyBudgetIsInitialValue: false })} />}</Field>
-          <Field label="Ingreso mensual estimado (solo para proyecciones)">{(id) => <MoneyInput id={id} value={s.projectedMonthlyIncome} onChange={(v) => setS({ ...s, projectedMonthlyIncome: v ?? 0 })} />}</Field>
+          <Field label="Ingreso mensual estimado (solo para proyecciones)" help="Cuánto creés que vas a cobrar en los meses que vienen. Solo se usa para el viaje y las proyecciones; nunca se suma como cobrado.">{(id) => <MoneyInput id={id} value={s.projectedMonthlyIncome} onChange={(v) => setS({ ...s, projectedMonthlyIncome: v ?? 0 })} />}</Field>
         </div>
         <label className="check"><input type="checkbox" checked={s.storeDocumentBlobs} onChange={(e) => setS({ ...s, storeDocumentBlobs: e.target.checked })} /> Guardar una copia del documento original importado en este dispositivo</label>
         <h3>Categorías</h3>
@@ -53,7 +53,7 @@ export function ConfiguracionPage() {
         <button className="btn primary" onClick={save}>Guardar configuración</button>
       </Card>
 
-      <Card title="Bloqueo de la interfaz">
+      <Card title="Bloqueo de la interfaz" help="Pide un PIN para abrir la app, así nadie que agarre tu celular ve tus números.">
         <p className="muted small">El PIN impide abrir la interfaz en este dispositivo. No cifra la base de datos del navegador: para proteger la información use también el bloqueo del sistema operativo y copias cifradas.</p>
         {hasLock ? (
           <button className="btn danger" onClick={async () => { await clearLock(); setHasLock(false); toast('Bloqueo desactivado'); }}>Desactivar bloqueo</button>
@@ -66,7 +66,7 @@ export function ConfiguracionPage() {
         )}
       </Card>
 
-      <Card title="OCR sin conexión">
+      <Card title="OCR sin conexión" help="El OCR es lo que lee el texto de las capturas y fotos. Funciona dentro del dispositivo, sin internet.">
         <p className="muted small">El OCR (Tesseract.js, español) funciona dentro del navegador. Sus recursos (~10 MB) se sirven desde esta misma aplicación; descárguelos ahora para poder usar OCR sin internet.</p>
         <button className="btn" onClick={async () => { setOcrState('Descargando…'); try { await prefetchOcrAssets(); setOcrState('Listo: OCR disponible sin conexión.'); } catch (e) { setOcrState((e as Error).message); } }}>Preparar OCR sin conexión</button>
         {ocrState && <p className="small">{ocrState}</p>}

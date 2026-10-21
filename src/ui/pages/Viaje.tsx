@@ -74,7 +74,7 @@ export function ViajePage() {
         <div className="kpi"><span>Aporte mensual necesario ({p.monthsRemaining} meses)</span><Money value={p.requiredMonthly} /></div>
       </div>
 
-      <Card title={`¿Es alcanzable? — ${saved.name}`}>
+      <Card title={`¿Es alcanzable? — ${saved.name}`} help="Tres escenarios: conservador (ahorrás menos de lo previsto), intermedio y optimista. Tocá uno para ver su proyección mes a mes. Son estimaciones, no garantías.">
         <div className="scen-grid">
           {projections.map((x) => (
             <button key={x.scenario.key} className={`scen ${x.scenario.key === scenarioKey ? 'sel' : ''}`} onClick={() => setScenarioKey(x.scenario.key)}>
@@ -119,10 +119,10 @@ export function ViajePage() {
             <Field label="Nombre">{(id) => <input id={id} value={g.name} onChange={(e) => setG({ ...g, name: e.target.value })} />}</Field>
             <Field label="Fecha objetivo">{(id) => <MonthSelect id={id} value={g.targetMonth} onChange={(targetMonth) => setG({ ...g, targetMonth })} />}</Field>
             <Field label="Costo estimado del viaje">{(id) => <MoneyInput id={id} name="estimatedCost" value={g.estimatedCost} onChange={(v) => setG({ ...g, estimatedCost: v ?? 0 })} />}</Field>
-            <Field label="Ahorro inicial">{(id) => <MoneyInput id={id} value={g.initialSaving} onChange={(v) => setG({ ...g, initialSaving: v ?? 0 })} />}</Field>
-            <Field label="Dinero reservado" hint="Adicional a los aportes registrados.">{(id) => <MoneyInput id={id} value={g.reserved} onChange={(v) => setG({ ...g, reserved: v ?? 0 })} />}</Field>
-            <Field label="Aporte mensual previsto">{(id) => <MoneyInput id={id} name="planned" value={g.plannedMonthlyContribution} onChange={(v) => setG({ ...g, plannedMonthlyContribution: v ?? 0 })} />}</Field>
-            <Field label="% del dinero liberado por cuotas finalizadas que se destina al viaje" hint="0 % = el dinero liberado no se ahorra automáticamente.">
+            <Field label="Ahorro inicial" help="Lo que ya tenías ahorrado para el viaje antes de empezar a usar la app.">{(id) => <MoneyInput id={id} value={g.initialSaving} onChange={(v) => setG({ ...g, initialSaving: v ?? 0 })} />}</Field>
+            <Field label="Dinero reservado" help="Plata que ya tenés apartada para el viaje (por ejemplo, en otra cuenta), además de los aportes que registrás abajo." hint="Adicional a los aportes registrados.">{(id) => <MoneyInput id={id} value={g.reserved} onChange={(v) => setG({ ...g, reserved: v ?? 0 })} />}</Field>
+            <Field label="Aporte mensual previsto" help="Cuánto pensás guardar por mes para el viaje.">{(id) => <MoneyInput id={id} name="planned" value={g.plannedMonthlyContribution} onChange={(v) => setG({ ...g, plannedMonthlyContribution: v ?? 0 })} />}</Field>
+            <Field label="% del dinero liberado por cuotas finalizadas que se destina al viaje" help="Cuando terminás de pagar un préstamo o una compra en cuotas, te queda esa plata libre cada mes. Acá decís qué parte de esa plata va al viaje." hint="0 % = el dinero liberado no se ahorra automáticamente.">
               {(id) => <input id={id} type="number" min={0} max={100} value={g.reinvestPct} onChange={(e) => setG({ ...g, reinvestPct: Math.min(100, Math.max(0, Number(e.target.value))) })} />}
             </Field>
           </div>
@@ -144,12 +144,12 @@ export function ViajePage() {
           <button className="btn primary" disabled={!dirty} onClick={save}>Guardar objetivo</button>
         </Card>
         <div>
-          <Card title="Ingreso mensual estimado para proyecciones">
+          <Card title="Ingreso mensual estimado para proyecciones" help="Para calcular los meses que todavía no cobraste. No se suma como cobrado.">
             <p className="muted small">Se usa solo en meses sin ingreso cargado. No es un ingreso cobrado.</p>
             <Field label="Ingreso mensual estimado">{(id) => <MoneyInput id={id} name="projectedIncome" value={income} onChange={setIncome} />}</Field>
             <button className="btn" onClick={saveIncome}>Guardar estimación</button>
           </Card>
-          <Card title="Aportes efectivamente realizados">
+          <Card title="Aportes efectivamente realizados" help="Cada vez que guardás plata para el viaje, anotala acá. Así la app sabe cuánto llevás de verdad.">
             <div className="form-grid">
               <Field label="Importe">{(id) => <MoneyInput id={id} value={cAmount} onChange={setCAmount} />}</Field>
               <Field label="Fecha">{(id) => <input id={id} type="date" value={cDate} onChange={(e) => setCDate(e.target.value)} />}</Field>

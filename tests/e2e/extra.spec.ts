@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
-import { go } from './helpers';
+import { go, GUIA_VISTA } from './helpers';
 
 test('PDF escaneado (solo imagen) se lee con OCR local', async ({ page }) => {
   test.setTimeout(240_000);
@@ -50,8 +50,8 @@ test.describe('15. sincronización entre dos dispositivos con el servidor autoho
   });
 
   test('PC y celular convergen', async ({ browser }) => {
-    const pc = await (await browser.newContext()).newPage();
-    const phone = await (await browser.newContext()).newPage();
+    const pc = await (await browser.newContext({ storageState: GUIA_VISTA })).newPage();
+    const phone = await (await browser.newContext({ storageState: GUIA_VISTA })).newPage();
     const addExpense = async (page: typeof pc, concept: string) => {
       await go(page, 'gastos');
       await page.getByRole('button', { name: '+ Anotar gasto' }).click();
@@ -139,7 +139,7 @@ test('captura de movimientos de cuenta: detecta el sueldo del mes y lo carga', a
   await page.locator('#file').setInputFiles({ name: 'movimientos.png', mimeType: 'image/png', buffer: Buffer.from(png) });
   await expect(page.getByText('Revisión de datos extraídos')).toBeVisible({ timeout: 200_000 });
   const salary = page.getByTestId('review-item').filter({ hasText: /plan sueldos/i });
-  await expect(salary.getByLabel('Acción')).toHaveValue('ingreso');
+  await expect(salary.getByLabel('Acción', { exact: true })).toHaveValue('ingreso');
   await expect(salary.locator('input[name="amount"]')).toHaveValue('1.000.000,00');
   const old = page.getByTestId('review-item').filter({ hasText: /prestamo/i });
   await expect(old.getByLabel('Incluir')).not.toBeChecked();
@@ -215,4 +215,58 @@ test('Este mes: lo que te queda, pendientes y "Ya lo pagué"', async ({ page }) 
   // Las cuotas de ese resumen quedan pagadas
   await go(page, 'entidades');
   await expect(page.locator('.entity-card', { hasText: 'Naranja X' })).toContainText('Vas por la cuota 10 de 12');
+});
+
+test.describe('primera vez', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test('la guía paso a paso se abre sola, recorre las secciones y no vuelve a aparecer', async ({ page }) => {
+    await page.goto('/');
+    const guia = page.getByTestId('guia');
+    await expect(guia).toContainText('Te muestro cómo funciona');
+    await guia.getByRole('button', { name: 'Empezar la guía' }).click();
+    await expect(guia).toContainText('Este mes');
+    // Avanza hasta "Subir documento": abre esa pantalla
+    await guia.getByRole('button', { name: 'Siguiente' }).click();
+    await guia.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(guia.locator('h2')).toHaveText('Subir documento');
+    await expect(page.locator('.topbar h1')).toHaveText('Subir documento');
+    await expect(page.locator('.tour-spot')).toBeVisible();
+    await guia.getByRole('button', { name: 'Anterior' }).click();
+    await expect(guia.locator('h2')).toHaveText('Qué te falta hacer');
+    // Recorre el resto hasta el final
+    for (let i = 0; i < 20 && !(await guia.getByRole('button', { name: 'Empezar', exact: true }).count()); i++) await guia.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(guia.locator('h2')).toHaveText('¡Listo!');
+    await guia.getByRole('button', { name: 'Empezar', exact: true }).click();
+    await expect(guia).toHaveCount(0);
+    await expect(page.locator('.topbar h1')).toHaveText('Este mes');
+    await page.reload();
+    await expect(page.locator('.topbar h1')).toHaveText('Este mes');
+    await expect(guia).toHaveCount(0);
+    // Se puede volver a ver desde "Cómo usar"
+    await go(page, 'ayuda');
+    await page.getByRole('button', { name: 'Ver la guía paso a paso' }).click();
+    await expect(guia).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(guia).toHaveCount(0);
+  });
+});
+
+test('el signo ? abre una burbuja con la explicación', async ({ page }) => {
+  await go(page, 'importar');
+  await page.getByRole('button', { name: 'Ayuda: Importar documento' }).click();
+  const bubble = page.getByRole('dialog', { name: 'Ayuda: Importar documento' });
+  await expect(bubble).toContainText('Resumen de tarjeta');
+  await bubble.getByRole('button', { name: 'Entendido' }).click();
+  await expect(bubble).toHaveCount(0);
+  // La de la pantalla, al lado del título, y se cierra tocando afuera
+  await page.getByRole('button', { name: 'Qué es la pantalla Subir documento' }).click();
+  await expect(page.getByRole('dialog', { name: 'Qué es la pantalla Subir documento' })).toContainText('no se duplica');
+  await page.locator('.content').click({ position: { x: 5, y: 5 } });
+  await expect(page.locator('.help-bubble')).toHaveCount(0);
+  // En los campos de un formulario
+  await go(page, 'gastos');
+  await page.getByRole('button', { name: '+ Anotar gasto' }).click();
+  await page.getByRole('button', { name: 'Qué es un gasto que se repite' }).click();
+  await expect(page.locator('.help-bubble')).toContainText('todos los meses');
 });

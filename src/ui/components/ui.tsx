@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { formatARS, formatPlain, parseUserAmount, type Cents } from '../../domain/money';
 import { monthLabel, type MonthKey } from '../../domain/dates';
 
@@ -16,12 +17,91 @@ export function Badge({ tone = 'neutral', children }: { tone?: 'ok' | 'warn' | '
   return <span className={`badge badge-${tone}`}>{children}</span>;
 }
 
-export function Card({ title, actions, children, className }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
+/**
+ * Signo de pregunta que, al tocarlo, abre una burbuja con la explicación.
+ * La burbuja se dibuja fuera del contenido para que nunca quede cortada.
+ */
+export function Help({ children, label = 'Qué es esto' }: { children: ReactNode; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; arrow: number; up: boolean } | null>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const bubble = useRef<HTMLDivElement>(null);
+  const id = useId();
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const r = btn.current?.getBoundingClientRect();
+      if (!r) return;
+      const width = Math.min(320, window.innerWidth - 24);
+      const center = r.left + r.width / 2;
+      const left = Math.max(12, Math.min(center - width / 2, window.innerWidth - width - 12));
+      const up = r.top > window.innerHeight * 0.6;
+      setPos({ top: up ? r.top - 10 : r.bottom + 10, left, width, arrow: center - left, up });
+    };
+    place();
+    const outside = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!btn.current?.contains(t) && !bubble.current?.contains(t)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        btn.current?.focus();
+      }
+    };
+    window.addEventListener('pointerdown', outside);
+    window.addEventListener('keydown', esc);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('pointerdown', outside);
+      window.removeEventListener('keydown', esc);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open]);
   return (
-    <section className={`card ${className ?? ''}`}>
+    <>
+      <button
+        ref={btn}
+        type="button"
+        className={`help-btn ${open ? 'on' : ''}`}
+        aria-label={label}
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+      >
+        ?
+      </button>
+      {open && pos &&
+        createPortal(
+          <div
+            ref={bubble}
+            id={id}
+            role="dialog"
+            aria-label={label}
+            className={`help-bubble ${pos.up ? 'up' : ''}`}
+            style={{ top: pos.top, left: pos.left, width: pos.width, ['--arrow' as string]: `${pos.arrow}px` }}
+          >
+            <div className="help-body">{children}</div>
+            <button type="button" className="btn small ghost" onClick={() => setOpen(false)}>Entendido</button>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+export function Card({ title, actions, children, className, help, tour }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; help?: ReactNode; tour?: string }) {
+  return (
+    <section className={`card ${className ?? ''}`} data-tour={tour}>
       {(title || actions) && (
         <header className="card-h">
-          {title && <h2>{title}</h2>}
+          {title && (help ? <div className="card-t"><h2>{title}</h2><Help label={`Ayuda: ${typeof title === 'string' ? title : 'esta sección'}`}>{help}</Help></div> : <h2>{title}</h2>)}
           {actions && <div className="card-actions">{actions}</div>}
         </header>
       )}
@@ -40,11 +120,11 @@ export function Empty({ title, children, action }: { title: string; children?: R
   );
 }
 
-export function Field({ label, hint, error, children }: { label: string; hint?: ReactNode; error?: string; children: (id: string) => ReactNode }) {
+export function Field({ label, hint, error, help, children }: { label: string; hint?: ReactNode; error?: string; help?: ReactNode; children: (id: string) => ReactNode }) {
   const id = useId();
   return (
     <div className={`field ${error ? 'has-error' : ''}`}>
-      <label htmlFor={id}>{label}</label>
+      {help ? <div className="field-l"><label htmlFor={id}>{label}</label><Help label={`Ayuda: ${label}`}>{help}</Help></div> : <label htmlFor={id}>{label}</label>}
       {children(id)}
       {hint && !error && <small className="muted">{hint}</small>}
       {error && <small className="err">{error}</small>}

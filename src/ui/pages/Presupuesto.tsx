@@ -41,7 +41,7 @@ export function PresupuestoPage() {
         </p>
         <div className="form-grid">
           <Field label={`Presupuesto de ${monthLabel(month)}`}>{(id) => <MoneyInput id={id} value={amount} onChange={setAmount} />}</Field>
-          <Field label="Modo del mes">
+          <Field label="Modo del mes" help="Real: solo cuenta lo que anotaste. Estimado: además supone que vas a gastar lo que te queda del presupuesto (sirve para planear meses que todavía no pasaron).">
             {(id) => (
               <select id={id} value={b.mode} onChange={(e) => saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount: s.monthBudgets[month]?.amount ?? b.amount, mode: e.target.value as 'real' | 'estimado' } } }, `Modo de presupuesto ${monthLabel(month)}`)}>
                 <option value="estimado">Estimado (completa con presupuesto)</option>
@@ -52,7 +52,7 @@ export function PresupuestoPage() {
         </div>
         <button className="btn primary" onClick={() => amount !== undefined && saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount, mode: b.mode } } }, `Presupuesto de ${monthLabel(month)}`)}>Guardar presupuesto del mes</button>
       </Card>
-      <Card title="Presupuesto por defecto">
+      <Card title="Presupuesto por defecto" help="El presupuesto del día a día que se usa en todos los meses, salvo que cambies uno en particular arriba.">
         <p className="muted small">Se aplica a los meses sin presupuesto propio. El valor inicial de $700.000 es orientativo: no es un gasto registrado.</p>
         <Field label="Presupuesto cotidiano mensual por defecto">{(id) => <MoneyInput id={id} value={def} onChange={setDef} />}</Field>
         <button className="btn" onClick={() => def !== undefined && saveSettings({ dailyBudgetDefault: def, dailyBudgetIsInitialValue: false }, 'Presupuesto por defecto')}>Guardar valor por defecto</button>

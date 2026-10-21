@@ -5,7 +5,7 @@ import { monthOf, todayIso, monthLabel, type MonthKey } from '../../domain/dates
 import { splitShared, FREQUENCY_LABEL } from '../../domain/expenses';
 import { formatARS } from '../../domain/money';
 import type { Expense, ExpenseKind, Frequency, PaidBy, PaymentMethod } from '../../domain/types';
-import { Field, Modal, MoneyInput, MonthSelect } from '../components/ui';
+import { Field, Help, Modal, MoneyInput, MonthSelect } from '../components/ui';
 
 export type ExpenseDraft = Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'totalAmount'> & { id?: string; totalAmount?: number };
 
@@ -79,7 +79,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
       <div className="form-grid">
         <Field label={shared ? 'Importe total' : 'Cuánto'} error={errors.amount}>{(id) => <MoneyInput id={id} name="amount" value={d.totalAmount} allowNegative={isCredit} onChange={(v) => setD({ ...d, totalAmount: v })} />}</Field>
         <Field label="En qué" error={errors.concept}>{(id) => <input id={id} name="concept" value={d.concept} onChange={(e) => setD({ ...d, concept: e.target.value })} placeholder="Ej.: verdulería, alquiler…" />}</Field>
-        <Field label="Categoría">
+        <Field label="Categoría" help="Para agrupar tus gastos. Comida, transporte, salidas y similares cuentan para el presupuesto del día a día.">
           {(id) => (
             <>
               <input
@@ -98,6 +98,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
         </Field>
         <Field label="Fecha">{(id) => <input id={id} type="date" value={d.date} onChange={(e) => e.target.value && setD({ ...d, date: e.target.value, month: d.id ? d.month : monthOf(e.target.value) })} />}</Field>
       </div>
+      <div className="check-inline">
       <label className="check">
         <input
           type="checkbox"
@@ -106,10 +107,15 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
         />
         Compartido con {data.settings.partnerName}
       </label>
+      <Help label="Qué es un gasto compartido">Marcalo si el gasto lo dividís con tu pareja (alquiler, luz, súper). Solo se cuenta tu parte; por defecto la mitad.</Help>
+      </div>
+      <div className="check-inline">
       <label className="check">
         <input type="checkbox" checked={d.frequency !== 'unica'} onChange={(e) => setD({ ...d, frequency: e.target.checked ? 'mensual' : 'unica' })} />
         Se repite todos los meses
       </label>
+      <Help label="Qué es un gasto que se repite">Para gastos fijos como el alquiler o internet: se carga solo todos los meses, sin que lo vuelvas a anotar. Si un mes cambia el importe, lo corregís ese mes.</Help>
+      </div>
       {shared && (
         <div className="form-grid">
           <Field label="Tu parte (%)" error={errors.pct}>
@@ -135,7 +141,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
         <summary>Más opciones</summary>
         <div className="form-grid">
           {!shared && (
-            <Field label="¿Cuenta para el presupuesto del día a día?">
+            <Field label="¿Cuenta para el presupuesto del día a día?" help="Si dice sí, este gasto se descuenta de tu presupuesto diario (comida, transporte, salidas). Los gastos grandes o fijos normalmente no.">
               {(id) => (
                 <select id={id} value={d.kind} onChange={(e) => setD({ ...d, kind: e.target.value as ExpenseKind })}>
                   <option value="cotidiano">Sí (día a día)</option>
@@ -144,14 +150,14 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
               )}
             </Field>
           )}
-          <Field label="Cómo pagaste" hint={d.paymentMethod === 'tarjeta' ? 'Con tarjeta: cuando subas el resumen no se va a contar dos veces.' : undefined}>
+          <Field label="Cómo pagaste" help="Si pagaste con tarjeta de crédito, el gasto se va a ver cuando subas el resumen y la app evita contarlo dos veces." hint={d.paymentMethod === 'tarjeta' ? 'Con tarjeta: cuando subas el resumen no se va a contar dos veces.' : undefined}>
             {(id) => (
               <select id={id} value={d.paymentMethod} onChange={(e) => setD({ ...d, paymentMethod: e.target.value as PaymentMethod })}>
                 {Object.entries(METHOD_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             )}
           </Field>
-          <Field label="Mes en que se cuenta">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
+          <Field label="Mes en que se cuenta" help="Normalmente el mes de la fecha. Cambialo si el gasto corresponde a otro mes.">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
           {d.frequency !== 'unica' && (
             <>
               <Field label="Cada cuánto">
@@ -166,7 +172,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
               </Field>
             </>
           )}
-          <Field label="¿Ya está pagado?">
+          <Field label="¿Ya está pagado?" help="Si todavía no lo pagaste, queda como pendiente pero igual se cuenta en el mes.">
             {(id) => (
               <select id={id} value={d.paid ? '1' : '0'} onChange={(e) => setD({ ...d, paid: e.target.value === '1' })}>
                 <option value="1">Sí</option>

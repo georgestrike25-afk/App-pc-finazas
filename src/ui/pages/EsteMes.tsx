@@ -9,7 +9,8 @@ import { sum } from '../../domain/money';
 import { getDb } from '../../db/db';
 import { notify, saveRecord } from '../../db/repo';
 import { markStatementPaid } from '../../db/cardPayments';
-import { Card, confirmDialog, Money, MonthNav, Progress } from '../components/ui';
+import { Card, confirmDialog, Help, Money, MonthNav, Progress } from '../components/ui';
+import { startTour } from '../components/Tour';
 import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 import type { Obligation } from '../../domain/types';
 
@@ -33,7 +34,7 @@ function Pendientes({ items }: { items: CheckItem[] }) {
     toast('Cuota marcada como pagada.');
   };
   return (
-    <Card title={pending.length ? `Pendientes (${pending.length})` : 'Todo al día ✓'} className="checklist">
+    <Card title={pending.length ? `Pendientes (${pending.length})` : 'Todo al día ✓'} className="checklist" tour="pendientes" help="Lo que falta hacer este mes. Se va tildando solo cuando subís los documentos. Si ya pagaste algo y no tenés el comprobante, tocá Ya lo pagué.">
       <ul className="check-list" data-testid="pendientes">
         {[...pending, ...done].map((i) => (
           <li key={i.key} className={i.done ? 'done' : ''}>
@@ -78,7 +79,7 @@ export function EsteMesPage() {
   if (empty)
     return (
       <div className="page">
-        <Card className="welcome" title="Primeros pasos">
+        <Card className="welcome" title="Primeros pasos" tour="primeros-pasos">
           <p>La app empieza vacía. Cargá estas cuatro cosas y después solo vas a tener que subir tus resúmenes cada mes.</p>
           <ol className="steps">
             <li><a href="#/importar">Subí los <strong>cronogramas de tus préstamos</strong></a> (PDF del banco).</li>
@@ -86,7 +87,7 @@ export function EsteMesPage() {
             <li><a href="#/compartidos">Anotá tus <strong>gastos fijos del hogar</strong></a> (alquiler, luz, gas, internet).</li>
             <li><a href="#/viaje">Poné <strong>cuánto cuesta tu viaje</strong></a> y cuánto querés ahorrar por mes.</li>
           </ol>
-          <p className="muted small">Todo se guarda solo en este dispositivo. ¿Dudas? Mirá <a href="#/ayuda">Cómo usar</a>.</p>
+          <p className="muted small">Todo se guarda solo en este dispositivo. ¿Dudas? Mirá <a href="#/ayuda">Cómo usar</a> o <button type="button" className="linklike" onClick={startTour}>la guía paso a paso</button>.</p>
         </Card>
       </div>
     );
@@ -95,7 +96,18 @@ export function EsteMesPage() {
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
       <Card className="hero">
-        <span className="hero-label">{isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`}</span>
+        <span className="hero-label inline-help">
+          {isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`}
+          <Help label="Cómo se calcula lo que te queda">
+            <p><strong>Te quedan</strong> = lo que entró − lo que gastaste − las cuotas y préstamos del mes.</p>
+            <ul>
+              <li><strong>Entró:</strong> el sueldo y otros ingresos ya cobrados.</li>
+              <li><strong>Gastaste:</strong> tu parte de los gastos del hogar, tus gastos personales y los del día a día.</li>
+              <li><strong>Cuotas y préstamos:</strong> lo que vence este mes de préstamos, tarjetas y planes.</li>
+            </ul>
+            <p>Solo cuenta lo que ya pasó, no estimaciones. Tocá cada línea para ver el detalle.</p>
+          </Help>
+        </span>
         <Money value={r.available} className="hero-money" />
         {r.incomeStatus !== 'confirmado' && <small className="warn d-block">Todavía no está cargado el sueldo de este mes.</small>}
         <ul className="hero-lines">
@@ -104,6 +116,10 @@ export function EsteMesPage() {
           <li><a href="#/entidades"><span>Cuotas y préstamos</span><Money value={get('obligaciones')} /></a></li>
         </ul>
         <div className="hero-budget">
+          <span className="inline-help small muted">
+            Presupuesto del día a día
+            <Help label="Qué es el presupuesto del día a día">Es el máximo que querés gastar en el mes en comida, transporte, salidas y demás gastos chicos. La barra muestra cuánto llevás. Lo cambiás en Gastos → Presupuesto.</Help>
+          </span>
           <a href="#/presupuesto" className="muted small">Día a día: gastaste <Money value={r.info.dailyRegistered} /> de <Money value={r.info.dailyBudget} /></a>
           <Progress value={r.info.dailyRegistered} max={r.info.dailyBudget} />
         </div>
