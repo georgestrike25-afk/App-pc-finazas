@@ -97,7 +97,7 @@ test('4, 6, 7. importación de PDF con texto, corrección de importe y reimporta
   await go(page, 'compartidos');
   // El resumen de prueba vence en octubre de 2026
   await setMonth(page, '2026-10');
-  await expect(page.getByText('Total que exige la tarjeta')).toBeVisible();
+  await expect(page.getByText('Total que cobra la tarjeta')).toBeVisible();
   const sancor = page.locator('.sancor');
   await expect(sancor).toContainText('98.000,00');
   await expect(sancor).toContainText('49.000,00');

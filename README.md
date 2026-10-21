@@ -242,6 +242,8 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Planilla de gastos compartidos** (p. ej. exportada de Google Sheets como PDF, Excel o CSV; probada con una real que no se guarda en el repositorio): una fila por mes y, por cada gasto, una columna por persona. Se leen importes escritos con formatos distintos en cada celda (`$449,758.00`, `$408.149,53`, `$7981,9`). En la revisión se elige quién sos; para cada gasto compartido se guarda el total de la factura y tu parte (solo tu parte cuenta como gasto), los gastos con una sola columna tuya se cargan como personales y la columna de obra social de la pareja no se carga (es el reintegro de Sancor que ya sale del resumen de la tarjeta). Los meses futuros quedan desmarcados. Al volver a subir la planilla, lo ya cargado se reconoce y los importes cambiados se actualizan sin duplicar; si un gasto ya se anotó a mano en ese mes, se avisa y queda desmarcado.
 
+**Sancor con dos cupones**: cuando el resumen trae dos cupones de Sancor (el tuyo y el de tu pareja), se registran como **un solo cargo** con el total de la tarjeta y su detalle por cupón; la pareja devuelve su cupón entero (50 % del total si son iguales; si son distintos, se elige cuál es el suyo con un toque). Los cargos que se habían guardado por separado se unen solos al abrir la app o al sincronizar. Como cada resumen trae los importes del mes, los aumentos se reflejan solos.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites

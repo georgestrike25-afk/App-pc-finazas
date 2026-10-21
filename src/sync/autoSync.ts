@@ -1,5 +1,5 @@
 import { getDb } from '../db/db';
-import { subscribe } from '../db/repo';
+import { mergeSancorCoupons, notify, subscribe } from '../db/repo';
 import { syncNow, type SyncConfig } from './syncClient';
 
 export interface StoredSyncConfig extends SyncConfig {
@@ -60,6 +60,8 @@ export async function runSync(cfgOverride?: StoredSyncConfig): Promise<SyncStatu
   setStatus({ ...status, state: 'sincronizando', message: 'Sincronizando…' });
   try {
     const r = await syncNow(cfg);
+    // Datos de un dispositivo con una versión anterior: se unen los cupones de Sancor del mismo resumen.
+    if (r.incorporated && (await mergeSancorCoupons())) notify();
     const at = new Date().toISOString();
     await getDb().meta.put({ key: 'lastSync', value: at });
     setStatus({

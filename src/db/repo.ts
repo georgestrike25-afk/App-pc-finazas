@@ -1,6 +1,7 @@
 import { getDb, type FinanzasDB } from './db';
 import { defaultGoal, defaultSettings, GOAL_ID, SETTINGS_ID } from './defaults';
 import { uid } from '../domain/text';
+import { couponMerges } from '../domain/sancor';
 import type { DataSet } from '../domain/monthly';
 import type { AuditEntry, BaseRecord, SavingsGoal, Settings, SyncTable } from '../domain/types';
 
@@ -34,6 +35,26 @@ export async function ensureInitialized(db: FinanzasDB = getDb()): Promise<void>
     if (!(await db.goals.get(GOAL_ID))) await db.goals.put(defaultGoal(now));
   });
   await getDeviceId(db);
+  await mergeSancorCoupons(db);
+}
+
+/** Une los cupones de Sancor de un mismo resumen que se guardaron como cargos separados. */
+export async function mergeSancorCoupons(db: FinanzasDB = getDb()): Promise<number> {
+  const merges = couponMerges(await db.sancor.toArray());
+  if (!merges.length) return 0;
+  const deviceId = await getDeviceId(db);
+  const now = nowIso();
+  await db.transaction('rw', db.sancor, db.fingerprints, async () => {
+    for (const m of merges) {
+      await db.sancor.put({ ...m.merged, updatedAt: now, deviceId });
+      for (const r of m.remove) {
+        await db.sancor.put({ ...r, deleted: true, updatedAt: now, deviceId });
+        const fps = await db.fingerprints.filter((f) => f.targetType === 'sancor' && f.targetId === r.id).toArray();
+        for (const f of fps) await db.fingerprints.put({ ...f, targetId: m.keep.id, updatedAt: now, deviceId });
+      }
+    }
+  });
+  return merges.length;
 }
 
 function table(db: FinanzasDB, name: SyncTable) {

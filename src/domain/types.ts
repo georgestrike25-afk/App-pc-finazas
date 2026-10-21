@@ -160,8 +160,10 @@ export interface Reimbursement {
 
 export interface SancorCharge extends BaseRecord {
   month: MonthKey;
-  /** Importe total del cupón cobrado en la tarjeta. */
+  /** Importe total cobrado en la tarjeta (suma de los cupones del resumen). */
   chargeAmount: Cents;
+  /** Cupones que suman el cargo (p. ej. uno tuyo y uno de tu pareja en el mismo resumen). */
+  coupons?: Array<{ amount: Cents; ref?: string }>;
   /** Porcentaje que corresponde a la pareja (acuerdo configurado). */
   partnerPct: number;
   statementId?: string;

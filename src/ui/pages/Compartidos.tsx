@@ -3,7 +3,7 @@ import { useApp } from '../store';
 import { saveRecord, softDelete } from '../../db/repo';
 import { occurrencesForMonth, partnerBalance } from '../../domain/expenses';
 import { formatDate, monthLabel, todayIso, type MonthKey } from '../../domain/dates';
-import { sancorSummary } from '../../domain/sancor';
+import { chargeCoupons, partnerCoupon, pctForCoupon, sancorSummary } from '../../domain/sancor';
 import { formatARS, sum, type Cents } from '../../domain/money';
 import { uid } from '../../domain/text';
 import type { SancorCharge } from '../../domain/types';
@@ -17,7 +17,9 @@ function SancorForm({ initial, onClose }: { initial: Partial<SancorCharge> & { m
   const [err, setErr] = useState('');
   const save = async () => {
     if (!d.chargeAmount || d.chargeAmount <= 0) return setErr('Ingrese el importe del cupón');
-    await saveRecord<SancorCharge>('sancor', { received: [], ...d, chargeAmount: d.chargeAmount } as SancorCharge, `Cargo Sancor Salud ${monthLabel(d.month)}`);
+    // Si se cambia el total a mano, el detalle por cupón deja de valer.
+    const coupons = d.coupons && sum(d.coupons.map((k) => k.amount)) === d.chargeAmount ? d.coupons : undefined;
+    await saveRecord<SancorCharge>('sancor', { received: [], ...d, coupons, chargeAmount: d.chargeAmount } as SancorCharge, `Cargo Sancor Salud ${monthLabel(d.month)}`);
     toast('Cargo de Sancor Salud guardado');
     onClose();
   };
@@ -25,8 +27,8 @@ function SancorForm({ initial, onClose }: { initial: Partial<SancorCharge> & { m
     <Modal title="Cargo de Sancor Salud" onClose={onClose} footer={<><button className="btn ghost" onClick={onClose}>Cancelar</button><button className="btn primary" onClick={save}>Guardar</button></>}>
       <div className="form-grid">
         <Field label="Mes del resumen">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
-        <Field label="Importe total del cupón (cobrado en la tarjeta)" error={err}>{(id) => <MoneyInput id={id} value={d.chargeAmount} onChange={(v) => setD({ ...d, chargeAmount: v })} />}</Field>
-        <Field label="Porcentaje que corresponde a la pareja" help="Qué parte de la cuota de Sancor le toca pagar a tu pareja (y te la devuelve).">{(id) => <input id={id} type="number" min={0} max={100} value={d.partnerPct} onChange={(e) => setD({ ...d, partnerPct: Number(e.target.value) })} />}</Field>
+        <Field label={d.coupons && d.coupons.length > 1 ? 'Total cobrado en la tarjeta (suma de los cupones)' : 'Importe total del cupón (cobrado en la tarjeta)'} error={err}>{(id) => <MoneyInput id={id} value={d.chargeAmount} onChange={(v) => setD({ ...d, chargeAmount: v })} />}</Field>
+        <Field label="Porcentaje que corresponde a la pareja" help="Qué parte de la cuota de Sancor le toca pagar a tu pareja (y te la devuelve).">{(id) => <input id={id} type="number" min={0} max={100} step="any" value={d.partnerPct} onChange={(e) => setD({ ...d, partnerPct: Number(e.target.value) })} />}</Field>
       </div>
       <Field label="Observaciones">{(id) => <textarea id={id} rows={2} value={d.notes ?? ''} onChange={(e) => setD({ ...d, notes: e.target.value })} />}</Field>
     </Modal>
@@ -94,15 +96,32 @@ export function CompartidosPage() {
         ) : (
           charges.map((c) => {
             const s = sancorSummary(c);
+            const coupons = chargeCoupons(c);
+            const theirs = partnerCoupon(c);
+            const sameAmounts = coupons.every((k) => k.amount === coupons[0].amount);
             return (
-              <div key={c.id} className="sancor">
+              <div key={c.id} className="sancor" data-testid="sancor-cargo">
+                {coupons.length > 1 && (
+                  <p className="small" style={{ marginTop: 0 }}>
+                    En la tarjeta vienen <strong>{coupons.length} cupones</strong>{sameAmounts ? <> de <Money value={coupons[0].amount} /></> : <>: {coupons.map((k, i) => <span key={i}>{i ? ' y ' : ''}<Money value={k.amount} /></span>)}</>}.
+                    {theirs ? ` Uno es de ${p} y te lo devuelve entero.` : ` ${p} te devuelve el ${c.partnerPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} % del total.`}
+                  </p>
+                )}
+                {coupons.length > 1 && !sameAmounts && (
+                  <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
+                    {coupons.map((k, i) => (
+                      <button key={i} className={`btn small ${theirs === k ? 'primary' : ''}`} onClick={() => saveRecord<SancorCharge>('sancor', { ...c, partnerPct: pctForCoupon(c, k.amount) }, `Cupón de Sancor de ${p}: ${formatARS(k.amount)}`)}>
+                        {theirs === k ? '✓ ' : ''}El de {formatARS(k.amount)} es de {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <dl className="dl three">
-                  <dt>Total que exige la tarjeta</dt><dd><Money value={s.cardAmount} /></dd>
-                  <dt>Corresponde recuperar ({c.partnerPct} % de {p})</dt><dd><Money value={s.expected} /></dd>
+                  <dt>Total que cobra la tarjeta</dt><dd><Money value={s.cardAmount} /></dd>
+                  <dt>Te devuelve {p}{theirs ? ' (su cupón)' : ` (${c.partnerPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} %)`}</dt><dd><Money value={s.expected} /></dd>
                   <dt>Reintegro recibido</dt><dd><Money value={s.received} /></dd>
                   <dt>Pendiente de cobro</dt><dd><Money value={s.pending} /> {s.pending > 0 ? <Badge tone="warn">pendiente</Badge> : <Badge tone="ok">completo</Badge>}</dd>
-                  <dt>Costo neto estimado del usuario</dt><dd><Money value={s.netEstimated} estimated={s.pending > 0} /></dd>
-                  <dt>Costo neto con lo recibido</dt><dd><Money value={s.netWithReceived} /></dd>
+                  <dt>Lo que te queda a vos</dt><dd><Money value={s.netEstimated} estimated={s.pending > 0} /></dd>
                 </dl>
                 {c.received.length > 0 && (
                   <ul className="small">{c.received.map((r, i) => <li key={i}>Recibido el {formatDate(r.date)}: {formatARS(r.amount)}</li>)}</ul>

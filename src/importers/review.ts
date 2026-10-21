@@ -183,9 +183,9 @@ export async function buildReview(
         action = 'vincular';
       }
     } else if (action === 'sancor' && p.amount !== undefined) {
-      const s = sancor.find((c) => c.month === itemMonth && c.chargeAmount === p.amount);
+      const s = sancor.find((c) => c.month === itemMonth && (c.chargeAmount === p.amount || !!c.coupons?.some((k) => k.amount === p.amount)));
       if (s) {
-        duplicate = { type: 'sancor', targetId: s.id, label: 'Ya existe un cargo de Sancor Salud con ese importe en el mes.' };
+        duplicate = { type: 'sancor', targetId: s.id, label: 'Ya existe un cargo de Sancor Salud con ese cupón en el mes.' };
         action = 'vincular';
       }
     }
@@ -371,6 +371,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
       await db.fingerprints.put({ ...base(), fingerprint: it.fingerprint, documentId, targetType, targetId });
     };
 
+    const sancorThisImport = new Map<string, SancorCharge>();
     for (const it of r.items) {
       if (!it.include || it.action === 'ignorar' || it.amount === undefined) continue;
       const date = it.date ?? `${it.month}-01`;
@@ -466,10 +467,21 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         if (linked) await applyStatementPayment(db, linked, p.amount, now, deviceId);
         created.pagos++;
       } else if (it.action === 'sancor') {
-        const c: SancorCharge = { ...base(), month: it.month, chargeAmount: it.amount, partnerPct: settings.sancorPartnerPct, statementId, documentId, lineFingerprint: it.fingerprint, received: [] };
-        await db.sancor.put(c);
-        await fp(it, 'sancor', c.id);
-        created.sancor++;
+        // Varios cupones en el mismo resumen (el tuyo y el de tu pareja) forman un solo cargo.
+        const prev = sancorThisImport.get(it.month);
+        const coupon = { amount: it.amount, ref: it.concept };
+        if (prev) {
+          prev.chargeAmount += it.amount;
+          prev.coupons = [...(prev.coupons ?? []), coupon];
+          await db.sancor.put(prev);
+          await fp(it, 'sancor', prev.id);
+        } else {
+          const c: SancorCharge = { ...base(), month: it.month, chargeAmount: it.amount, coupons: [coupon], partnerPct: settings.sancorPartnerPct, statementId, documentId, lineFingerprint: it.fingerprint, received: [] };
+          sancorThisImport.set(it.month, c);
+          await db.sancor.put(c);
+          await fp(it, 'sancor', c.id);
+          created.sancor++;
+        }
       } else if (it.action === 'vincular' && it.duplicate?.targetId) {
         const id = it.duplicate.targetId;
         if (it.duplicate.type === 'gasto_manual') {
