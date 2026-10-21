@@ -54,7 +54,7 @@ test.describe('15. sincronización entre dos dispositivos con el servidor autoho
     const phone = await (await browser.newContext()).newPage();
     const addExpense = async (page: typeof pc, concept: string) => {
       await go(page, 'gastos');
-      await page.getByRole('button', { name: '+ Gasto personal' }).click();
+      await page.getByRole('button', { name: '+ Anotar gasto' }).click();
       await page.locator('input[name="concept"]').fill(concept);
       await page.locator('input[name="amount"]').fill('1.000');
       await page.getByRole('button', { name: 'Guardar' }).click();
@@ -95,7 +95,7 @@ test('cronograma de préstamo: muestra en qué cuota voy y cuánto falta', async
   const row = page.locator('tr', { hasText: 'Préstamo personal' });
   await expect(row).toContainText('3/6 pagadas');
   await expect(row).toContainText('Vas por la 4 de 6');
-  await row.getByRole('button', { name: 'Calendario' }).click();
+  await row.getByRole('button', { name: 'Ver cuotas' }).click();
   await expect(page.getByTestId('progreso')).toContainText('Intereses e impuestos que faltan');
 });
 
@@ -160,7 +160,9 @@ test('cuotas pagadas por error: aviso antes de pagar y corrección en un toque',
   const row = page.locator('.ob-table tr', { hasText: 'Préstamo personal' });
   await expect(row).toContainText('5/6 pagadas');
   // La cuota 6 vence el 05/11: la app advierte que todavía no venció
-  await row.getByRole('button', { name: 'Pagar cuota' }).click();
+  await row.getByRole('button', { name: 'Ver cuotas' }).click();
+  await page.locator('.modal').getByText('Corregir cuotas pagadas').click();
+  await page.locator('.modal').getByRole('button', { name: 'Marcar la cuota 6 como pagada' }).click();
   await expect(page.locator('.modal')).toContainText('todavía no venció');
   await page.locator('.modal').getByRole('button', { name: 'Sí, la pagué' }).click();
   await expect(row).toContainText('6/6 pagadas');
@@ -170,8 +172,8 @@ test('cuotas pagadas por error: aviso antes de pagar y corrección en un toque',
   await expect(row).toContainText('5/6 pagadas');
   await expect(page.getByText('Hay cuotas marcadas como pagadas antes de vencer')).toHaveCount(0);
   // Deshacer último pago desde el calendario
-  await row.getByRole('button', { name: 'Calendario' }).click();
-  await page.getByText('Corregir cuotas pagadas').click();
+  await row.getByRole('button', { name: 'Ver cuotas' }).click();
+  await page.locator('.modal').getByText('Corregir cuotas pagadas').click();
   await page.getByRole('button', { name: /Deshacer último pago/ }).click();
   await expect(row).toContainText('4/6 pagadas');
 });
@@ -192,4 +194,25 @@ test('plan de pagos de Mercado Pago y deuda por entidad', async ({ page }) => {
   await expect(card).toContainText('200.000,00');
   await expect(card).toContainText('último pago en diciembre de 2026');
   await expect(card.getByTestId('entity-items').locator('li')).toHaveCount(2);
+});
+
+test('Este mes: lo que te queda, pendientes y "Ya lo pagué"', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-20T12:00:00'));
+  const { makeNaranjaPdf } = await import('../fixtures/naranjaFixture');
+  await go(page, 'importar');
+  await page.locator('#file').setInputFiles({ name: 'naranja.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await makeNaranjaPdf()) });
+  await expect(page.getByTestId('verif-saldo')).toContainText('coincide');
+  await page.getByRole('button', { name: 'Confirmar e incorporar' }).click();
+  await go(page, 'inicio');
+  await expect(page.getByText('Te quedan este mes')).toBeVisible();
+  const pend = page.getByTestId('pendientes');
+  await expect(pend).toContainText('Cargar el sueldo de octubre de 2026');
+  await expect(pend).toContainText('Pagar el resumen de Naranja X');
+  await pend.getByRole('button', { name: 'Ya lo pagué' }).click();
+  await page.locator('.modal').getByRole('button', { name: 'Sí, ya lo pagué' }).click();
+  await expect(pend).toContainText('pagado');
+  await expect(pend.getByRole('button', { name: 'Ya lo pagué' })).toHaveCount(0);
+  // Las cuotas de ese resumen quedan pagadas
+  await go(page, 'entidades');
+  await expect(page.locator('.entity-card', { hasText: 'Naranja X' })).toContainText('Vas por la cuota 10 de 12');
 });

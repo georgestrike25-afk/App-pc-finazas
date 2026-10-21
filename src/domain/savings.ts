@@ -55,12 +55,12 @@ export function projectGoal(data: DataSet, goal: SavingsGoal, today: MonthKey, s
   const monthsRemaining = Math.max(0, monthDiff(today, goal.targetMonth));
   const prior = sum(goal.contributions.filter((c) => c.month < today).map((c) => c.amount));
   let acc = goal.initialSaving + goal.reserved + prior;
-  const baseObligations = computeMonth(data, today, today).sections.find((s) => s.key === 'obligaciones')!.total;
+  const baseObligations = computeMonth(data, today, today, { forceDailyEstimate: true }).sections.find((s) => s.key === 'obligaciones')!.total;
   const months: ProjectionMonth[] = [];
 
   for (let i = 0; i < monthsRemaining; i++) {
     const m = addMonths(today, i);
-    const r = computeMonth(data, m, today);
+    const r = computeMonth(data, m, today, { forceDailyEstimate: true });
     const get = (k: string) => r.sections.find((s) => s.key === k)!.total;
     const isFuture = m > today;
     const confirmedIncome = r.incomeStatus === 'confirmado';

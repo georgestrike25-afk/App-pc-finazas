@@ -92,22 +92,20 @@ export function GastosPage() {
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
       <div className="page-actions">
-        <button className="btn primary" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Gasto cotidiano</button>
-        <button className="btn" onClick={() => setEditing(newExpenseDraft('personal', month, data.settings.defaultUserPct))}>+ Gasto personal</button>
-        <a className="btn" href="#/compartidos">Gastos compartidos →</a>
+        <button className="btn primary" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
       </div>
-      <Card title="Gastos cotidianos y personales">
-        <ExpenseTable kinds={['cotidiano', 'personal']} emptyText="Registre gastos del día a día (se comparan con el presupuesto) o gastos personales que no se dividen." />
+      <Card title={`Gastos de ${monthLabel(month)}`}>
+        <ExpenseTable kinds={['cotidiano', 'personal', 'hogar']} emptyText="Anotá lo que pagás en efectivo o débito. Lo de la tarjeta llega solo cuando subís el resumen." />
       </Card>
-      <Card title="Reglas para evitar dobles cómputos">
-        <ul className="rules">
-          <li>Una compra con tarjeta se computa <strong>una sola vez</strong>: como consumo en su mes de imputación.</li>
-          <li>El <strong>pago del resumen</strong> no es un gasto: cancela consumos ya imputados y se muestra aparte.</li>
-          <li>Al importar un resumen, las líneas que coinciden con gastos cargados a mano (mismo importe, ±5 días) se <strong>vinculan</strong> en lugar de duplicarse.</li>
-          <li>Las compras en cuotas se computan como cuotas mensuales en <a href="#/deudas">Tarjetas y deudas</a>, no como un gasto por el total.</li>
-          <li>El presupuesto cotidiano solo completa la parte todavía no registrada del mes.</li>
+      <details className="card more-opts">
+        <summary>¿Cómo evita la app contar dos veces un gasto?</summary>
+        <ul className="rules small">
+          <li>Una compra con tarjeta se cuenta <strong>una sola vez</strong>, como gasto del mes.</li>
+          <li>El <strong>pago del resumen</strong> no es un gasto nuevo: cancela lo que ya se contó.</li>
+          <li>Si anotaste a mano algo que después llega en el resumen (mismo importe, ±5 días), se <strong>vincula</strong> y no se duplica.</li>
+          <li>Las compras en cuotas se cuentan cuota por cuota, en Deudas.</li>
         </ul>
-      </Card>
+      </details>
       {editing && <ExpenseForm initial={editing} onClose={() => setEditing(null)} />}
     </div>
   );

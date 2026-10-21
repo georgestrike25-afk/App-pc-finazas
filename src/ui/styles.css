@@ -184,7 +184,7 @@ tr.dim { opacity: 0.5; }
 .list { list-style: none; margin: 0; padding: 0; }
 .dl { display: grid; grid-template-columns: 1fr auto; gap: 0.4rem 1rem; margin: 0 0 0.75rem; }
 .dl dt { color: var(--muted); font-size: 0.88rem; }
-.dl dd { margin: 0; text-align: right; font-weight: 600; }
+.dl dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .dl.three { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr) minmax(110px, auto)); }
 .chart { margin: 0; }
 .chart svg { width: 100%; display: block; }
@@ -223,7 +223,7 @@ tr.dim { opacity: 0.5; }
 .rv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
 .rv-warn { margin: 0.4rem 0; padding-left: 1.1rem; }
 .src { display: block; white-space: pre-wrap; word-break: break-all; background: var(--surface-2); padding: 0.4rem; border-radius: 6px; margin-top: 0.3rem; }
-.sticky-foot { position: sticky; bottom: 0.5rem; z-index: 3; }
+.sticky-foot { position: sticky; bottom: 0.5rem; z-index: 6; box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25); }
 @media (max-width: 860px) { .sticky-foot { bottom: 4.5rem; } }
 .scen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.6rem; margin-bottom: 0.75rem; }
 .scen { display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-start; padding: 0.75rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; cursor: pointer; }
@@ -251,3 +251,37 @@ tr.dim { opacity: 0.5; }
 
 .kpi-link { text-decoration: none; color: inherit; }
 .kpi-link:hover { border-color: var(--primary); }
+
+/* Simplificación: pantalla "Este mes", pestañas, pendientes */
+.tabs { display: flex; gap: 0.25rem; overflow-x: auto; margin: -0.25rem 0 1rem; padding-bottom: 0.25rem; }
+.tabs a { white-space: nowrap; padding: 0.45rem 0.85rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); text-decoration: none; font-size: 0.9rem; }
+.tabs a.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); font-weight: 600; }
+.side-sep { margin: 0.75rem 0.7rem 0.25rem; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.hero { display: flex; flex-direction: column; gap: 0.5rem; }
+.hero-label { color: var(--muted); font-size: 0.95rem; }
+.hero-money { font-size: 2.3rem; font-weight: 800; line-height: 1.1; }
+.hero-lines { list-style: none; padding: 0; margin: 0.25rem 0; display: flex; flex-direction: column; }
+.hero-lines a { display: flex; justify-content: space-between; padding: 0.55rem 0; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; }
+.hero-lines a:hover span:first-child { color: var(--primary); }
+.hero-budget { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.25rem 0 0.5rem; }
+.hero-budget a { text-decoration: none; }
+.check-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.check-list li { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.6rem 0; border-bottom: 1px dashed var(--border); }
+.check-list li.done { color: var(--muted); }
+.check-list .mark { width: 1.4rem; height: 1.4rem; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; border: 2px solid var(--border); font-size: 0.8rem; }
+.check-list li.done .mark { border-color: var(--ok); color: var(--ok); }
+.check-list .txt { flex: 1; min-width: 0; }
+.check-list .acts { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
+.link-card { text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 0.35rem; }
+.link-card:hover { border-color: var(--primary); }
+.big-money { font-size: 1.5rem; font-weight: 700; }
+.more-opts { margin: 0.5rem 0; }
+.more-opts > summary, .lines-detail > summary { cursor: pointer; font-weight: 600; padding: 0.25rem 0; }
+.steps li { margin-bottom: 0.5rem; }
+.ayuda ol, .ayuda ul { padding-left: 1.2rem; }
+.ayuda li { margin-bottom: 0.35rem; }
+@media (max-width: 860px) { .hero-money { font-size: 2rem; } }
+.answer { font-size: 1.15rem; }
+
+.content, .page { min-width: 0; max-width: 100%; }
+.card { overflow-wrap: anywhere; }

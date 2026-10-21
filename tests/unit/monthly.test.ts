@@ -56,13 +56,16 @@ describe('calculadora mensual', () => {
     const r = computeMonth(emptyData(), '2026-10', '2026-10');
     expect(r.sections.find((s) => s.key === 'ingresos')!.total).toBe(0);
     expect(r.incomeStatus).toBe('sin_cargar');
-    // El presupuesto de $700.000 es una estimación identificada, no un gasto real
+    // El mes actual muestra solo lo real: el presupuesto de $700.000 no se suma como gasto
     const cot = r.sections.find((s) => s.key === 'cotidiano')!;
-    expect(cot.lines).toHaveLength(1);
-    expect(cot.lines[0].estimated).toBe(true);
-    expect(cot.total).toBe(70000000);
-    expect(r.info.dailyRegistered).toBe(0);
+    expect(cot.total).toBe(0);
+    expect(r.available).toBe(0);
+    expect(r.info.dailyBudget).toBe(70000000);
     expect(r.info.dailyBudgetIsInitialValue).toBe(true);
+    // En un mes futuro el presupuesto sí se usa como estimación, identificada como tal
+    const fut = computeMonth(emptyData(), '2026-11', '2026-10').sections.find((s) => s.key === 'cotidiano')!;
+    expect(fut.total).toBe(70000000);
+    expect(fut.lines[0].estimated).toBe(true);
   });
 
   it('el ingreso de un mes no se copia al siguiente', () => {
@@ -86,16 +89,17 @@ describe('calculadora mensual', () => {
     expect(r.info.statementsTotal).toBe(2000000);
   });
 
-  it('el presupuesto cotidiano solo completa lo no registrado', () => {
+  it('el presupuesto cotidiano solo completa lo no registrado (meses futuros y proyecciones)', () => {
     const d = emptyData();
     d.expenses.push(expense({ kind: 'cotidiano', month: '2026-10', totalAmount: 30000000 }));
-    const r = computeMonth(d, '2026-10', '2026-10');
-    const cot = r.sections.find((s) => s.key === 'cotidiano')!;
-    expect(cot.total).toBe(70000000);
-    expect(r.info.dailyEstimatedRemainder).toBe(40000000);
-    // Mes pasado en modo real: solo lo registrado
-    const past = computeMonth(d, '2026-10', '2026-11');
-    expect(past.sections.find((s) => s.key === 'cotidiano')!.total).toBe(30000000);
+    // Mes actual: solo lo registrado
+    expect(computeMonth(d, '2026-10', '2026-10').sections.find((s) => s.key === 'cotidiano')!.total).toBe(30000000);
+    // Para proyectar: lo registrado + lo que falta del presupuesto, sin sumar dos veces
+    const pr = computeMonth(d, '2026-10', '2026-10', { forceDailyEstimate: true });
+    expect(pr.sections.find((s) => s.key === 'cotidiano')!.total).toBe(70000000);
+    expect(pr.info.dailyEstimatedRemainder).toBe(40000000);
+    // Mes pasado: solo lo registrado
+    expect(computeMonth(d, '2026-10', '2026-11').sections.find((s) => s.key === 'cotidiano')!.total).toBe(30000000);
   });
 
   it('fórmula completa y cuotas del mes', () => {

@@ -4,6 +4,7 @@ import { buildBackup, isEncryptedBackup, parseBackup, restoreBackup, serializeBa
 import { checkServer, parsePairingCode } from '../../sync/syncClient';
 import { getSyncStatus, loadSyncConfig, onSyncStatus, runSync, saveSyncConfig, type StoredSyncConfig, type SyncStatus } from '../../sync/autoSync';
 import { isNative, saveFile, saveToDocuments } from '../../platform';
+import { getDb } from '../../db/db';
 import { Badge, Card, confirmDialog, Field } from '../components/ui';
 
 export function CopiasPage() {
@@ -39,6 +40,7 @@ export function CopiasPage() {
     try {
       const { text, name } = await backupText();
       toast(where === 'documentos' ? await saveToDocuments(name, text) : await saveFile(name, text, 'application/json'));
+      await getDb().meta.put({ key: 'lastBackup', value: new Date().toISOString() });
     } catch (e) {
       toast((e as Error).message || 'No se pudo guardar la copia', 'error');
     }

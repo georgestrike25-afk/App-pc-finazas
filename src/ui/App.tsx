@@ -3,6 +3,8 @@ import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost } from './components/ui';
 import { getLock, verifyPin } from './lock';
 import { ResumenPage } from './pages/Resumen';
+import { EsteMesPage } from './pages/EsteMes';
+import { AyudaPage } from './pages/Ayuda';
 import { IngresosPage } from './pages/Ingresos';
 import { GastosPage } from './pages/Gastos';
 import { CompartidosPage } from './pages/Compartidos';
@@ -26,24 +28,45 @@ function SyncBadge() {
   return <a href="#/copias" className={`badge ${s.state === 'error' ? 'badge-warn' : 'badge-ok'}`} title={s.message}>{label}</a>;
 }
 
-export const ROUTES = [
-  { path: 'resumen', label: 'Resumen', icon: '◎', el: ResumenPage, main: true },
-  { path: 'ingresos', label: 'Ingresos', icon: '↓', el: IngresosPage, main: true },
-  { path: 'gastos', label: 'Gastos', icon: '↑', el: GastosPage, main: true },
-  { path: 'deudas', label: 'Tarjetas y deudas', icon: '▤', el: DeudasPage, main: true },
-  { path: 'entidades', label: 'Deuda por entidad', icon: '◫', el: EntidadesPage },
-  { path: 'importar', label: 'Importar documentos', icon: '⇪', el: ImportarPage },
-  { path: 'cuotas', label: 'Cuotas futuras', icon: '⋯', el: CuotasPage },
-  { path: 'compartidos', label: 'Gastos compartidos', icon: '⚭', el: CompartidosPage },
-  { path: 'presupuesto', label: 'Presupuesto mensual', icon: '◔', el: PresupuestoPage },
-  { path: 'viaje', label: 'Objetivo de viaje', icon: '✈', el: ViajePage, main: true },
-  { path: 'historial', label: 'Historial', icon: '☰', el: HistorialPage },
-  { path: 'configuracion', label: 'Configuración', icon: '⚙', el: ConfiguracionPage },
-  { path: 'copias', label: 'Copias y sincronización', icon: '⟳', el: CopiasPage },
-] as const;
+type Nav = 'main' | 'more' | 'hidden';
+interface RouteDef {
+  path: string;
+  label: string;
+  short?: string;
+  icon: string;
+  el: () => JSX.Element;
+  nav: Nav;
+  /** Sección principal a la que pertenece (para marcarla activa y mostrar pestañas). */
+  group?: 'deudas' | 'plata';
+}
+
+export const ROUTES: RouteDef[] = [
+  { path: 'inicio', label: 'Este mes', icon: '◎', el: EsteMesPage, nav: 'main' },
+  { path: 'importar', label: 'Subir documento', short: 'Subir', icon: '⇪', el: ImportarPage, nav: 'main' },
+  { path: 'entidades', label: 'Deuda por entidad', short: 'Deudas', icon: '▤', el: EntidadesPage, nav: 'main', group: 'deudas' },
+  { path: 'gastos', label: 'Gastos', icon: '↑', el: GastosPage, nav: 'main', group: 'plata' },
+  { path: 'viaje', label: 'Objetivo de viaje', short: 'Viaje', icon: '✈', el: ViajePage, nav: 'main' },
+  { path: 'ayuda', label: 'Cómo usar', icon: '?', el: AyudaPage, nav: 'more' },
+  { path: 'configuracion', label: 'Configuración', icon: '⚙', el: ConfiguracionPage, nav: 'more' },
+  { path: 'copias', label: 'Copias y sincronización', icon: '⟳', el: CopiasPage, nav: 'more' },
+  { path: 'historial', label: 'Historial', icon: '☰', el: HistorialPage, nav: 'more' },
+  // Pantallas a las que se llega desde las pestañas o desde "Este mes".
+  { path: 'cuotas', label: 'Cuotas futuras', icon: '⋯', el: CuotasPage, nav: 'hidden', group: 'deudas' },
+  { path: 'deudas', label: 'Tarjetas y deudas', icon: '▤', el: DeudasPage, nav: 'hidden', group: 'deudas' },
+  { path: 'ingresos', label: 'Ingresos', icon: '↓', el: IngresosPage, nav: 'hidden', group: 'plata' },
+  { path: 'compartidos', label: 'Gastos compartidos', icon: '⚭', el: CompartidosPage, nav: 'hidden', group: 'plata' },
+  { path: 'presupuesto', label: 'Presupuesto mensual', icon: '◔', el: PresupuestoPage, nav: 'hidden', group: 'plata' },
+  { path: 'resumen', label: 'Detalle del mes', icon: '◎', el: ResumenPage, nav: 'hidden' },
+];
+
+const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
+  deudas: [['entidades', 'Por entidad'], ['cuotas', 'Cuotas por mes'], ['deudas', 'Préstamos y tarjetas']],
+  plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['presupuesto', 'Presupuesto']],
+};
+const GROUP_HOME = { deudas: 'entidades', plata: 'gastos' } as const;
 
 function useHashRoute(): string {
-  const get = () => (window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'resumen');
+  const get = () => (window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'inicio');
   const [r, setR] = useState(get);
   useEffect(() => {
     const h = () => {
@@ -112,7 +135,16 @@ function Shell() {
           <span>Finanzas<br /><small>Personales</small></span>
         </div>
         <nav>
-          {ROUTES.map((r) => (
+          {ROUTES.filter((r) => r.nav === 'main').map((r) => {
+            const active = r.path === current.path || (!!r.group && r.group === current.group);
+            return (
+              <a key={r.path} href={`#/${r.path}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
+                <span className="ico" aria-hidden>{r.icon}</span> {r.short ?? r.label}
+              </a>
+            );
+          })}
+          <div className="side-sep">Más</div>
+          {ROUTES.filter((r) => r.nav === 'more').map((r) => (
             <a key={r.path} href={`#/${r.path}`} className={r.path === current.path ? 'active' : ''} aria-current={r.path === current.path ? 'page' : undefined}>
               <span className="ico" aria-hidden>{r.icon}</span> {r.label}
             </a>
@@ -144,14 +176,26 @@ function Shell() {
           </div>
         )}
         {pwa.offlineReady && <div className="banner ok">La aplicación quedó lista para usarse sin conexión.<button className="btn small ghost" onClick={pwa.dismiss}>Cerrar</button></div>}
-        <main className="content" id="contenido">{ctx?.data ? <Page /> : <p className="muted">Cargando datos locales…</p>}</main>
+        <main className="content" id="contenido">
+          {current.group && (
+            <nav className="tabs" aria-label="Secciones">
+              {TABS[current.group].map(([p, l]) => (
+                <a key={p} href={`#/${p}`} className={p === current.path ? 'active' : ''} aria-current={p === current.path ? 'page' : undefined}>{l}</a>
+              ))}
+            </nav>
+          )}
+          {ctx?.data ? <Page /> : <p className="muted">Cargando datos locales…</p>}
+        </main>
         <nav className="bottom only-mobile" aria-label="Navegación principal">
-          {ROUTES.filter((r) => 'main' in r && r.main).map((r) => (
-            <a key={r.path} href={`#/${r.path}`} className={r.path === current.path ? 'active' : ''}>
-              <span aria-hidden>{r.icon}</span>
-              <small>{r.label.split(' ')[0]}</small>
-            </a>
-          ))}
+          {ROUTES.filter((r) => r.nav === 'main').map((r) => {
+            const active = r.path === current.path || (!!r.group && r.group === current.group);
+            return (
+              <a key={r.path} href={`#/${r.group ? GROUP_HOME[r.group] : r.path}`} className={active ? 'active' : ''}>
+                <span aria-hidden>{r.icon}</span>
+                <small>{r.short ?? r.label}</small>
+              </a>
+            );
+          })}
           <button onClick={() => setMenu(true)}>
             <span aria-hidden>☰</span>
             <small>Más</small>

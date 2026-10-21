@@ -9,6 +9,9 @@ import { Field, Modal, MoneyInput, MonthSelect } from '../components/ui';
 
 export type ExpenseDraft = Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'totalAmount'> & { id?: string; totalAmount?: number };
 
+/** Categorías que cuentan para el presupuesto del día a día. */
+export const DAILY_CATEGORIES = ['Supermercado', 'Combustible', 'Farmacia', 'Delivery y comidas', 'Transporte'];
+
 export const KIND_LABEL: Record<ExpenseKind, string> = {
   personal: 'Personal (no se divide)',
   cotidiano: 'Cotidiano (dentro del presupuesto)',
@@ -64,7 +67,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
 
   return (
     <Modal
-      title={d.id ? 'Editar gasto' : 'Registrar gasto'}
+      title={d.id ? 'Editar gasto' : 'Anotar gasto'}
       onClose={onClose}
       footer={
         <>
@@ -74,79 +77,106 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
       }
     >
       <div className="form-grid">
-        <Field label="Tipo de gasto">
-          {(id) => (
-            <select id={id} value={d.kind} onChange={(e) => {
-              const kind = e.target.value as ExpenseKind;
-              setD({ ...d, kind, userPct: kind === 'hogar' ? data.settings.defaultUserPct : 100 });
-            }}>
-              {Object.entries(KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          )}
-        </Field>
-        <Field label="Concepto" error={errors.concept}>{(id) => <input id={id} name="concept" value={d.concept} onChange={(e) => setD({ ...d, concept: e.target.value })} placeholder="Ej.: Alquiler, supermercado…" />}</Field>
+        <Field label={shared ? 'Importe total' : 'Cuánto'} error={errors.amount}>{(id) => <MoneyInput id={id} name="amount" value={d.totalAmount} allowNegative={isCredit} onChange={(v) => setD({ ...d, totalAmount: v })} />}</Field>
+        <Field label="En qué" error={errors.concept}>{(id) => <input id={id} name="concept" value={d.concept} onChange={(e) => setD({ ...d, concept: e.target.value })} placeholder="Ej.: verdulería, alquiler…" />}</Field>
         <Field label="Categoría">
           {(id) => (
             <>
-              <input id={id} list="cats" value={d.category} onChange={(e) => setD({ ...d, category: e.target.value })} />
+              <input
+                id={id}
+                list="cats"
+                value={d.category}
+                onChange={(e) => {
+                  const category = e.target.value;
+                  // Si no es compartido, la categoría decide si cuenta para el presupuesto del día a día.
+                  setD({ ...d, category, kind: shared ? 'hogar' : DAILY_CATEGORIES.includes(category) ? 'cotidiano' : d.kind === 'cotidiano' && category ? 'personal' : d.kind });
+                }}
+              />
               <datalist id="cats">{data.settings.categories.map((c) => <option key={c} value={c} />)}</datalist>
             </>
           )}
         </Field>
-        <Field label={shared ? 'Importe total' : 'Importe'} error={errors.amount}>{(id) => <MoneyInput id={id} name="amount" value={d.totalAmount} allowNegative={isCredit} onChange={(v) => setD({ ...d, totalAmount: v })} />}</Field>
         <Field label="Fecha">{(id) => <input id={id} type="date" value={d.date} onChange={(e) => e.target.value && setD({ ...d, date: e.target.value, month: d.id ? d.month : monthOf(e.target.value) })} />}</Field>
-        <Field label="Mes de imputación" hint="Mes en que se computa el gasto.">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
-        <Field label="Medio de pago" hint={d.paymentMethod === 'tarjeta' ? 'Se computa como consumo ahora; el pago del resumen no se resta otra vez.' : undefined}>
-          {(id) => (
-            <select id={id} value={d.paymentMethod} onChange={(e) => setD({ ...d, paymentMethod: e.target.value as PaymentMethod })}>
-              {Object.entries(METHOD_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          )}
-        </Field>
-        <Field label="Frecuencia">
-          {(id) => (
-            <select id={id} value={d.frequency} onChange={(e) => setD({ ...d, frequency: e.target.value as Frequency })}>
-              {Object.entries(FREQUENCY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          )}
-        </Field>
-        {d.frequency !== 'unica' && (
-          <Field label="Último mes (opcional)" error={errors.end} hint="Vacío = continúa hasta que lo modifique.">
-            {(id) => <input id={id} type="month" value={d.endMonth ?? ''} onChange={(e) => setD({ ...d, endMonth: e.target.value || undefined })} />}
-          </Field>
-        )}
-        {shared && (
-          <>
-            <Field label="Porcentaje del usuario" error={errors.pct}>
-              {(id) => <input id={id} name="userPct" type="number" min={0} max={100} step={1} value={d.userPct} onChange={(e) => setD({ ...d, userPct: Number(e.target.value) })} />}
-            </Field>
-            <Field label={`Porcentaje de ${data.settings.partnerName}`}>{(id) => <input id={id} type="number" value={100 - d.userPct} min={0} max={100} onChange={(e) => setD({ ...d, userPct: 100 - Number(e.target.value) })} />}</Field>
-            <Field label="¿Quién pagó?">
-              {(id) => (
-                <select id={id} value={d.paidBy ?? 'cada_uno'} onChange={(e) => setD({ ...d, paidBy: e.target.value as PaidBy })}>
-                  <option value="cada_uno">Cada uno pagó su parte</option>
-                  <option value="usuario">Lo pagué yo (total)</option>
-                  <option value="pareja">Lo pagó {data.settings.partnerName} (total)</option>
-                </select>
-              )}
-            </Field>
-          </>
-        )}
-        <Field label="Estado de pago">
-          {(id) => (
-            <select id={id} value={d.paid ? '1' : '0'} onChange={(e) => setD({ ...d, paid: e.target.value === '1' })}>
-              <option value="1">Pagado</option>
-              <option value="0">Pendiente</option>
-            </select>
-          )}
-        </Field>
       </div>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={shared}
+          onChange={(e) => setD({ ...d, kind: e.target.checked ? 'hogar' : DAILY_CATEGORIES.includes(d.category) ? 'cotidiano' : 'personal', userPct: e.target.checked ? data.settings.defaultUserPct : 100, paidBy: e.target.checked ? d.paidBy ?? 'cada_uno' : undefined })}
+        />
+        Compartido con {data.settings.partnerName}
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={d.frequency !== 'unica'} onChange={(e) => setD({ ...d, frequency: e.target.checked ? 'mensual' : 'unica' })} />
+        Se repite todos los meses
+      </label>
+      {shared && (
+        <div className="form-grid">
+          <Field label="Tu parte (%)" error={errors.pct}>
+            {(id) => <input id={id} name="userPct" type="number" min={0} max={100} step={1} value={d.userPct} onChange={(e) => setD({ ...d, userPct: Number(e.target.value) })} />}
+          </Field>
+          <Field label="¿Quién pagó?">
+            {(id) => (
+              <select id={id} value={d.paidBy ?? 'cada_uno'} onChange={(e) => setD({ ...d, paidBy: e.target.value as PaidBy })}>
+                <option value="cada_uno">Cada uno pagó su parte</option>
+                <option value="usuario">Lo pagué yo (total)</option>
+                <option value="pareja">Lo pagó {data.settings.partnerName} (total)</option>
+              </select>
+            )}
+          </Field>
+        </div>
+      )}
       {shared && split && (
         <p className="total-line">
           Corresponde al usuario: <strong>{formatARS(split.user)}</strong> · a {data.settings.partnerName}: <strong>{formatARS(split.partner)}</strong>
         </p>
       )}
-      <Field label="Observaciones">{(id) => <textarea id={id} rows={2} value={d.notes ?? ''} onChange={(e) => setD({ ...d, notes: e.target.value })} />}</Field>
+      <details className="more-opts">
+        <summary>Más opciones</summary>
+        <div className="form-grid">
+          {!shared && (
+            <Field label="¿Cuenta para el presupuesto del día a día?">
+              {(id) => (
+                <select id={id} value={d.kind} onChange={(e) => setD({ ...d, kind: e.target.value as ExpenseKind })}>
+                  <option value="cotidiano">Sí (día a día)</option>
+                  <option value="personal">No (gasto personal)</option>
+                </select>
+              )}
+            </Field>
+          )}
+          <Field label="Cómo pagaste" hint={d.paymentMethod === 'tarjeta' ? 'Con tarjeta: cuando subas el resumen no se va a contar dos veces.' : undefined}>
+            {(id) => (
+              <select id={id} value={d.paymentMethod} onChange={(e) => setD({ ...d, paymentMethod: e.target.value as PaymentMethod })}>
+                {Object.entries(METHOD_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            )}
+          </Field>
+          <Field label="Mes en que se cuenta">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
+          {d.frequency !== 'unica' && (
+            <>
+              <Field label="Cada cuánto">
+                {(id) => (
+                  <select id={id} value={d.frequency} onChange={(e) => setD({ ...d, frequency: e.target.value as Frequency })}>
+                    {Object.entries(FREQUENCY_LABEL).filter(([k]) => k !== 'unica').map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                )}
+              </Field>
+              <Field label="Hasta qué mes (opcional)" error={errors.end} hint="Vacío = sigue hasta que lo cambies.">
+                {(id) => <input id={id} type="month" value={d.endMonth ?? ''} onChange={(e) => setD({ ...d, endMonth: e.target.value || undefined })} />}
+              </Field>
+            </>
+          )}
+          <Field label="¿Ya está pagado?">
+            {(id) => (
+              <select id={id} value={d.paid ? '1' : '0'} onChange={(e) => setD({ ...d, paid: e.target.value === '1' })}>
+                <option value="1">Sí</option>
+                <option value="0">No, está pendiente</option>
+              </select>
+            )}
+          </Field>
+        </div>
+        <Field label="Notas">{(id) => <textarea id={id} rows={2} value={d.notes ?? ''} onChange={(e) => setD({ ...d, notes: e.target.value })} />}</Field>
+      </details>
       {d.documentId && <p className="muted small">Comprobante asociado: {data.documents.find((x) => x.id === d.documentId)?.name ?? 'documento'}</p>}
     </Modal>
   );

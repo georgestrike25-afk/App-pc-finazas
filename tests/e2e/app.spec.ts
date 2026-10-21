@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { makeStatementPdf } from '../fixtures/makeFixtures';
-import { fillMoney, go, kpi, openFresh, setMonth } from './helpers';
+import { fillMoney, go, kpi, openFresh, openLines, setMonth } from './helpers';
 
 test.describe.configure({ mode: 'serial' });
 
 test('1. instalación y apertura sin datos previos (manifiesto y service worker)', async ({ page }) => {
   await openFresh(page);
+  await expect(page.getByText('Primeros pasos')).toBeVisible();
+  await expect(page.getByText('La app empieza vacía')).toBeVisible();
+  await go(page, 'resumen');
   await expect(page.getByText('La aplicación comienza vacía')).toBeVisible();
   await expect(kpi(page, 'Ingresos cobrados')).toHaveText(/\$\s?0,00/);
   await expect(kpi(page, 'Deudas pendientes')).toHaveText(/\$\s?0,00/);
@@ -61,8 +64,10 @@ test('4, 6, 7. importación de PDF con texto, corrección de importe y reimporta
   const items = page.getByTestId('review-item');
   await expect(items).toHaveCount(5);
   await expect(page.getByText('no se convierte en una deuda nueva')).toBeVisible();
+  await expect(page.getByTestId('import-summary')).toContainText('2 gastos');
 
   // Corrección de un importe extraído
+  await openLines(page);
   const coto = items.filter({ hasText: 'COTO' });
   const amount = coto.locator('input[name="amount"]');
   await expect(amount).toHaveValue('32.450,50');
@@ -119,7 +124,7 @@ test('5. importación de una imagen con OCR local', async ({ page }) => {
   await expect(page.getByText('Revisión de datos extraídos')).toBeVisible({ timeout: 200_000 });
   await expect(page.getByText('OCR', { exact: true })).toBeVisible();
   const items = page.getByTestId('review-item');
-  await expect(items.first()).toBeVisible();
+  await expect(items.first()).toBeAttached();
   const values = await items.locator('input[name="amount"]').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
   expect(values).toContain('12.345,67');
   await page.getByRole('button', { name: 'Cancelar' }).first().click();
@@ -127,7 +132,7 @@ test('5. importación de una imagen con OCR local', async ({ page }) => {
 
 test('8-9. compra en cuotas manual y gasto compartido al 50 %', async ({ page }) => {
   await go(page, 'deudas');
-  await page.getByRole('button', { name: '+ Nueva obligación' }).click();
+  await page.getByRole('button', { name: '+ Nueva deuda' }).click();
   await page.locator('input[name="entity"]').fill('Naranja X');
   await page.locator('input[name="concept"]').fill('Heladera');
   await page.locator('input[name="totalInstallments"]').fill('10');
@@ -137,7 +142,7 @@ test('8-9. compra en cuotas manual y gasto compartido al 50 %', async ({ page })
   const row = page.locator('tr', { hasText: 'Heladera' });
   await expect(row).toContainText('4/10 pagadas');
   await expect(row).toContainText('300.000,00');
-  await row.getByRole('button', { name: 'Calendario' }).click();
+  await row.getByRole('button', { name: 'Ver cuotas' }).click();
   await expect(page.locator('.modal tbody tr')).toHaveCount(10);
   await expect(page.locator('.modal tbody tr', { hasText: 'pendiente' })).toHaveCount(6);
   await page.locator('.modal').getByRole('button', { name: 'Cerrar' }).click();
@@ -161,6 +166,8 @@ test('12. proyección del ahorro hasta abril de 2027', async ({ page }) => {
   await page.getByRole('button', { name: 'Guardar objetivo' }).click();
   await page.locator('input[name="projectedIncome"]').fill('2.000.000');
   await page.getByRole('button', { name: 'Guardar estimación' }).click();
+  await expect(page.getByTestId('viaje-respuesta')).toContainText('abril de 2027');
+  await page.getByText('Ver escenarios y proyección mes a mes').click();
   await expect(page.locator('.scen')).toHaveCount(3);
   await expect(page.locator('table').first()).toContainText('marzo de 2027');
   await expect(page.locator('table').first()).not.toContainText('abril de 2027');
@@ -169,7 +176,7 @@ test('12. proyección del ahorro hasta abril de 2027', async ({ page }) => {
 
 test('13. exportación y restauración de una copia de seguridad cifrada', async ({ page }) => {
   await go(page, 'deudas');
-  await page.getByRole('button', { name: '+ Nueva obligación' }).click();
+  await page.getByRole('button', { name: '+ Nueva deuda' }).click();
   await page.locator('input[name="concept"]').fill('Heladera');
   await page.locator('input[name="totalInstallments"]').fill('6');
   await page.locator('input[name="installmentAmount"]').fill('10.000');
@@ -211,10 +218,10 @@ test('14. funcionamiento sin conexión de las funciones esenciales', async ({ pa
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.locator('.topbar h1')).toHaveText('Resumen');
+  await expect(page.locator('.topbar h1')).toHaveText('Este mes');
   await expect(page.locator('.topbar').getByText('Sin conexión')).toBeVisible();
   await go(page, 'gastos');
-  await page.getByRole('button', { name: '+ Gasto cotidiano' }).click();
+  await page.getByRole('button', { name: '+ Anotar gasto' }).click();
   await page.locator('input[name="concept"]').fill('Verdulería sin conexión');
   await page.locator('input[name="amount"]').fill('5.500');
   await page.getByRole('button', { name: 'Guardar' }).click();

@@ -26,7 +26,8 @@ Aplicación para **Android (APK)**, **Windows** y navegador (PWA) para gestionar
 
 | Módulo | Qué hace |
 |---|---|
-| **Resumen** | Indicadores del mes (ingresos cobrados, gastos, cuotas, saldo disponible, deudas pendientes, avance del ahorro), calculadora desplegable con el detalle de cada operación, advertencias y gráfico de 6 meses. |
+| **Este mes** (pantalla de inicio) | Cuánto te queda este mes (solo con lo real: sueldo cobrado y gastos anotados), lo que entró, lo que gastaste y las cuotas, la barra del presupuesto diario y la lista **Pendientes** (sueldo, resúmenes a pagar, cuotas del mes, reintegro de Sancor, copia de seguridad) con botones "Ya lo pagué". Navegación en 5 secciones: *Este mes · Subir · Deudas · Gastos · Viaje* y *Más* (Cómo usar, Configuración, Copias, Historial). |
+| **Detalle del mes** | Indicadores del mes (ingresos cobrados, gastos, cuotas, saldo disponible, deudas pendientes, avance del ahorro), calculadora desplegable con el detalle de cada operación, advertencias y gráfico de 6 meses. |
 | **Ingresos** | Registro por mes: ingreso cobrado, fecha, adicionales, deducciones, observaciones y neto. Estado *confirmado* / *estimado* / *sin cargar*. Nunca se copia al mes siguiente. Las ediciones guardan el historial de versiones. |
 | **Gastos** | Gastos cotidianos (contra el presupuesto) y personales (no se dividen); únicos o recurrentes, con ajuste por mes. |
 | **Gastos compartidos** | Alquiler, servicios, supermercado compartido, etc. Reparto 50/50 por defecto, editable por gasto; quién pagó y saldo con la pareja. |
@@ -231,6 +232,12 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 **Deuda por entidad** (menú *Deuda por entidad*, o tocando "Deudas pendientes" en el Resumen): cuánto falta para saldar todo con cada banco o emisor (Banco Patagonia —préstamos y cuotas de la Visa—, Mercado Pago, Naranja X, Ualá…), en qué cuota va cada deuda, la próxima cuota, los pagos mes a mes, el último pago y la fecha en que se queda libre de deudas.
 
 **Naranja X** (probado con un resumen real, que no se guarda en el repositorio): fechas en texto ("y vence el 10/09/26", "El resumen actual cerró el 27/08", "El próximo resumen cierra el 27/09"), saldo anterior ("venció el 10/08, por $…"), columnas *$* / *U$S* y *Cuota/Plan*, cargos sin fecha en "Otros cargos" (IVA, Impuesto de Sellos; se usa la fecha de cierre), pago del resumen anterior y el cuadro "Cuotas futuras". La verificación del saldo y de las cuotas futuras funciona igual que en Visa.
+
+**Ualá** (probados un extracto de cuenta y un resumen de tarjeta reales, que no se guardan en el repositorio):
+- *Extracto de cuenta*: columnas *Débitos · Créditos · Saldo*; se verifica que los totales de egresos e ingresos coincidan con los informados. Las transferencias entre cuentas propias (mismo CUIT o nombre del titular) no son ingreso ni gasto; las compras con débito se cargan como gastos pagados.
+- *Resumen de tarjeta*: encabezado solo en pesos, descripción y cuota en líneas separadas, "PAGO CON SALDO" como pago, compras anuladas y reintegros que se cancelan entre sí, y saldo a favor (si el total es cero o negativo no queda nada para pagar).
+
+**Resúmenes atrasados**: Naranja X y Ualá publican el resumen con un mes de demora. La pantalla *Este mes* solo pide un resumen nuevo cuando el último cargado tiene más de un mes; si el resumen ya está pago, alcanza con tocar **"Ya lo pagué"** en *Pendientes* (registra el pago y marca pagadas sus cuotas).
 
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 

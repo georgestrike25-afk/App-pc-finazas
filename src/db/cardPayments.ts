@@ -19,3 +19,13 @@ export async function applyStatementPayment(db: FinanzasDB, st: Statement, paidA
   }
   return n;
 }
+
+/** "Ya lo pagué": registra el pago total de un resumen hoy y marca pagadas sus cuotas. */
+export async function markStatementPaid(db: FinanzasDB, st: Statement, dateIso: string, nowIso: string): Promise<void> {
+  const { uid } = await import('../domain/text');
+  await db.transaction('rw', [db.cardPayments, db.obligations, db.audit], async () => {
+    await db.cardPayments.put({ id: uid(), createdAt: nowIso, updatedAt: nowIso, entity: st.entity, statementId: st.id, date: dateIso, month: dateIso.slice(0, 7), amount: st.total ?? 0, source: 'manual' });
+    await applyStatementPayment(db, st, st.total ?? 0, nowIso);
+    await db.audit.put({ id: uid(), createdAt: nowIso, updatedAt: nowIso, at: nowIso, action: 'crear', entity: 'cardPayments', summary: `Resumen de ${st.entity} marcado como pagado` });
+  });
+}

@@ -59,11 +59,15 @@ export interface MonthlyResult {
   warnings: string[];
 }
 
+/**
+ * Presupuesto cotidiano del mes. Por defecto el mes actual y los pasados son "reales"
+ * (solo cuenta lo registrado); los meses futuros usan el presupuesto como estimación.
+ */
 export function budgetForMonth(settings: Settings, month: MonthKey, today: MonthKey) {
   const mb = settings.monthBudgets?.[month];
   return {
     amount: mb?.amount ?? settings.dailyBudgetDefault,
-    mode: mb?.mode ?? (month >= today ? 'estimado' : 'real'),
+    mode: mb?.mode ?? (month > today ? 'estimado' : 'real'),
     isInitialValue: !mb && settings.dailyBudgetIsInitialValue,
   } as const;
 }
@@ -78,7 +82,7 @@ export function budgetForMonth(settings: Settings, month: MonthKey, today: Month
  * - El presupuesto cotidiano solo completa la parte aún no registrada (nunca se suma
  *   junto con los mismos gastos reales).
  */
-export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey): MonthlyResult {
+export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey, opts: { forceDailyEstimate?: boolean } = {}): MonthlyResult {
   const warnings: string[] = [];
   const live = <T extends { deleted?: boolean }>(xs: T[]) => xs.filter((x) => !x.deleted);
   const incomes = live(data.incomes).filter((i) => i.month === month);
@@ -135,7 +139,9 @@ export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey): M
 
   const dailyOcc = occ.filter((o) => o.kind === 'cotidiano');
   const dailyRegistered = sum(dailyOcc.map((o) => o.userShare));
-  const budget = budgetForMonth(data.settings, month, today);
+  const b0 = budgetForMonth(data.settings, month, today);
+  // Las proyecciones (viaje) completan el mes actual con el presupuesto aún no gastado.
+  const budget = opts.forceDailyEstimate && month >= today ? { ...b0, mode: 'estimado' as const } : b0;
   const remainder = budget.mode === 'estimado' ? Math.max(0, budget.amount - dailyRegistered) : 0;
   const dailyLines: CalcLine[] = dailyOcc.map((o) => ({
     label: `${o.concept} (${o.category})`,
@@ -145,7 +151,7 @@ export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey): M
   }));
   if (remainder > 0) {
     dailyLines.push({
-      label: 'Presupuesto cotidiano aún no registrado (estimación)',
+      label: 'Lo que falta gastar del presupuesto (estimación)',
       amount: remainder,
       estimated: true,
       note: `Presupuesto ${fmtShort(budget.amount)} − registrado ${fmtShort(dailyRegistered)}`,
@@ -182,10 +188,10 @@ export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey): M
 
   const sections: CalcSection[] = [
     mk('ingresos', 'Ingresos cobrados', 1, incomeLines),
-    mk('fijos', 'Gastos fijos atribuibles al usuario', -1, fixedLines),
+    mk('fijos', 'Gastos del hogar (tu parte)', -1, fixedLines),
     mk('personales', 'Gastos personales', -1, personalLines),
-    mk('cotidiano', 'Gastos cotidianos imputados', -1, dailyLines),
-    mk('obligaciones', 'Obligaciones financieras del mes', -1, obligationLines),
+    mk('cotidiano', 'Gastos del día a día', -1, dailyLines),
+    mk('obligaciones', 'Cuotas y préstamos del mes', -1, obligationLines),
   ];
   const outflows = sum(sections.filter((s) => s.sign === -1).map((s) => s.total));
   const incomeTotal = sections[0].total;

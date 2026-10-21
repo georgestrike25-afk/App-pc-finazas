@@ -108,7 +108,7 @@ function ObligationForm({ initial, onClose }: { initial: ObDraft; onClose: () =>
   );
 }
 
-function ObligationDetail({ ob, onClose }: { ob: Obligation; onClose: () => void }) {
+function ObligationDetail({ ob, onClose, onPay }: { ob: Obligation; onClose: () => void; onPay: (o: Obligation) => void }) {
   const { today } = useApp();
   const { toast } = useApp();
   const sched = buildSchedule(ob, today);
@@ -136,8 +136,12 @@ function ObligationDetail({ ob, onClose }: { ob: Obligation; onClose: () => void
         <div className="kpi"><span>Última cuota</span><strong className="big">{pr.lastDueDate ? formatDate(pr.lastDueDate) : pr.lastDueMonth ? monthLabel(pr.lastDueMonth) : '—'}</strong></div>
       </div>
       {pr.overdueCount > 0 && <p className="err">⚠ {pr.overdueCount} cuota(s) vencida(s) sin pago registrado.</p>}
+      <p className="small muted">Las cuotas se marcan pagadas solas cuando subís el resumen de la tarjeta o la captura del banco.</p>
       <details className="fix-paid" open={ob.paidInstallments > dueBy}>
         <summary>Corregir cuotas pagadas</summary>
+        {ob.status !== 'pagada' && ob.status !== 'cancelada' && ob.nextDueMonth && (!ob.totalInstallments || ob.paidInstallments < ob.totalInstallments) && (
+          <button className="btn small" onClick={() => onPay(ob)}>Marcar la cuota {ob.paidInstallments + 1} como pagada</button>
+        )}
         {ob.paidInstallments > dueBy && <p className="warn small">Figuran {ob.paidInstallments} pagadas, pero hasta hoy vencieron {dueBy}.</p>}
         <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
           <button className="btn small primary" disabled={dueBy === ob.paidInstallments} onClick={() => applyCount(dueBy, 'vencidas hasta hoy')}>Dejar pagadas las vencidas hasta hoy ({dueBy})</button>
@@ -248,12 +252,7 @@ export function DeudasPage() {
   };
   const actions = (o: Obligation, st: ObligationStatus) => (
     <>
-                        <button className="btn small" onClick={() => setDetail(o)}>Calendario</button>
-                        {st !== 'pagada' && st !== 'cancelada' && o.nextDueMonth && (
-                          <button className="btn small primary" onClick={() => payOne(o)}>
-                            Pagar cuota
-                          </button>
-                        )}
+                        <button className="btn small" onClick={() => setDetail(o)}>Ver cuotas</button>
                         <button className="btn small" onClick={() => setEditing(o)}>Editar</button>
                         {st !== 'cancelada' && st !== 'pagada' && (
                           <button className="btn small ghost" onClick={async () => (await confirmDialog(`¿Cancelar "${o.concept}" desde ${monthLabel(today)}?\nLas cuotas de meses anteriores no se modifican.`, { ok: 'Cancelar obligación' })) && saveRecord('obligations', cancelObligation(o, today, now(), today), `Cancelación de "${o.concept}"`)}>
@@ -267,10 +266,10 @@ export function DeudasPage() {
   return (
     <div className="page">
       <div className="page-actions">
-        <button className="btn primary" onClick={() => setEditing(newOb())}>+ Nueva obligación</button>
+        <button className="btn primary" onClick={() => setEditing(newOb())}>+ Nueva deuda</button>
         <button className="btn" onClick={() => setPaying({})}>Registrar pago de resumen</button>
         <a className="btn" href="#/importar">Importar resumen</a>
-        <a className="btn" href="#/entidades">Deuda por entidad</a>
+        
       </div>
 
       {ahead.length > 0 && (
@@ -403,7 +402,7 @@ export function DeudasPage() {
         )}
       </Card>
       {editing && <ObligationForm initial={editing} onClose={() => setEditing(null)} />}
-      {detail && <ObligationDetail ob={detail} onClose={() => setDetail(null)} />}
+      {detail && <ObligationDetail ob={detail} onClose={() => setDetail(null)} onPay={(o) => { setDetail(null); payOne(o); }} />}
       {paying && <PaymentForm statement={paying.statement} onClose={() => setPaying(null)} />}
     </div>
   );

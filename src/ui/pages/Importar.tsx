@@ -110,6 +110,47 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
   );
 }
 
+const SUMMARY_LABEL: Record<ReviewAction, [string, string]> = {
+  gasto: ['gasto', 'gastos'],
+  bonificacion: ['descuento o devolución', 'descuentos o devoluciones'],
+  cuota: ['cuota o préstamo nuevo', 'cuotas o préstamos nuevos'],
+  pago: ['pago de tarjeta', 'pagos de tarjeta'],
+  sancor: ['cupón de Sancor Salud', 'cupones de Sancor Salud'],
+  ingreso: ['ingreso', 'ingresos'],
+  vincular: ['ya estaba cargado (se vincula)', 'ya estaban cargados (se vinculan)'],
+  ignorar: ['', ''],
+};
+
+/** Qué se va a cargar, en una lista corta. */
+function ImportSummary({ review }: { review: ImportReview }) {
+  const inc = review.items.filter((i) => i.include && i.action !== 'ignorar');
+  const by = new Map<ReviewAction, { n: number; total: number }>();
+  for (const it of inc) {
+    const e = by.get(it.action) ?? { n: 0, total: 0 };
+    e.n++;
+    e.total += it.amount ?? 0;
+    by.set(it.action, e);
+  }
+  const excluded = review.items.length - inc.length;
+  return (
+    <Card title="Qué se va a cargar">
+      {inc.length === 0 ? (
+        <p className="muted">No hay nada nuevo para cargar{review.items.length ? ' (todo ya estaba cargado o no corresponde)' : ''}.</p>
+      ) : (
+        <ul className="list" data-testid="import-summary">
+          {[...by.entries()].map(([a, v]) => (
+            <li key={a}>
+              <span><strong>{v.n}</strong> {SUMMARY_LABEL[a][v.n === 1 ? 0 : 1]}</span>
+              {a !== 'vincular' && <Money value={v.total} />}
+            </li>
+          ))}
+        </ul>
+      )}
+      {excluded > 0 && <p className="small muted">{excluded} línea(s) no se cargan: transferencias propias, intereses, pagos ya registrados, compras anuladas u otros meses. Podés verlas abajo.</p>}
+    </Card>
+  );
+}
+
 function VerificationCard({ review }: { review: ImportReview }) {
   const v = verifyReview(review);
   const ac = review.summary.accountCheck;
@@ -297,17 +338,17 @@ export function ImportarPage() {
             {review.summary.previousBalance !== undefined && <p className="small muted">Saldo anterior informado: <Money value={review.summary.previousBalance} /> (solo informativo).</p>}
           </Card>
           <VerificationCard review={review} />
-          <Card
-            title={`Movimientos detectados (${review.items.length})`}
-            actions={
+          <ImportSummary review={review} />
+          <details className="card lines-detail" open={issues.length > 0 || review.items.length === 0}>
+            <summary>Ver y corregir línea por línea ({review.items.length})</summary>
+            <div className="row-actions" style={{ justifyContent: 'flex-start', margin: '0.5rem 0' }}>
               <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar">
                 <option value="todas">Todas</option><option value="pendientes">Pendientes de corrección</option><option value="incluidas">Se van a cargar</option><option value="excluidas">No se cargan</option>
               </select>
-            }
-          >
-            {review.items.length === 0 && <p className="muted">No se detectaron movimientos. Puede cargarlos manualmente desde Gastos o Tarjetas y deudas.</p>}
+            </div>
+            {review.items.length === 0 && <p className="muted">No se detectaron movimientos. Puede cargarlos a mano desde Gastos o Deudas.</p>}
             {shown.map((it) => <ItemRow key={it.key} it={it} categories={data.settings.categories} onChange={(p) => update(it.key, p)} />)}
-          </Card>
+          </details>
           <Card className="sticky-foot">
             {issues.length > 0 && (
               <ul className="err small">{issues.slice(0, 6).map((i) => <li key={i.key + i.message}>{i.message}</li>)}{issues.length > 6 && <li>… y {issues.length - 6} más</li>}</ul>

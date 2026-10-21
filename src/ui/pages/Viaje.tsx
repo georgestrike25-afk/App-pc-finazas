@@ -48,6 +48,25 @@ export function ViajePage() {
 
   return (
     <div className="page">
+      <Card className="hero" title={saved.name}>
+        {saved.estimatedCost <= 0 ? (
+          <p data-testid="viaje-respuesta">Poné abajo <strong>cuánto cuesta el viaje</strong> y cuánto querés ahorrar por mes para saber si llegás a {monthLabel(saved.targetMonth)}.</p>
+        ) : (
+          <>
+            <strong className={`answer ${p.reachable ? 'ok-text' : 'warn'}`} data-testid="viaje-respuesta">
+              {p.reachable ? `✓ Llegás a ${monthLabel(saved.targetMonth)} con lo que planeás ahorrar` : `Con lo planeado no llegás a ${monthLabel(saved.targetMonth)}`}
+            </strong>
+            <span>Tenés <Money value={progress} /> de <Money value={saved.estimatedCost} /> ({saved.estimatedCost ? Math.round((progress / saved.estimatedCost) * 100) : 0} %).</span>
+            <Progress value={progress} max={saved.estimatedCost} />
+            {!p.reachable && (
+              <span>Para llegar, ahorrá <strong><Money value={p.requiredMonthly} /></strong> por mes durante {p.monthsRemaining} meses.</span>
+            )}
+            <small className="muted">Cálculo con tus ingresos, gastos y cuotas cargados. Es una estimación, no un resultado garantizado.</small>
+          </>
+        )}
+      </Card>
+      <details className="card more-opts">
+        <summary>Ver escenarios y proyección mes a mes</summary>
       <div className="kpis">
         <div className="kpi"><span>Costo estimado</span><Money value={saved.estimatedCost} /></div>
         <div className="kpi"><span>Ahorrado y reservado</span><Money value={progress} /><Progress value={progress} max={saved.estimatedCost} /></div>
@@ -91,6 +110,8 @@ export function ViajePage() {
           </table>
         </div>
       </Card>
+
+      </details>
 
       <div className="grid2">
         <Card title="Configuración del objetivo">

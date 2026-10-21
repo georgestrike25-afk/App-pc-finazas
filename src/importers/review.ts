@@ -460,7 +460,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         created.ingresos++;
       } else if (it.action === 'pago') {
         const linked = it.duplicate?.type === 'resumen' ? await db.statements.get(it.duplicate.targetId!) : undefined;
-        const p: CardPayment = { ...base(), entity: linked?.entity || s.entity || 'Sin identificar', statementId: linked?.id ?? statementId, date, month: monthOf(date), amount: Math.abs(it.amount), source: 'importado', lineFingerprint: it.fingerprint };
+        const p: CardPayment = { ...base(), entity: linked?.entity || s.entity || 'Sin identificar', statementId: linked?.id, date, month: monthOf(date), amount: Math.abs(it.amount), source: 'importado', lineFingerprint: it.fingerprint };
         await db.cardPayments.put(p);
         await fp(it, 'pago', p.id);
         if (linked) await applyStatementPayment(db, linked, p.amount, now, deviceId);
@@ -493,6 +493,11 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         }
         created.vinculados++;
       }
+    }
+    // Resumen sin nada para pagar (saldo a favor): sus cuotas del mes quedan cubiertas.
+    if (statementId && s.total !== undefined && s.total <= 0) {
+      const st = await db.statements.get(statementId);
+      if (st) await applyStatementPayment(db, st, 0, now, deviceId);
     }
     await addAudit(db, 'importar', 'documentos', documentId, `Importación de "${doc.name}": ${created.gastos} gasto(s), ${created.cuotas} obligación(es), ${created.pagos} pago(s), ${created.sancor} cargo(s) Sancor, ${created.ingresos} ingreso(s), ${created.vinculados} vinculado(s)`, deviceId);
   });
