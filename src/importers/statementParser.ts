@@ -107,8 +107,12 @@ const RE_SANCOR = /\b(sancor|sanc)\b/;
 const LBL_TOTAL = /(total\s+a\s+pagar|saldo\s+actual|saldo\s+total|total\s+del\s+resumen|total\s+resumen|importe\s+total|saldo\s+a\s+pagar|total\s+a\s+abonar)/i;
 const LBL_MIN = /(?<!pr[oó]x\w*\.?\s)(pago\s+m[ií]n(?:imo|\.)?|m[ií]nimo\s+a\s+pagar)(?![.:\s]*ant)/i;
 const LBL_CLOSING = /(?<!pr[oó]x\w*\.?\s)(cierre\s+actual|fecha\s+de\s+cierre|cierre)(?![.:\s]*ant)/i;
-const LBL_DUE = /(?<!pr[oó]x\w*\.?\s)(vencimiento\s+actual|fecha\s+de\s+vencimiento|vencimiento|vto\.?)(?![.:\s]*ant)/i;
-const LBL_PREV = /(saldo\s+anterior)/i;
+const LBL_DUE = /(?<!pr[oó]x\w*\.?\s)(vencimiento\s+actual|fecha\s+de\s+vencimiento|vencimiento|vto\.?|\bvence(?:\s+el)?)(?![.:\s]*ant)/i;
+const LBL_PREV = /(saldo\s+anterior|venci[oó]\s+el\s+[\d/]+,?\s+por)/i;
+// Fechas sin año en texto corrido (p. ej. Naranja X: "El resumen actual cerró el 27/08").
+const RE_CLOSING_DM = /resumen\s+actual\s+cerr[oó]\s+el\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/i;
+const RE_NEXT_CLOSING_DM = /pr[oó]ximo\s+resumen\s+cierra\s+el\s+(\d{1,2})\/(\d{1,2})/i;
+const RE_VENCE_DM = /\bvence\s+el\s+(\d{1,2})\/(\d{1,2})(?!\/)/i;
 const LBL_NEXT_CLOSING = /(pr[oó]x(?:imo|\.)?\s+cierre)/i;
 const LBL_NEXT_DUE = /(pr[oó]x(?:imo|\.)?\s+(?:vto\.?|vencimiento))/i;
 // Encabezados en columnas (la etiqueta en una fila y el valor debajo).
@@ -186,21 +190,90 @@ function valueBelow(lines: SourceLine[], idx: number, labelX: number, kind: 'fec
   return undefined;
 }
 
-/** Columnas "PESOS" / "DÓLARES" del detalle de movimientos, si existen. */
-function findColumns(lines: SourceLine[]): { pesos?: number; usd?: number } {
+interface Columns {
+  pesos?: number;
+  usd?: number;
+  /** Columna del detalle/concepto (para no mezclar tarjeta o comprobante en el concepto). */
+  detalle?: number;
+  /** Columna "Cuota/Plan". */
+  cuota?: number;
+}
+
+/** Encabezado del detalle de movimientos: columnas de pesos y dólares (y, si hay, detalle y cuota). */
+function headerColumns(l: SourceLine): Columns | null {
+  if (!l.cells) return null;
+  const p = l.cells.find((c) => /^(pesos|\$|\$ ?ars)$/i.test(c.s));
+  const u = l.cells.find((c) => /^(d[oó]lares|u\$s|usd)$/i.test(c.s));
+  if (!p || !u || !l.cells.some((c) => /^fecha$/i.test(c.s))) return null;
+  const d = l.cells.find((c) => /^detalle/i.test(c.s));
+  const q = l.cells.find((c) => /^cuota(\/plan)?s?$/i.test(c.s));
+  return { pesos: p.x, usd: u.x, detalle: d?.x, cuota: q?.x };
+}
+
+function findColumns(lines: SourceLine[]): Columns {
   for (const l of lines) {
-    if (!l.cells) continue;
-    const p = l.cells.find((c) => /^pesos$/i.test(c.s));
-    const u = l.cells.find((c) => /^(d[oó]lares|u\$s|usd)$/i.test(c.s));
-    if (p && u) return { pesos: p.x, usd: u.x };
+    const h = headerColumns(l);
+    if (h) return h;
   }
   return {};
+}
+
+function conceptCells(l: SourceLine, cols: Columns): string[] {
+  const threshold = Math.min(cols.pesos ?? Infinity, cols.usd ?? Infinity) - 45;
+  const from = cols.detalle !== undefined ? cols.detalle - 15 : 0;
+  return (l.cells ?? []).filter((c) => c.x >= from && c.x < threshold && !isMoneyLike(c.s)).map((c) => c.s);
+}
+
+/** Renglón sin fecha dentro del detalle: cargo con importe en la columna de pesos. */
+function parseUndatedLine(l: SourceLine, idx: number, fmt: DecimalFormat, cols: Columns, pending: string, fallbackDate: string | undefined): ParsedItem | 'pendiente' | null {
+  const threshold = Math.min(cols.pesos!, cols.usd ?? Infinity) - 45;
+  const money = (l.cells ?? []).filter((c) => c.x >= threshold && isMoneyLike(c.s));
+  const words = conceptCells(l, cols).join(' ').trim();
+  if (!money.length) return words && /[a-záéíóúñ]{2,}/i.test(words) ? 'pendiente' : null;
+  const concept = [pending, words].filter(Boolean).join(' ').replace(/\s{2,}/g, ' ').trim();
+  const n = normalizeText(concept);
+  if (!/[a-záéíóúñ]{2,}/i.test(concept) || /\b(total|subtotal|saldo|pago minimo|consumos de)\b/.test(n)) return null;
+  const pesos = money.filter((c) => cols.usd === undefined || Math.abs(c.x - cols.pesos!) <= Math.abs(c.x - cols.usd));
+  if (!pesos.length) return null;
+  const v = parseAmount(pesos[pesos.length - 1].s, fmt);
+  if (v === null || v === 0) return null;
+  const kind: ItemKind = v < 0 ? (RE_BONIF.test(n) ? 'bonificacion' : 'credito') : RE_CHARGE.test(n) ? 'cargo' : 'consumo';
+  const cat = kind === 'cargo' || kind === 'bonificacion' ? { category: 'Cargos financieros', kind: 'personal' as ExpenseKind } : suggestCategory(concept);
+  const c = ocrConf(l);
+  return {
+    index: idx,
+    kind,
+    date: fallbackDate,
+    dateConfidence: fallbackDate ? 'media' : 'baja',
+    concept: concept.replace(/\s*\*\s*$/, ''),
+    amount: Math.abs(v),
+    amountConfidence: 'alta',
+    currency: 'ARS',
+    suggestedCategory: cat.category,
+    suggestedKind: cat.kind,
+    confidence: fallbackDate ? lowerOf('media', c) : 'baja',
+    warnings: ['Cargo sin fecha en el resumen: se usó la fecha de cierre.'],
+    sourceLine: [pending, l.text].filter(Boolean).join(' · '),
+    page: l.page,
+  };
 }
 
 const MONTH_NAMES = /^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\/\d{2}$/i;
 
 /** Cuadro "Cuotas a vencer": meses en una fila y montos en la siguiente. */
 function parseUpcoming(lines: SourceLine[], fmt: DecimalFormat): UpcomingInstallments[] {
+  const f = lines.findIndex((l) => /cuotas\s+futuras/i.test(l.text));
+  if (f >= 0) {
+    // Formato "Octubre/26 $0,00." (un mes por renglón, a veces junto a otro texto).
+    const out: UpcomingInstallments[] = [];
+    for (const l of lines.slice(f, f + 20)) {
+      for (const m of l.text.matchAll(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\/(\d{2})\.?\s*\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi)) {
+        const v = parseAmount(m[3], fmt);
+        if (v !== null) out.push({ label: `${m[1]}/${m[2]}`, amount: v });
+      }
+    }
+    if (out.length) return out;
+  }
   const i = lines.findIndex((l) => /cuotas\s+a\s+vencer/i.test(l.text));
   if (i < 0) return [];
   for (let j = i + 1; j < Math.min(i + 4, lines.length - 1); j++) {
@@ -304,18 +377,68 @@ export function parseStatementText(lines: SourceLine[], opts: { fallbackYear?: n
     }
   });
 
+  // Fechas de cierre sin año: el año se deduce del vencimiento.
+  if (doc.dueDate.value) {
+    const dy = Number(doc.dueDate.value.slice(0, 4));
+    const dmo = Number(doc.dueDate.value.slice(5, 7));
+    const iso = (d: string, m: string, y: number) => {
+      const r = parseDateEs(`${d}/${m}/${y}`);
+      return r?.iso;
+    };
+    clean.forEach((l, idx) => {
+      const c = l.text.match(RE_CLOSING_DM);
+      if (c && doc.closingDate.value === undefined) {
+        const y = c[3] ? Number(c[3].length === 2 ? `20${c[3]}` : c[3]) : Number(c[2]) > dmo ? dy - 1 : dy;
+        setDate(doc.closingDate, iso(c[1], c[2], y), 'alta', l.text);
+      }
+      const n = l.text.match(RE_NEXT_CLOSING_DM);
+      if (n && doc.nextClosingDate.value === undefined) {
+        setDate(doc.nextClosingDate, iso(n[1], n[2], Number(n[2]) < dmo ? dy + 1 : dy), 'alta', l.text);
+        const near = [l.text, clean[idx + 1]?.text ?? '', clean[idx + 2]?.text ?? ''];
+        const v = near.map((t) => t.match(RE_VENCE_DM)).find(Boolean);
+        if (v) setDate(doc.nextDueDate, iso(v[1], v[2], Number(v[2]) < dmo ? dy + 1 : dy), 'alta', near.join(' '));
+      }
+    });
+  }
+
   const refDate = doc.dueDate.value ?? doc.closingDate.value;
   const fallbackYear = refDate ? Number(refDate.slice(0, 4)) : opts.fallbackYear;
   doc.month = doc.dueDate.value ? monthOf(doc.dueDate.value) : doc.closingDate.value ? addMonths(monthOf(doc.closingDate.value), 1) : undefined;
   if (!doc.dueDate.value && doc.closingDate.value)
     warnings.push('No se encontró la fecha de vencimiento: el mes de imputación se estimó como el mes siguiente al cierre.');
 
-  // Tercera pasada: movimientos.
-  const cols = findColumns(clean);
+  // Tercera pasada: movimientos. Las columnas se toman del encabezado de cada sección.
+  let cols: Columns = findColumns(clean);
+  let inSection = false;
+  let pending = '';
   clean.forEach((l, idx) => {
+    const h = headerColumns(l);
+    if (h) {
+      cols = h;
+      inSection = true;
+      pending = '';
+      return;
+    }
     if (summaryLine.has(idx)) return;
+    if (/^(total\b|tarjeta\b.*\btotal\b)/i.test(l.text)) {
+      inSection = false;
+      pending = '';
+    }
     const item = parseMovementLine(l, idx, fmt, fallbackYear, refDate, cols);
-    if (item) doc.items.push(item);
+    if (item) {
+      doc.items.push(item);
+      pending = '';
+      return;
+    }
+    // Cargos sin fecha dentro del detalle (p. ej. "Otros cargos: IVA… / Impuesto de Sellos").
+    if (inSection && l.cells && cols.pesos !== undefined && !DATE_TOKEN.test(l.text)) {
+      const u = parseUndatedLine(l, idx, fmt, cols, pending, doc.closingDate.value ?? refDate);
+      if (u === 'pendiente') pending = [pending, conceptCells(l, cols).join(' ')].filter(Boolean).join(' ');
+      else if (u) {
+        doc.items.push(u);
+        pending = '';
+      }
+    }
   });
 
   const usd = doc.items.filter((i) => i.currency === 'USD').length;
@@ -342,7 +465,7 @@ function parseMovementLine(
   fmt: DecimalFormat,
   fallbackYear: number | undefined,
   refDate: string | undefined,
-  cols: { pesos?: number; usd?: number },
+  cols: Columns,
 ): ParsedItem | null {
   const dm = l.text.match(DATE_TOKEN);
   if (!dm) return null;
@@ -374,12 +497,23 @@ function parseMovementLine(
     } else return null;
     if (pesos.length && usdNonZero) warnings.push('La línea tiene importe en pesos y en dólares: verifique.');
     const firstMoneyX = money[0].x;
-    concept = l.cells
-      .filter((c) => c.x < firstMoneyX)
-      .map((c) => c.s)
-      .join(' ')
-      .slice(dm[0].length)
-      .trim();
+    if (cols.detalle !== undefined) {
+      // Solo la columna del detalle (sin tarjeta ni cupón); la cuota sale de su columna.
+      const qCell = cols.cuota !== undefined ? l.cells.find((c) => Math.abs(c.x - cols.cuota!) <= 30 && /^\d{1,2}\/\d{1,2}$/.test(c.s)) : undefined;
+      concept = l.cells
+        .filter((c) => c.x >= cols.detalle! - 15 && c.x < firstMoneyX && c !== qCell)
+        .map((c) => c.s)
+        .join(' ')
+        .trim();
+      if (qCell) concept = `${concept} C.${qCell.s}`;
+    } else {
+      concept = l.cells
+        .filter((c) => c.x < firstMoneyX)
+        .map((c) => c.s)
+        .join(' ')
+        .slice(dm[0].length)
+        .trim();
+    }
   } else {
     const amounts = findAmounts(text);
     if (!amounts.length) return null;

@@ -230,6 +230,8 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Deuda por entidad** (menú *Deuda por entidad*, o tocando "Deudas pendientes" en el Resumen): cuánto falta para saldar todo con cada banco o emisor (Banco Patagonia —préstamos y cuotas de la Visa—, Mercado Pago, Naranja X, Ualá…), en qué cuota va cada deuda, la próxima cuota, los pagos mes a mes, el último pago y la fecha en que se queda libre de deudas.
 
+**Naranja X** (probado con un resumen real, que no se guarda en el repositorio): fechas en texto ("y vence el 10/09/26", "El resumen actual cerró el 27/08", "El próximo resumen cierra el 27/09"), saldo anterior ("venció el 10/08, por $…"), columnas *$* / *U$S* y *Cuota/Plan*, cargos sin fecha en "Otros cargos" (IVA, Impuesto de Sellos; se usa la fecha de cierre), pago del resumen anterior y el cuadro "Cuotas futuras". La verificación del saldo y de las cuotas futuras funciona igual que en Visa.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites
