@@ -119,7 +119,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
       {shared && (
         <div className="form-grid">
           <Field label="Tu parte (%)" error={errors.pct}>
-            {(id) => <input id={id} name="userPct" type="number" min={0} max={100} step={1} value={d.userPct} onChange={(e) => setD({ ...d, userPct: Number(e.target.value) })} />}
+            {(id) => <input id={id} name="userPct" type="number" min={0} max={100} step="any" value={d.userPct} onChange={(e) => setD({ ...d, userPct: Number(e.target.value) })} />}
           </Field>
           <Field label="¿Quién pagó?">
             {(id) => (

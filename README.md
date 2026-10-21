@@ -240,6 +240,8 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Resúmenes atrasados**: Naranja X y Ualá publican el resumen con un mes de demora. La pantalla *Este mes* solo pide un resumen nuevo cuando el último cargado tiene más de un mes; si el resumen ya está pago, alcanza con tocar **"Ya lo pagué"** en *Pendientes* (registra el pago y marca pagadas sus cuotas).
 
+**Planilla de gastos compartidos** (p. ej. exportada de Google Sheets como PDF, Excel o CSV; probada con una real que no se guarda en el repositorio): una fila por mes y, por cada gasto, una columna por persona. Se leen importes escritos con formatos distintos en cada celda (`$449,758.00`, `$408.149,53`, `$7981,9`). En la revisión se elige quién sos; para cada gasto compartido se guarda el total de la factura y tu parte (solo tu parte cuenta como gasto), los gastos con una sola columna tuya se cargan como personales y la columna de obra social de la pareja no se carga (es el reintegro de Sancor que ya sale del resumen de la tarjeta). Los meses futuros quedan desmarcados. Al volver a subir la planilla, lo ya cargado se reconoce y los importes cambiados se actualizan sin duplicar; si un gasto ya se anotó a mano en ese mes, se avisa y queda desmarcado.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites

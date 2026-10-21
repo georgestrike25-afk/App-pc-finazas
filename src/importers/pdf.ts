@@ -3,7 +3,7 @@ import type { SourceLine } from './statementParser';
 export const MAX_PDF_PAGES = 60;
 
 // Tipos mínimos de pdf.js para poder usar tanto la versión de navegador como la de Node.
-interface TextItem { str: string; transform: number[] }
+interface TextItem { str: string; transform: number[]; width?: number }
 interface PdfPage {
   getTextContent(): Promise<{ items: Array<TextItem | { type: string }> }>;
   getViewport(o: { scale: number }): { width: number; height: number };
@@ -50,7 +50,7 @@ export async function extractPdfText(lib: PdfLib, bytes: Uint8Array): Promise<{ 
   for (let p = 1; p <= pages; p++) {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
-    const rows = new Map<number, Array<{ x: number; s: string }>>();
+    const rows = new Map<number, Array<{ x: number; s: string; w?: number }>>();
     let chars = 0;
     for (const it of content.items) {
       if (!('str' in it)) continue;
@@ -60,13 +60,13 @@ export async function extractPdfText(lib: PdfLib, bytes: Uint8Array): Promise<{ 
       const y = Math.round(it.transform[5] / 3) * 3;
       const x = it.transform[4];
       const row = rows.get(y) ?? [];
-      row.push({ x, s });
+      row.push({ x, s, w: it.width });
       rows.set(y, row);
     }
     const ys = [...rows.keys()].sort((a, b) => b - a);
     for (const y of ys) {
       const parts = rows.get(y)!.sort((a, b) => a.x - b.x);
-      lines.push({ text: parts.map((q) => q.s).join(' '), page: p, cells: parts.map((q) => ({ x: Math.round(q.x), s: q.s.trim() })) });
+      lines.push({ text: parts.map((q) => q.s).join(' '), page: p, cells: parts.map((q) => ({ x: Math.round(q.x), s: q.s.trim(), ...(q.w ? { w: Math.round(q.w * 10) / 10 } : {}) })) });
     }
     if (chars < 20) scannedPages.push(p);
     page.cleanup();

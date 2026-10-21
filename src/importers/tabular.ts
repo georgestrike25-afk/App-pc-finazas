@@ -81,7 +81,11 @@ export function rowsToLines(rows: Cell[][]): { lines: SourceLine[]; mapped: bool
     }
   }
   if (headerIdx < 0) {
-    return { lines: limited.map((r) => ({ text: r.map(cellText).filter(Boolean).join('  ') })), mapped: false };
+    // Sin columnas reconocidas: cada fila conserva sus celdas (columna = posición) para otros lectores.
+    return {
+      lines: limited.map((r) => ({ text: r.map(cellText).filter(Boolean).join('  '), cells: r.map((c, i) => ({ x: i * 100, w: 100, s: cellText(c).trim() })).filter((c) => c.s) })),
+      mapped: false,
+    };
   }
   const body = limited.slice(headerIdx + 1);
   const pre = limited.slice(0, headerIdx).map((r) => ({ text: r.map(cellText).filter(Boolean).join('  ') }));

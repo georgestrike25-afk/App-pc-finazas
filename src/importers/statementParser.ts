@@ -18,6 +18,8 @@ export type ItemKind =
 export interface Cell {
   x: number;
   s: string;
+  /** Ancho del fragmento (si se conoce): permite leer columnas alineadas a la derecha. */
+  w?: number;
 }
 
 export interface SourceLine {

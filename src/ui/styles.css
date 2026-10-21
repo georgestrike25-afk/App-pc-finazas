@@ -336,3 +336,6 @@ th { white-space: nowrap; }
 .exp-acts { display: flex; gap: 0.15rem; margin-left: auto; }
 .exp-acts .btn { min-height: 34px; padding: 0.3rem 0.6rem; }
 .exp-total { display: flex; justify-content: space-between; padding: 0.75rem 0 0.25rem; font-weight: 600; }
+.who { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
+.month-fold > summary { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; cursor: pointer; }
+.month-fold[open] > summary { margin-bottom: 0.5rem; }

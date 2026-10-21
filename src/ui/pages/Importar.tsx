@@ -11,6 +11,8 @@ import { detectLoanSchedule } from '../../importers/loanSchedule';
 import { buildLoanReview, commitLoanReview, type LoanReview } from '../../importers/loanReview';
 import { LoanReviewView } from './LoanImport';
 import { detectPaymentPlan } from '../../importers/paymentPlan';
+import { buildSharedReview, commitSharedReview, detectSharedSheet, type SharedReview } from '../../importers/sharedSheet';
+import { SharedReviewView } from './SharedImport';
 import { buildPlanReview, commitPlanReview, type PlanReview } from '../../importers/planReview';
 import { PlanReviewView } from './PlanImport';
 
@@ -203,6 +205,7 @@ export function ImportarPage() {
   const [review, setReview] = useState<ImportReview | null>(null);
   const [loan, setLoan] = useState<LoanReview | null>(null);
   const [plan, setPlan] = useState<PlanReview | null>(null);
+  const [shared, setShared] = useState<SharedReview | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [markPrev, setMarkPrev] = useState(false);
   const [filter, setFilter] = useState<'todas' | 'pendientes' | 'incluidas' | 'excluidas'>('todas');
@@ -213,10 +216,17 @@ export function ImportarPage() {
     setReview(null);
     setLoan(null);
     setPlan(null);
+    setShared(null);
     setFile(f);
     setBusy('Procesando el documento localmente…');
     try {
       const ex = await extractFile(f, { allowOcr, onProgress: (m, p) => { setBusy(m); setPct(p); } });
+      const sheet = detectSharedSheet(ex.lines, { fileName: f.name, fallbackYear: new Date().getFullYear() });
+      if (sheet) {
+        // Planilla de gastos compartidos: un gasto por mes y por concepto, con la parte de cada uno.
+        setShared(await buildSharedReview(sheet, { name: f.name, size: f.size, mime: ex.validated.mime, kind: ex.validated.kind, hash: ex.hash }));
+        return;
+      }
       const pp = detectPaymentPlan(ex.lines);
       if (pp) {
         // Plan de pagos mensual del emisor (p. ej. Mercado Pago): deudas con su importe por mes.
@@ -276,6 +286,18 @@ export function ImportarPage() {
       setError((e as Error).message);
     }
   };
+  const commitShared = async () => {
+    if (!shared) return;
+    try {
+      const r = await commitSharedReview(shared, file);
+      toast(`Planilla incorporada: ${r.created} gasto(s) nuevo(s)${r.updated ? `, ${r.updated} actualizado(s)` : ''}.`);
+      setShared(null);
+      setFile(null);
+      window.location.hash = '#/compartidos';
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const commitLoan = async () => {
     if (!loan) return;
     try {
@@ -294,9 +316,10 @@ export function ImportarPage() {
     <div className="page">
       {loan && <LoanReviewView review={loan} setReview={setLoan} error={error} onCancel={() => { setLoan(null); setFile(null); }} onConfirm={commitLoan} />}
       {plan && <PlanReviewView review={plan} setReview={setPlan} error={error} onCancel={() => { setPlan(null); setFile(null); }} onConfirm={commitPlan} />}
-      {!review && !loan && !plan && (
-        <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
-          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta y otros.</p>
+      {shared && <SharedReviewView review={shared} setReview={setShared} error={error} onCancel={() => { setShared(null); setFile(null); }} onConfirm={commitShared} />}
+      {!review && !loan && !plan && !shared && (
+        <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>.</li><li><strong>Planilla de gastos compartidos</strong> con tu pareja (PDF o Excel de Google Sheets): una fila por mes y una columna por persona.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
+          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta, planillas de gastos compartidos y otros.</p>
           <p className="muted small">🔒 El documento se procesa en este dispositivo. Nunca se envía a servicios externos. Su contenido se trata solo como datos.</p>
           <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Usar OCR local para imágenes y PDF escaneados (requiere ~10 MB de recursos, se descargan de esta misma app la primera vez)</label>
           <div className="drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}>

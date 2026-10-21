@@ -36,7 +36,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                   </div>
                   <div className="exp-sub">
                     {o.category} · {formatDate(e.date)} · {METHOD_LABEL[e.paymentMethod]}
-                    {shared && o.userPct !== 100 && <> · tu parte {o.userPct} % de <Money value={o.total} /></>}
+                    {shared && o.userPct !== 100 && <> · tu parte {o.userPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} % de <Money value={o.total} /></>}
                   </div>
                   <div className="exp-foot">
                     <span className="exp-badges">
@@ -86,7 +86,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                     <td>{formatDate(e.date)}</td>
                     <td>{METHOD_LABEL[e.paymentMethod]}</td>
                     {shared && <td className="num"><Money value={o.total} estimated={o.estimated} /></td>}
-                    {shared && <td className="num">{o.userPct} %</td>}
+                    {shared && <td className="num">{o.userPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} %</td>}
                     <td className="num"><Money value={o.userShare} estimated={o.estimated} /></td>
                     <td>
                       {o.paid ? <Badge tone="ok">Pagado</Badge> : e.paymentMethod === 'tarjeta' ? <Badge tone="warn">Consumo de tarjeta pendiente</Badge> : <Badge tone="warn">Pendiente</Badge>}

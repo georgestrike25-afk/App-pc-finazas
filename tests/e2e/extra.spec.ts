@@ -270,3 +270,31 @@ test('el signo ? abre una burbuja con la explicación', async ({ page }) => {
   await page.getByRole('button', { name: 'Qué es un gasto que se repite' }).click();
   await expect(page.locator('.help-bubble')).toContainText('todos los meses');
 });
+
+test('planilla de gastos compartidos (CSV de Google Sheets): elegir quién sos y cargar tu parte', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-20T12:00:00'));
+  await go(page, 'importar');
+  const csv = [
+    'Mes,Alquiler,,Luz,,Cochera,Total Mes',
+    ',Caro,Leo,Caro,Leo,Leo,',
+    'Septiembre,"$300,000.00","$150,000.00","$30.000,50","15000,25","$15,000",$0',
+    'Octubre,"$310,000.00","$155,000.00","$25,000.00","$12,500.00","$15,000.00",$0',
+  ].join('\n');
+  await page.locator('#file').setInputFiles({ name: 'Gastos compartidos 2026.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  const quien = page.getByTestId('planilla-quien');
+  await expect(quien).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Incorporar gastos' })).toBeDisabled();
+  await quien.getByRole('button', { name: 'Leo' }).click();
+  await expect(page.getByTestId('planilla-resumen')).toContainText('332.500,25');
+  await page.getByRole('button', { name: 'Incorporar gastos' }).click();
+  await expect(page.locator('.topbar h1')).toHaveText('Gastos compartidos');
+  await expect(page.locator('.content')).toContainText('Caro');
+  const alquiler = page.locator('tr', { hasText: 'Alquiler' });
+  await expect(alquiler).toContainText('310.000,00');
+  await expect(alquiler).toContainText('155.000,00');
+  // Volver a subirla no duplica
+  await go(page, 'importar');
+  await page.locator('#file').setInputFiles({ name: 'Gastos compartidos 2026 (1).csv', mimeType: 'text/csv', buffer: Buffer.from(csv + '\n') });
+  await expect(page.getByRole('button', { name: 'Incorporar gastos' })).toBeDisabled();
+  await expect(page.locator('.content')).toContainText('Ya cargado');
+});
