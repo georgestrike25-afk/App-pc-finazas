@@ -1,0 +1,60 @@
+# Compila la app de escritorio para Windows (.exe) gratis en GitHub Actions y la publica en "Releases".
+name: Compilar EXE Windows
+on:
+  push:
+    branches: [main, ccr-d0ab1290-u3vi9s]
+    paths-ignore: ['**.md', 'release/**', 'android/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: windows-exe
+  cancel-in-progress: false
+jobs:
+  exe:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Dependencias
+        run: npm ci
+      - name: Compilar la app web
+        run: npm run build
+      - name: Armar la app de escritorio
+        run: node scripts/build-desktop.mjs "1.2.${{ github.run_number }}"
+      - name: Compilar el .exe (instalador y portable)
+        run: npx electron-builder --config desktop/electron-builder.json --win --publish never
+      - name: Prueba en Windows (abre la app, servidor y código de emparejamiento)
+        run: |
+          "desktop-build/out/win-unpacked/Finanzas Personales.exe" --smoke-test --smoke-out="$PWD/smoke.log" || echo "salida: $?"
+          cat smoke.log
+          grep -q 'SMOKE: titulo="Este mes" escritorio=true health=200 codigo=' smoke.log
+      - name: Preparar archivos
+        run: |
+          mkdir -p out
+          cp desktop-build/out/*.exe out/
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FinanzasPersonales-windows
+          path: out/*.exe
+      - name: Publicar en Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pc-v1.2.${{ github.run_number }}"
+          NOTES="App de escritorio para Windows de Finanzas Personales (versión 1.2.${{ github.run_number }}).
+
+          - Instalador: FinanzasPersonales-Instalador-….exe (crea accesos directos; no pide permisos de administrador).
+          - Portable: FinanzasPersonales-Portable-….exe (se abre sin instalar).
+
+          Windows puede mostrar \"Windows protegió su PC\" porque la app no tiene firma paga: tocar \"Más información\" → \"Ejecutar de todas formas\".
+          Compilado desde ${GITHUB_SHA::7}."
+          gh release create "$TAG" out/*.exe --title "Finanzas Personales $TAG (Windows)" --notes "$NOTES" --target "$GITHUB_SHA" --latest=false

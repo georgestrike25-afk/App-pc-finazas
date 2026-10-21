@@ -1,0 +1,24 @@
+{
+  "appId": "ar.finanzaspersonales.escritorio",
+  "productName": "Finanzas Personales",
+  "electronVersion": "33.2.1",
+  "directories": { "app": "desktop-build/app", "output": "desktop-build/out", "buildResources": "desktop-build/resources" },
+  "asar": true,
+  "compression": "maximum",
+  "win": {
+    "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }],
+    "icon": "desktop-build/resources/icon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Finanzas Personales",
+    "artifactName": "FinanzasPersonales-Instalador-${version}.exe",
+    "language": "3082"
+  },
+  "portable": { "artifactName": "FinanzasPersonales-Portable-${version}.exe" },
+  "linux": { "target": ["dir"] }
+}

@@ -9,3 +9,4 @@ sync-server/data/
 public/ocr/
 *.tsbuildinfo
 tests/local/
+desktop-build/

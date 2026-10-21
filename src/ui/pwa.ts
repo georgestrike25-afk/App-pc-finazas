@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isNative } from '../platform';
+import { desktop, isNative } from '../platform';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -27,7 +27,8 @@ if (typeof window !== 'undefined') {
 /** Registra el service worker con estrategia de actualización "a pedido del usuario". */
 export async function registerPwa() {
   // En la app nativa los archivos ya vienen dentro del APK: no hace falta service worker.
-  if (!('serviceWorker' in navigator) || import.meta.env.DEV || isNative()) return;
+  // En el celular (APK) y en la PC (app de escritorio) los archivos ya vienen dentro de la app.
+  if (!('serviceWorker' in navigator) || import.meta.env.DEV || isNative() || desktop()) return;
   const { registerSW } = await import('virtual:pwa-register');
   updateFn = registerSW({
     immediate: true,

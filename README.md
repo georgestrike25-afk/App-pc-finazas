@@ -10,15 +10,16 @@ Aplicación para **Android (APK)**, **Windows** y navegador (PWA) para gestionar
 
 1. [Funciones](#funciones)
 2. [APK de Android (sin Play Store, gratis)](#apk-de-android-sin-play-store-gratis)
-3. [Instalación y ejecución en Windows](#instalación-y-ejecución-en-windows)
-4. [Instalar la PWA en Android](#instalar-la-pwa-en-android)
-5. [Reglas de cálculo](#reglas-de-cálculo)
-6. [Importación de documentos y OCR](#importación-de-documentos-y-ocr)
-7. [Sincronización entre PC y celular](#sincronización-entre-pc-y-celular)
-8. [Seguridad y privacidad](#seguridad-y-privacidad)
-9. [Pruebas](#pruebas)
-10. [Arquitectura](#arquitectura)
-11. [Limitaciones conocidas](#limitaciones-conocidas)
+3. [App de escritorio para Windows (.exe, gratis)](#app-de-escritorio-para-windows-exe-gratis)
+4. [Instalación y ejecución en Windows (desde el código)](#instalación-y-ejecución-en-windows)
+5. [Instalar la PWA en Android](#instalar-la-pwa-en-android)
+6. [Reglas de cálculo](#reglas-de-cálculo)
+7. [Importación de documentos y OCR](#importación-de-documentos-y-ocr)
+8. [Sincronización entre PC y celular](#sincronización-entre-pc-y-celular)
+9. [Seguridad y privacidad](#seguridad-y-privacidad)
+10. [Pruebas](#pruebas)
+11. [Arquitectura](#arquitectura)
+12. [Limitaciones conocidas](#limitaciones-conocidas)
 
 ---
 
@@ -86,6 +87,26 @@ cd android && ./gradlew assembleDebug   # APK en android/app/build/outputs/apk/d
 ```
 
 ---
+
+## App de escritorio para Windows (.exe, gratis)
+
+Se compila sola en **GitHub Actions** (`.github/workflows/windows.yml`) y queda en **Releases** con el nombre `pc-v1.2.N`:
+
+- `FinanzasPersonales-Instalador-1.2.N.exe`: instala para el usuario actual (sin permisos de administrador) y crea accesos directos en el escritorio y en el menú Inicio.
+- `FinanzasPersonales-Portable-1.2.N.exe`: se abre sin instalar.
+
+Los dos usan la misma carpeta de datos (`%APPDATA%\Finanzas Personales`), así que se puede pasar de uno a otro sin perder nada.
+
+**Primera vez**: como la app no tiene una firma paga, Windows puede mostrar *"Windows protegió su PC"* → **Más información** → **Ejecutar de todas formas**. Si pregunta por el acceso a la red, elegir **Permitir** (redes privadas): es para que el celular se conecte por el Wi-Fi de la casa.
+
+**Qué trae**: la misma aplicación que el celular (con OCR y lectura de PDF locales) y el **servidor de sincronización incorporado** (puerto 8787). En *Más → Copias y sincronización*:
+1. Elegir una frase de sincronización y tocar **Activar**.
+2. Tocar **Copiar código** y pasarlo al celular (por ejemplo, por WhatsApp).
+3. En el celular: *Más → Copias* → pegar el código → **Usar código** → la misma frase → **Sincronizar ahora**.
+
+La PC tiene que tener la app abierta y estar en la misma red Wi-Fi que el celular. Los datos viajan cifrados con la frase y no salen a internet.
+
+Compilar localmente (opcional): `npm run desktop:dist` (en Windows). Cada compilación en GitHub Actions abre la app en Windows y comprueba que arranque, que el servidor responda y que genere el código antes de publicarla.
 
 ## Instalación y ejecución en Windows
 

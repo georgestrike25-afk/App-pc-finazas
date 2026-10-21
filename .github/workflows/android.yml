@@ -25,6 +25,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - name: Dependencias
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         run: npm ci
       - name: Pruebas
         run: npm test

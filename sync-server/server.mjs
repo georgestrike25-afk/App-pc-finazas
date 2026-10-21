@@ -19,21 +19,16 @@ import { fileURLToPath } from 'node:url';
 import { timingSafeEqual, createHash } from 'node:crypto';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const PORT = Number(process.env.PORT ?? 8787);
-const HOST = process.env.HOST ?? '0.0.0.0';
-const TOKEN = process.env.SYNC_TOKEN ?? '';
-const DATA_DIR = resolve(process.env.DATA_DIR ?? join(here, 'data'));
-const ALLOWED = (process.env.ALLOWED_ORIGINS ?? '*').split(',').map((s) => s.trim()).filter(Boolean);
-const SERVE_APP = process.env.SERVE_APP === '1';
-const APP_DIR = resolve(process.env.APP_DIR ?? join(here, '..', 'dist'));
 const MAX_BODY = 30 * 1024 * 1024;
 
-if (TOKEN.length < 16) {
-  console.error('Defina SYNC_TOKEN con al menos 16 caracteres. Ejemplo: SYNC_TOKEN=$(node -e "console.log(crypto.randomUUID())")');
-  process.exit(1);
-}
+// Configuración: se fija en startSyncServer (desde la app de escritorio) o con variables de entorno (línea de comandos).
+let TOKEN = '';
+let DATA_DIR = '';
+let ALLOWED = ['*'];
+let SERVE_APP = false;
+let APP_DIR = '';
+let tokenHash = Buffer.alloc(0);
 
-const tokenHash = createHash('sha256').update(TOKEN).digest();
 function authorized(req) {
   const h = req.headers.authorization ?? '';
   const m = h.match(/^Bearer (.+)$/);
@@ -191,12 +186,51 @@ const safe = (req, res) => handler(req, res).catch((e) => {
   if (!res.headersSent) send(res, 500, { error: 'internal' });
 });
 
-const tls = process.env.TLS_CERT && process.env.TLS_KEY && existsSync(process.env.TLS_CERT)
-  ? { cert: readFileSync(process.env.TLS_CERT), key: readFileSync(process.env.TLS_KEY) }
-  : null;
-const server = tls ? https.createServer(tls, safe) : http.createServer(safe);
-server.listen(PORT, HOST, () => {
-  console.log(`[sync] Servidor de sincronización en ${tls ? 'https' : 'http'}://${HOST}:${PORT}  (datos: ${DATA_DIR})`);
-  if (SERVE_APP) console.log(`[sync] Sirviendo la aplicación desde ${APP_DIR}`);
-});
-export default server;
+/**
+ * Inicia el servidor. Devuelve el servidor ya escuchando y el puerto real.
+ * opts: { token, port, host, dataDir, appDir, serveApp, allowedOrigins, tls: { cert, key } }
+ */
+export function startSyncServer(opts) {
+  TOKEN = opts.token ?? '';
+  if (TOKEN.length < 16) throw new Error('El token debe tener al menos 16 caracteres.');
+  tokenHash = createHash('sha256').update(TOKEN).digest();
+  DATA_DIR = resolve(opts.dataDir ?? join(here, 'data'));
+  APP_DIR = resolve(opts.appDir ?? join(here, '..', 'dist'));
+  SERVE_APP = !!opts.serveApp;
+  ALLOWED = opts.allowedOrigins ?? ['*'];
+  const server = opts.tls ? https.createServer(opts.tls, safe) : http.createServer(safe);
+  return new Promise((ok, fail) => {
+    server.once('error', fail);
+    server.listen(opts.port ?? 8787, opts.host ?? '0.0.0.0', () => {
+      server.off('error', fail);
+      ok({ server, port: server.address().port });
+    });
+  });
+}
+
+// Uso desde la línea de comandos: SYNC_TOKEN=… node sync-server/server.mjs
+const isCli = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isCli) {
+  const token = process.env.SYNC_TOKEN ?? '';
+  if (token.length < 16) {
+    console.error('Defina SYNC_TOKEN con al menos 16 caracteres. Ejemplo: SYNC_TOKEN=$(node -e "console.log(crypto.randomUUID())")');
+    process.exit(1);
+  }
+  const tls = process.env.TLS_CERT && process.env.TLS_KEY && existsSync(process.env.TLS_CERT)
+    ? { cert: readFileSync(process.env.TLS_CERT), key: readFileSync(process.env.TLS_KEY) }
+    : null;
+  const host = process.env.HOST ?? '0.0.0.0';
+  startSyncServer({
+    token,
+    port: Number(process.env.PORT ?? 8787),
+    host,
+    dataDir: process.env.DATA_DIR,
+    appDir: process.env.APP_DIR,
+    serveApp: process.env.SERVE_APP === '1',
+    allowedOrigins: (process.env.ALLOWED_ORIGINS ?? '*').split(',').map((x) => x.trim()).filter(Boolean),
+    tls,
+  }).then(({ port }) => {
+    console.log(`[sync] Servidor de sincronización en ${tls ? 'https' : 'http'}://${host}:${port}  (datos: ${DATA_DIR})`);
+    if (SERVE_APP) console.log(`[sync] Sirviendo la aplicación desde ${APP_DIR}`);
+  });
+}

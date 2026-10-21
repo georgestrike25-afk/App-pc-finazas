@@ -15,6 +15,26 @@ export function platformName(): 'android' | 'web' | 'escritorio' {
   return (window as unknown as { finanzasDesktop?: unknown }).finanzasDesktop ? 'escritorio' : 'web';
 }
 
+export interface DesktopPairing {
+  localUrl: string;
+  lanUrl: string | null;
+  otherUrls: string[];
+  space: string;
+  token: string;
+  code: string | null;
+  version: string;
+}
+
+interface DesktopBridge {
+  pairing(): Promise<DesktopPairing>;
+  copy(text: string): Promise<boolean>;
+}
+
+/** Puente con la app de escritorio de Windows (null en el navegador o el celular). */
+export function desktop(): DesktopBridge | null {
+  return (window as unknown as { finanzasDesktop?: DesktopBridge }).finanzasDesktop ?? null;
+}
+
 async function toBase64(data: Blob | string): Promise<string> {
   const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(await data.arrayBuffer());
   return toB64(bytes);

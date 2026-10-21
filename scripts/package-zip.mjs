@@ -13,7 +13,7 @@ zip.pipe(out);
 zip.glob('**/*', {
   cwd: root,
   dot: true,
-  ignore: ['node_modules/**', 'android/app/src/main/assets/public/**', 'android/app/src/main/assets/capacitor.*', 'android/capacitor-cordova-android-plugins/**', 'android/**/build/**', 'android/.gradle/**', 'dist/**', 'dev-dist/**', 'release/**', 'test-results/**', 'playwright-report/**', '.git/**', 'public/ocr/**', 'sync-server/data/**', '**/*.log'],
+  ignore: ['node_modules/**', 'android/app/src/main/assets/public/**', 'android/app/src/main/assets/capacitor.*', 'android/capacitor-cordova-android-plugins/**', 'android/**/build/**', 'android/.gradle/**', 'dist/**', 'dev-dist/**', 'desktop-build/**', 'release/**', 'test-results/**', 'playwright-report/**', '.git/**', 'public/ocr/**', 'sync-server/data/**', '**/*.log'],
 }, { prefix: 'finanzas-personales' });
 out.on('close', () => console.log(`ZIP generado: ${outPath} (${(zip.pointer() / 1024).toFixed(0)} KB)`));
 zip.on('error', (e) => { throw e; });
