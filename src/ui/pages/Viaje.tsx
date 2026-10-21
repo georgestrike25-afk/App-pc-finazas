@@ -126,10 +126,12 @@ export function ViajePage() {
               {(id) => <input id={id} type="number" min={0} max={100} value={g.reinvestPct} onChange={(e) => setG({ ...g, reinvestPct: Math.min(100, Math.max(0, Number(e.target.value))) })} />}
             </Field>
           </div>
-          <h3>Escenarios</h3>
+          <details className="more-opts">
+          <summary>Ajustar escenarios (avanzado)</summary>
+          <p className="muted small">1 = igual a lo previsto. 0.9 en ingresos = cobrás un 10 % menos; 1.1 en gastos = gastás un 10 % más.</p>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Escenario</th><th>Factor de ingresos</th><th>Factor de gastos</th></tr></thead>
+              <thead><tr><th>Escenario</th><th>Ingresos</th><th>Gastos</th></tr></thead>
               <tbody>
                 {g.scenarios.map((s, i) => (
                   <tr key={s.key}>
@@ -141,6 +143,7 @@ export function ViajePage() {
               </tbody>
             </table>
           </div>
+          </details>
           <button className="btn primary" disabled={!dirty} onClick={save}>Guardar objetivo</button>
         </Card>
         <div>

@@ -286,6 +286,9 @@ tr.dim { opacity: 0.5; }
 
 .content, .page { min-width: 0; max-width: 100%; }
 .card { overflow-wrap: anywhere; }
+/* En las tablas no se cortan palabras letra por letra: si no entran, la tabla se desplaza. */
+.card table, .card th, .card td { overflow-wrap: normal; word-break: normal; }
+th { white-space: nowrap; }
 
 /* Ayuda: signo de pregunta con burbuja */
 .help-btn { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; min-width: 1.35rem; padding: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--primary) 60%, var(--border)); background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); font: 700 0.78rem/1 system-ui, sans-serif; cursor: pointer; vertical-align: middle; flex-shrink: 0; position: relative; }
@@ -319,3 +322,17 @@ tr.dim { opacity: 0.5; }
 .tour-dots { display: flex; gap: 4px; margin-bottom: 0.6rem; }
 .tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
 .tour-dots i.on { background: var(--primary); }
+
+/* Gastos en el celular: lista en lugar de tabla */
+.exp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.exp-item { padding: 0.7rem 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.2rem; }
+.exp-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; }
+.exp-concept { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.exp-amount { font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.exp-sub { color: var(--muted); font-size: 0.82rem; }
+.exp-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.exp-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.exp-badges .badge { margin: 0; }
+.exp-acts { display: flex; gap: 0.15rem; margin-left: auto; }
+.exp-acts .btn { min-height: 34px; padding: 0.3rem 0.6rem; }
+.exp-total { display: flex; justify-content: space-between; padding: 0.75rem 0 0.25rem; font-weight: 600; }

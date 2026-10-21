@@ -5,7 +5,7 @@ import { incomeNet, reviseIncome } from '../../domain/income';
 import { addMonths, formatDate, monthLabel, monthShort, todayIso, type MonthKey } from '../../domain/dates';
 import { formatARS, type Cents } from '../../domain/money';
 import type { Income, IncomeLine } from '../../domain/types';
-import { Badge, BarChart, Card, confirmDialog, Empty, Field, Modal, Money, MoneyInput, MonthSelect } from '../components/ui';
+import { Badge, BarChart, Card, confirmDialog, Empty, Field, Modal, Money, MoneyInput, MonthSelect, useNarrow } from '../components/ui';
 
 type Draft = Omit<Income, 'id' | 'createdAt' | 'updatedAt' | 'revisions'> & { id?: string };
 
@@ -73,6 +73,7 @@ export function IncomeForm({ initial, onClose }: { initial: Draft; onClose: () =
 }
 
 export function IngresosPage() {
+  const narrow = useNarrow();
   const { data, today } = useApp();
   const [editing, setEditing] = useState<Draft | null>(null);
   const [history, setHistory] = useState<Income | null>(null);
@@ -118,6 +119,34 @@ export function IngresosPage() {
           <Empty title="Todavía no hay ingresos registrados" action={<button className="btn primary" onClick={() => setEditing(newDraft())}>Registrar el primer ingreso</button>}>
             Cargue el ingreso efectivamente cobrado de cada mes. Puede registrar también estimaciones, que se muestran por separado.
           </Empty>
+        ) : narrow ? (
+          <ul className="exp-list">
+            {sorted.map((i) => {
+              const ex = i.extras.reduce((a, x) => a + x.amount, 0);
+              const de = i.deductions.reduce((a, x) => a + x.amount, 0);
+              return (
+                <li key={i.id} className="exp-item">
+                  <div className="exp-top">
+                    <span className="exp-concept">{monthLabel(i.month)}</span>
+                    <Money value={incomeNet(i)} className="exp-amount" />
+                  </div>
+                  <div className="exp-sub">
+                    {i.receivedDate ? `Cobrado el ${formatDate(i.receivedDate)}` : 'Sin fecha de cobro'}
+                    {ex !== 0 && <> · adicionales <Money value={ex} /></>}
+                    {de !== 0 && <> · descuentos <Money value={de} /></>}
+                  </div>
+                  <div className="exp-foot">
+                    <span className="exp-badges"><Badge tone={i.status === 'confirmado' ? 'ok' : 'est'}>{i.status === 'confirmado' ? 'Cobrado' : 'Estimado'}</Badge></span>
+                    <span className="exp-acts">
+                      {i.revisions.length > 0 && <button className="btn small ghost" onClick={() => setHistory(i)}>Cambios</button>}
+                      <button className="btn small ghost" onClick={() => setEditing(i)}>Editar</button>
+                      <button className="btn small ghost danger" aria-label={`Eliminar el ingreso de ${monthLabel(i.month)}`} onClick={async () => (await confirmDialog(`¿Eliminar el ingreso de ${monthLabel(i.month)}?`, { danger: true, ok: 'Eliminar' })) && softDelete('incomes', i.id, `Eliminación de ingreso de ${monthLabel(i.month)}`)}>✕</button>
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           <div className="table-wrap">
             <table>

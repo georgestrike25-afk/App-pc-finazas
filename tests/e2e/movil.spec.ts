@@ -14,6 +14,16 @@ test('diseño adaptable en Android: sin desplazamiento horizontal y navegación 
   await page.locator('.side').getByRole('link', { name: /Viaje/ }).click();
   await expect(page.locator('.topbar h1')).toHaveText('Objetivo de viaje');
   await page.screenshot({ path: 'test-results/movil-viaje.png', fullPage: true });
+  // Los gastos se ven como lista (no como tabla apretada)
+  await go(page, 'gastos');
+  await page.getByRole('button', { name: '+ Anotar gasto' }).click();
+  await page.getByLabel('Cuánto').fill('12.270,00');
+  await page.getByLabel('En qué').fill('PEDIDOSYA*EL FUELLE con un nombre bastante largo');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  const item = page.getByTestId('gastos-lista').locator('li').first();
+  await expect(item).toContainText('12.270,00');
+  expect((await item.locator('.exp-concept').boundingBox())!.width).toBeGreaterThan(150);
+  await expect(page.locator('table')).toHaveCount(0);
 });
 
 test.describe('primera vez en el celular', () => {

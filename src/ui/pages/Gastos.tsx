@@ -5,7 +5,7 @@ import { occurrencesForMonth, FREQUENCY_LABEL } from '../../domain/expenses';
 import { formatDate, monthLabel } from '../../domain/dates';
 import { sum } from '../../domain/money';
 import type { Expense, ExpenseKind } from '../../domain/types';
-import { Badge, Card, confirmDialog, Empty, Money, MonthNav } from '../components/ui';
+import { Badge, Card, confirmDialog, Empty, Money, MonthNav, useNarrow } from '../components/ui';
 import { ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
 
 export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; emptyText: string }) {
@@ -15,10 +15,50 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
   const items = useMemo(() => occurrencesForMonth(data.expenses.filter((e) => kinds.includes(e.kind)), month), [data.expenses, kinds, month]);
   const byId = new Map(data.expenses.map((e) => [e.id, e]));
   const shared = kinds.includes('hogar');
+  const narrow = useNarrow();
+  const remove = async (e: Expense) =>
+    (await confirmDialog(`¿Eliminar "${e.concept}"?${e.frequency !== 'unica' ? '\nSe eliminarán todas sus ocurrencias. Para un solo mes use "Ajustar mes" → "No corresponde".' : ''}`, { danger: true, ok: 'Eliminar' })) &&
+    softDelete('expenses', e.id, `Eliminación de gasto "${e.concept}"`);
   return (
     <>
       {items.length === 0 ? (
         <Empty title={`Sin gastos en ${monthLabel(month)}`}>{emptyText}</Empty>
+      ) : narrow ? (
+        <>
+          <ul className="exp-list" data-testid="gastos-lista">
+            {items.map((o) => {
+              const e = byId.get(o.expenseId)!;
+              return (
+                <li key={o.expenseId} className="exp-item">
+                  <div className="exp-top">
+                    <span className="exp-concept">{o.concept}</span>
+                    <Money value={o.userShare} estimated={o.estimated} className="exp-amount" />
+                  </div>
+                  <div className="exp-sub">
+                    {o.category} · {formatDate(e.date)} · {METHOD_LABEL[e.paymentMethod]}
+                    {shared && o.userPct !== 100 && <> · tu parte {o.userPct} % de <Money value={o.total} /></>}
+                  </div>
+                  <div className="exp-foot">
+                    <span className="exp-badges">
+                      {o.paid ? <Badge tone="ok">Pagado</Badge> : e.paymentMethod === 'tarjeta' ? <Badge tone="neutral">{e.source === 'importado' ? 'Del resumen de la tarjeta' : 'Llega con el resumen'}</Badge> : <Badge tone="warn">Pendiente</Badge>}
+                      {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
+                      {o.estimated && <Badge tone="est">estimado</Badge>}
+                    </span>
+                    <span className="exp-acts">
+                      {e.frequency !== 'unica' && <button className="btn small ghost" onClick={() => setOcc(e)}>Este mes</button>}
+                      <button className="btn small ghost" onClick={() => setEditing(e)} aria-label={`Editar ${e.concept}`}>Editar</button>
+                      <button className="btn small ghost danger" onClick={() => remove(e)} aria-label={`Eliminar ${e.concept}`}>✕</button>
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="exp-total">
+            <span>Total del mes{shared ? ' (tu parte)' : ''}</span>
+            <strong><Money value={sum(items.map((i) => i.userShare))} /></strong>
+          </div>
+        </>
       ) : (
         <div className="table-wrap">
           <table>
@@ -55,13 +95,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                     <td className="actions">
                       {e.frequency !== 'unica' && <button className="btn small" onClick={() => setOcc(e)}>Ajustar mes</button>}
                       <button className="btn small" onClick={() => setEditing(e)}>Editar</button>
-                      <button
-                        className="btn small ghost danger"
-                        onClick={async () =>
-                          (await confirmDialog(`¿Eliminar "${e.concept}"?${e.frequency !== 'unica' ? '\nSe eliminarán todas sus ocurrencias. Para un solo mes use "Ajustar mes" → "No corresponde".' : ''}`, { danger: true, ok: 'Eliminar' })) &&
-                          softDelete('expenses', e.id, `Eliminación de gasto "${e.concept}"`)
-                        }
-                      >
+                      <button className="btn small ghost danger" onClick={() => remove(e)}>
                         Eliminar
                       </button>
                     </td>

@@ -3,6 +3,20 @@ import { createPortal } from 'react-dom';
 import { formatARS, formatPlain, parseUserAmount, type Cents } from '../../domain/money';
 import { monthLabel, type MonthKey } from '../../domain/dates';
 
+/** true en pantallas angostas (celular), donde las tablas se muestran como lista. */
+export function useNarrow(): boolean {
+  const q = '(max-width: 860px)';
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia?.(q);
+    if (!m) return;
+    const h = () => setNarrow(m.matches);
+    m.addEventListener('change', h);
+    return () => m.removeEventListener('change', h);
+  }, []);
+  return narrow;
+}
+
 export function Money({ value, estimated, className }: { value: Cents | undefined | null; estimated?: boolean; className?: string }) {
   const neg = typeof value === 'number' && value < 0;
   return (

@@ -3,11 +3,12 @@ import { useApp } from '../store';
 import { getDb } from '../../db/db';
 import { saveFile } from '../../platform';
 import { softDelete } from '../../db/repo';
-import { Badge, Card, confirmDialog, Empty } from '../components/ui';
+import { Badge, Card, confirmDialog, Empty, useNarrow } from '../components/ui';
 
 const ACTION_TONE = { crear: 'ok', modificar: 'info', eliminar: 'bad', importar: 'info', restaurar: 'warn', sincronizar: 'warn' } as const;
 
 export function HistorialPage() {
+  const narrow = useNarrow();
   const { data } = useApp();
   const [q, setQ] = useState('');
   const audit = data.audit.filter((a) => !q || a.summary.toLowerCase().includes(q.toLowerCase()));
@@ -21,6 +22,23 @@ export function HistorialPage() {
       <Card title="Documentos importados">
         {data.documents.length === 0 ? (
           <Empty title="Todavía no se importaron documentos" />
+        ) : narrow ? (
+          <ul className="exp-list">
+            {[...data.documents].sort((a, b) => (b.importedAt ?? '').localeCompare(a.importedAt ?? '')).map((d) => (
+              <li key={d.id} className="exp-item">
+                <span className="exp-concept">{d.name}</span>
+                <div className="exp-sub">{d.entity ? `${d.entity} · ` : ''}{d.importedAt ? new Date(d.importedAt).toLocaleString('es-AR') : '—'} · {(d.size / 1024).toFixed(0)} KB</div>
+                {d.summary && <div className="exp-sub">{d.summary}</div>}
+                <div className="exp-foot">
+                  <span />
+                  <span className="exp-acts">
+                    {d.hasBlob && <button className="btn small ghost" onClick={() => open(d.id, d.name)}>Descargar</button>}
+                    <button className="btn small ghost danger" aria-label={`Eliminar el documento ${d.name}`} onClick={async () => (await confirmDialog(`¿Eliminar el documento "${d.name}"?\nLos movimientos ya incorporados se conservan.`, { danger: true, ok: 'Eliminar' })) && softDelete('documents', d.id, `Eliminación de documento "${d.name}"`)}>✕</button>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
           <div className="table-wrap">
             <table>
