@@ -21,7 +21,7 @@ cpSync(join(root, 'desktop', 'preload.cjs'), join(appDir, 'preload.cjs'));
 cpSync(join(root, 'sync-server', 'server.mjs'), join(appDir, 'server.mjs'));
 writeFileSync(
   join(appDir, 'package.json'),
-  JSON.stringify({ name: 'finanzas-personales', productName: 'Finanzas Personales', version, description: rootPkg.description, author: 'Finanzas Personales', main: 'main.mjs', type: 'module', private: true }, null, 2),
+  JSON.stringify({ name: 'finanzas-personales', productName: 'Brote', version, description: rootPkg.description, author: 'Brote', main: 'main.mjs', type: 'module', private: true }, null, 2),
 );
 mkdirSync(join(out, 'resources'), { recursive: true });
 cpSync(join(root, 'public', 'icons', 'icon-512.png'), join(out, 'resources', 'icon.png'));

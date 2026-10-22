@@ -8,6 +8,7 @@ import type { Expense, ExpenseKind } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Money, MonthNav, useNarrow } from '../components/ui';
 import { DAILY_CATEGORIES, ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
 import { NotifReviewCard } from './Notificaciones';
+import { categoryIcon } from '../components/categoryIcon';
 
 /** Gasto que pagaste vos entero y tu pareja te devuelve la mitad (marcado con el botón rápido). */
 const isHalf = (e: Expense) => e.kind === 'hogar' && e.userPct === 50 && e.paidBy === 'usuario';
@@ -54,6 +55,8 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
               const e = byId.get(o.expenseId)!;
               return (
                 <li key={o.expenseId} className="exp-item">
+                  <CatIcon category={o.category} />
+                  <div className="exp-main">
                   <div className="exp-top">
                     <span className="exp-concept">{o.concept}</span>
                     <Money value={o.userShare} estimated={o.estimated} className="exp-amount" />
@@ -75,6 +78,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                       <button className="btn small ghost danger" onClick={() => remove(e)} aria-label={`Eliminar ${e.concept}`}>✕</button>
                     </span>
                   </div>
+                  </div>
                 </li>
               );
             })}
@@ -89,7 +93,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
           <table>
             <thead>
               <tr>
-                <th>Concepto</th><th>Categoría</th><th>Fecha</th><th>Medio</th>
+                <th>Concepto</th>
                 {shared && <th className="num">Total</th>}
                 {shared && <th className="num">%</th>}
                 <th className="num">{shared ? 'Mi parte' : 'Importe'}</th><th>Estado</th><th></th>
@@ -101,15 +105,17 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                 return (
                   <tr key={o.expenseId}>
                     <td>
-                      {o.concept}
-                      {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
-                      {e.source === 'importado' && <Badge tone="neutral">{e.provisional ? 'provisorio' : 'importado'}</Badge>}
-                      {!!e.linkedLineFingerprints?.length && e.source === 'manual' && <Badge tone="ok">vinculado a resumen</Badge>}
-                      {!shared && <small className="muted d-block">{KIND_LABEL[o.kind].split(' (')[0]}</small>}
+                      <div className="concept-cell">
+                        <CatIcon category={o.category} />
+                        <div>
+                          <strong>{o.concept}</strong>
+                          {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
+                          {e.source === 'importado' && <Badge tone="neutral">{e.provisional ? 'provisorio' : 'importado'}</Badge>}
+                          {!!e.linkedLineFingerprints?.length && e.source === 'manual' && <Badge tone="ok">vinculado a resumen</Badge>}
+                          <small className="muted d-block">{o.category} · {formatDate(e.date)} · {METHOD_LABEL[e.paymentMethod]}{!shared && o.kind !== 'cotidiano' ? ` · ${KIND_LABEL[o.kind].split(' (')[0]}` : ''}</small>
+                        </div>
+                      </div>
                     </td>
-                    <td>{o.category}</td>
-                    <td>{formatDate(e.date)}</td>
-                    <td>{METHOD_LABEL[e.paymentMethod]}</td>
                     {shared && <td className="num"><Money value={o.total} estimated={o.estimated} /></td>}
                     {shared && <td className="num">{o.userPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} %</td>}
                     <td className="num"><Money value={o.userShare} estimated={o.estimated} /></td>
@@ -131,7 +137,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={shared ? 6 : 4}>Total del mes</td>
+                <td colSpan={shared ? 3 : 1}>Total del mes</td>
                 <td className="num"><strong><Money value={sum(items.map((i) => i.userShare))} /></strong></td>
                 <td colSpan={2}></td>
               </tr>
@@ -145,6 +151,54 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
   );
 }
 
+function CatIcon({ category }: { category: string }) {
+  const Icon = categoryIcon(category);
+  return <span className="cat-ic" aria-hidden><Icon strokeWidth={1.8} /></span>;
+}
+
+/** Tu parte de los gastos del mes por categoría (gráfico circular + lista). */
+function ByCategory() {
+  const { data, month } = useApp();
+  const rows = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const o of occurrencesForMonth(data.expenses, month)) m.set(o.category, (m.get(o.category) ?? 0) + o.userShare);
+    const all = [...m.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    // Más de seis categorías: el resto se agrupa en "Otras".
+    return all.length > 6 ? [...all.slice(0, 5), ['Otras', sum(all.slice(5).map((x) => x[1]))] as [string, number]] : all;
+  }, [data.expenses, month]);
+  const total = sum(rows.map((r) => r[1]));
+  if (!total) return null;
+  const r = 46;
+  const c = 2 * Math.PI * r;
+  let off = 0;
+  return (
+    <Card title="Por categoría">
+      <div className="donut-row">
+        <svg viewBox="0 0 120 120" width="120" height="120" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }} role="img" aria-label="Tu parte de los gastos por categoría">
+          {rows.map(([n, v], i) => {
+            const len = (v / total) * c;
+            const el = <circle key={n} cx="60" cy="60" r={r} fill="none" stroke={`var(--cat${i + 1})`} strokeWidth="16" strokeDasharray={`${Math.max(0, len - 2)} ${c}`} strokeDashoffset={-off} />;
+            off += len;
+            return el;
+          })}
+        </svg>
+        <div>
+          <div className="hero-label">Total del mes (tu parte)</div>
+          <Money value={total} className="amount" />
+        </div>
+      </div>
+      <ul className="list">
+        {rows.map(([n, v], i) => (
+          <li key={n}>
+            <span className="inline-help"><i className="sw" style={{ background: `var(--cat${i + 1})` }} />{n}</span>
+            <span className="inline-help"><small className="muted">{Math.round((v / total) * 100)} %</small><Money value={v} /></span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export function GastosPage() {
   const { data, month, setMonth } = useApp();
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
@@ -155,9 +209,12 @@ export function GastosPage() {
       <div className="page-actions">
         <button className="btn primary" data-tour="anotar-gasto" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
       </div>
+      <div className="cols cols-main">
       <Card title={`Gastos de ${monthLabel(month)}`} help={<><p>Todos tus gastos del mes: los que anotaste a mano y los que llegaron con los resúmenes. Si es compartido con tu pareja, se cuenta solo tu parte (botón ½).</p><p>Nada se cuenta dos veces: una compra con tarjeta se cuenta una sola vez; el pago del resumen no es un gasto nuevo; si anotaste algo que después llega en el resumen (mismo importe, ±5 días), se vincula; las cuotas se cuentan una por una en Deudas.</p></>}>
         <ExpenseTable kinds={['cotidiano', 'personal', 'hogar']} emptyText="Anotá lo que pagás en efectivo o débito. Lo de la tarjeta llega solo cuando subís el resumen." />
       </Card>
+      <ByCategory />
+      </div>
       {editing && <ExpenseForm initial={editing} onClose={() => setEditing(null)} />}
     </div>
   );

@@ -1,3 +1,4 @@
+import { FileUp, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useApp } from '../store';
 import { extractFile } from '../../importers/extract';
@@ -333,8 +334,10 @@ export function ImportarPage() {
           <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Usar OCR local para imágenes y PDF escaneados (requiere ~10 MB de recursos, se descargan de esta misma app la primera vez)</label>
           <div className="drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}>
             <input ref={input} id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.txt,.xls,.xlsx,.json,.mp4,.m4v,.mov,.webm,video/*" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} disabled={!!busy} />
-            <label htmlFor="file" className="btn primary">Elegir archivo</label>
-            <span className="muted">o arrástrelo aquí</span>
+            <span className="empty-ic" aria-hidden><FileUp /></span>
+            <strong>Arrastrá el archivo acá o elegilo</strong>
+            <label htmlFor="file" className="btn primary"><Upload aria-hidden />Elegir archivo</label>
+            <span className="muted small">PDF, captura, video de la pantalla, Excel o CSV</span>
           </div>
           {busy && (
             <div className="busy" role="status">

@@ -108,9 +108,11 @@ test('propuesta (prototipo)', async ({ page }, info) => {
 
 /** El diseño actual de la app, con datos de prueba, para comparar. */
 const CURRENT: Array<[string, string]> = [['inicio', 'inicio'], ['gastos', 'gastos'], ['ingresos', 'ingresos'], ['compartidos', 'compartidos'], ['presupuesto', 'presupuesto'], ['entidades', 'deudas'], ['cuotas', 'cuotas'], ['deudas', 'prestamos-tarjetas'], ['viaje', 'viaje'], ['resumen', 'detalle-del-mes'], ['importar', 'importar'], ['historial', 'historial'], ['configuracion', 'configuracion'], ['copias', 'copias-sincronizacion'], ['ayuda', 'ayuda']];
-test('actual (app de hoy)', async ({ page }, info) => {
+for (const [titulo, carpeta] of [['actual (app de hoy)', 'actual'], ['implementado (app con el diseño nuevo)', 'implementado']] as const)
+test(titulo, async ({ page }, info) => {
+  test.skip(!!process.env.SOLO && process.env.SOLO !== carpeta, 'otra carpeta');
   const [device, tema] = info.project.name.split('-');
-  const dir = join(HERE, 'actual');
+  const dir = join(HERE, carpeta);
   mkdirSync(dir, { recursive: true });
   await page.clock.setFixedTime(new Date('2026-10-22T12:00:00'));
   await go(page, 'inicio');
@@ -123,4 +125,7 @@ test('actual (app de hoy)', async ({ page }, info) => {
   await go(page, 'gastos');
   await page.getByRole('button', { name: '+ Anotar gasto' }).click();
   await shot(page, dir, `${device}-formulario-gasto-${tema}`);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: /^Eliminar/ }).first().click();
+  await shot(page, dir, `${device}-confirmar-eliminar-${tema}`);
 });

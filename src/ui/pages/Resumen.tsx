@@ -28,7 +28,7 @@ export function ResumenPage() {
           label: monthShort(m),
           values: [
             { name: 'Ingresos cobrados', value: x.sections[0].total, color: 'var(--c-income)' },
-            { name: 'Egresos imputados', value: out, color: 'var(--c-expense)', estimated: x.hasEstimates },
+            { name: 'Egresos imputados', value: out, color: 'var(--bar)', estimated: x.hasEstimates },
           ],
         };
       }),

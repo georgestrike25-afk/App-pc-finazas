@@ -334,3 +334,20 @@ test('plata hasta cobrar: se descuenta lo que gastás', async ({ page }) => {
   await expect(page.locator('.kpi', { hasText: 'Disponible' })).toContainText('80.000,00');
   await expect(page.getByTestId('presupuesto-vs-plata')).toHaveCount(0);
 });
+
+test('tema: claro, oscuro o el del sistema, y se recuerda al volver a abrir', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await go(page, 'configuracion');
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('radio', { name: 'Oscuro' }).click();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByRole('radio', { name: 'Oscuro' })).toHaveAttribute('aria-checked', 'true');
+  // "Sistema" sigue al teléfono o a la PC
+  await page.getByRole('radio', { name: 'Sistema' }).click();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+});

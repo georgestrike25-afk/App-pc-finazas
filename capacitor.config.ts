@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'ar.finanzas.personales',
-  appName: 'Finanzas Personales',
+  appName: 'Brote',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

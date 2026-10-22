@@ -3,7 +3,8 @@ import { useApp } from '../store';
 import { addMonths, formatDate, monthLabel, monthShort } from '../../domain/dates';
 import { debtByEntity, entityGroup, expenseCardEntity, OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
 import { sum } from '../../domain/money';
-import { Badge, BarChart, Card, Empty, Money } from '../components/ui';
+import { Badge, BarChart, Card, Empty, Money, Progress } from '../components/ui';
+import { CreditCard, Landmark } from 'lucide-react';
 
 /** Cuánto falta para saldar todas las deudas con cada entidad (préstamos y cuotas de tarjetas). */
 export function EntidadesPage() {
@@ -25,7 +26,7 @@ export function EntidadesPage() {
   );
   const last = debts.map((d) => d.lastMonth).filter(Boolean).sort().at(-1);
   const months = Array.from({ length: 12 }, (_, i) => addMonths(today, i));
-  const colors = ['var(--c-debt)', 'var(--c-expense)', 'var(--c-accent)', 'var(--c-income)', 'var(--c-est)'];
+  const colors = ['var(--cat1)', 'var(--cat3)', 'var(--cat4)', 'var(--cat2)', 'var(--cat6)'];
   const chart = months.map((m) => ({
     label: monthShort(m),
     values: debts.slice(0, 5).map((d, i) => ({ name: d.group, value: d.byMonth[m] ?? 0, color: colors[i] })),
@@ -49,7 +50,7 @@ export function EntidadesPage() {
         <BarChart data={chart} ariaLabel="Cuotas por mes y entidad" />
       </Card>
       {debts.map((d) => (
-        <Card key={d.group} title={d.group} actions={<Money value={d.remaining} estimated={d.estimated} />} className="entity-card">
+        <Card key={d.group} title={<span className="entity-head"><span className="cat-ic" aria-hidden>{d.card.length || /naranja|visa|master|uala|ualá|mercado|tarjeta/i.test(d.group) ? <CreditCard /> : <Landmark />}</span>{d.group}</span>} actions={<Money value={d.remaining} estimated={d.estimated} />} className="entity-card">
           <p className="small muted">
             {d.lastMonth ? <>Último pago en <strong>{monthLabel(d.lastMonth)}</strong></> : 'Sin fecha de fin'}
             {d.overdue > 0 && <> · <span className="err">vencido sin pagar: <Money value={d.overdue} /></span></>}
@@ -74,6 +75,7 @@ export function EntidadesPage() {
                     {p.nextAmount !== undefined && <> · próxima <Money value={p.nextAmount} />{p.nextDueDate ? ` el ${formatDate(p.nextDueDate)}` : p.nextDueMonth ? ` en ${monthLabel(p.nextDueMonth)}` : ''}</>}
                     {p.lastDueMonth && <> · termina {p.lastDueDate ? formatDate(p.lastDueDate) : monthLabel(p.lastDueMonth)}</>}
                   </small>
+                  {!!p.total && <span className="d-block" style={{ marginTop: 8, maxWidth: 420 }}><Progress value={p.total - p.remainingCount} max={p.total} /></span>}
                 </span>
                 <Money value={p.remainingTotal} />
               </li>

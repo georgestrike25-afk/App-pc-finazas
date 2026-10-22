@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight, CircleHelp, Inbox, Trash2, X, type LucideIcon } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { formatARS, formatPlain, parseUserAmount, type Cents } from '../../domain/money';
 import { monthLabel, type MonthKey } from '../../domain/dates';
@@ -130,9 +131,10 @@ export function Card({ title, actions, children, className, help, tour }: { titl
   );
 }
 
-export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
+export function Empty({ title, children, action, icon: Icon = Inbox }: { title: string; children?: ReactNode; action?: ReactNode; icon?: LucideIcon }) {
   return (
     <div className="empty">
+      <div className="empty-ic" aria-hidden><Icon strokeWidth={1.8} /></div>
       <p className="empty-t">{title}</p>
       {children && <p className="muted">{children}</p>}
       {action}
@@ -220,20 +222,31 @@ export function MonthNav({ month, setMonth }: { month: MonthKey; setMonth: (m: M
     const d = new Date(y, m - 1 + n, 1);
     setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   };
-  return (
+  const nav = (
     <div className="month-nav" role="group" aria-label="Mes">
-      <button className="btn ghost icon" onClick={() => shift(-1)} aria-label="Mes anterior">‹</button>
+      <button className="btn ghost icon" onClick={() => shift(-1)} aria-label="Mes anterior"><ChevronLeft strokeWidth={2} /></button>
       <label className="month-nav-label">
         <span className="sr-only">Seleccionar mes</span>
         <strong>{monthLabel(month)}</strong>
         <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} aria-label="Seleccionar mes" />
       </label>
-      <button className="btn ghost icon" onClick={() => shift(1)} aria-label="Mes siguiente">›</button>
+      <button className="btn ghost icon" onClick={() => shift(1)} aria-label="Mes siguiente"><ChevronRight strokeWidth={2} /></button>
     </div>
   );
+  // En pantallas anchas va en el encabezado de la página, junto al título.
+  return <InHeader fallback={nav}>{nav}</InHeader>;
 }
 
-export function Modal({ title, onClose, children, footer, wide }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+/** Muestra su contenido en el encabezado de la página (escritorio); en el celular, donde está. */
+export function InHeader({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) {
+  const narrow = useNarrow();
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setSlot(document.getElementById('topbar-acts')), []);
+  if (narrow || !slot) return <>{fallback}</>;
+  return createPortal(children, slot);
+}
+
+export function Modal({ title, onClose, children, footer, wide, className }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean; className?: string }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', h);
@@ -241,10 +254,10 @@ export function Modal({ title, onClose, children, footer, wide }: { title: strin
   }, [onClose]);
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`modal ${wide ? 'wide' : ''} ${className ?? ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <header className="modal-h">
           <h2>{title}</h2>
-          <button className="btn ghost icon" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="btn ghost icon" onClick={onClose} aria-label="Cerrar"><X strokeWidth={2} /></button>
         </header>
         <div className="modal-b">{children}</div>
         {footer && <footer className="modal-f">{footer}</footer>}
@@ -272,20 +285,26 @@ export function ConfirmHost() {
     state.resolve(v);
     setState(null);
   };
+  // La primera línea es la pregunta; el resto, la explicación.
+  const [question, ...rest] = state.msg.split('\n');
+  const Icon = state.danger ? Trash2 : CircleHelp;
   return (
     <Modal
       title="Confirmar"
+      className={`confirm ${state.danger ? 'danger' : ''}`}
       onClose={() => done(false)}
       footer={
         <>
-          <button className="btn ghost" onClick={() => done(false)}>Cancelar</button>
+          <button className="btn" onClick={() => done(false)}>Cancelar</button>
           <button className={`btn ${state.danger ? 'danger' : 'primary'}`} onClick={() => done(true)} autoFocus>
             {state.ok ?? 'Aceptar'}
           </button>
         </>
       }
     >
-      <p style={{ whiteSpace: 'pre-line' }}>{state.msg}</p>
+      <div className="confirm-ic" aria-hidden><Icon strokeWidth={1.8} /></div>
+      <h2 style={{ margin: 0 }}>{question}</h2>
+      {rest.length > 0 && <p className="muted small" style={{ whiteSpace: 'pre-line', margin: 0 }}>{rest.join('\n')}</p>}
     </Modal>
   );
 }
@@ -338,12 +357,28 @@ export function BarChart({ data, height = 180, ariaLabel }: { data: BarDatum[]; 
   );
 }
 
-export function Progress({ value, max }: { value: number; max: number }) {
+export function Progress({ value, max, tone }: { value: number; max: number; tone?: 'warn' | 'over' }) {
   const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   return (
-    <div className="progress" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+    <div className={`progress ${tone ?? ''}`} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
       <div style={{ width: `${pct}%` }} />
       <span>{pct.toFixed(1).replace('.', ',')} %</span>
+    </div>
+  );
+}
+
+/** Anillo de avance (presupuesto): el porcentaje en el centro. */
+export function Ring({ value, max, label }: { value: number; max: number; label: string }) {
+  const pct = max > 0 ? Math.max(0, Math.round((value / max) * 100)) : 0;
+  const r = 52;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="ring" role="img" aria-label={`${label}: ${pct} %`}>
+      <svg viewBox="0 0 120 120" aria-hidden>
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--track)" strokeWidth="12" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke={pct > 100 ? 'var(--danger)' : 'var(--lime)'} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(c * Math.min(100, pct)) / 100} ${c}`} />
+      </svg>
+      <div className="v">{pct} %</div>
     </div>
   );
 }

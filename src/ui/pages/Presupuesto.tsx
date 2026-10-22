@@ -8,7 +8,8 @@ import { cashStatus } from '../../domain/cash';
 import { formatARS } from '../../domain/money';
 import { sum, type Cents } from '../../domain/money';
 import type { Settings } from '../../domain/types';
-import { Card, Field, Money, MoneyInput, MonthNav, Progress } from '../components/ui';
+import { Card, Field, Money, MoneyInput, MonthNav, Progress, Ring } from '../components/ui';
+import { categoryIcon } from '../components/categoryIcon';
 import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 
 export function PresupuestoPage() {
@@ -53,7 +54,7 @@ export function PresupuestoPage() {
         </Card>
       )}
       <Card title={`Presupuesto de ${monthLabel(month)}`} help="Es el máximo que querés gastar en el mes en comida, transporte, salidas y demás gastos chicos. La barra muestra cuánto llevás.">
-        <Progress value={registered} max={b.amount} />
+        <Ring value={registered} max={b.amount} label="Usaste del presupuesto" />
         <div className="form-grid" style={{ marginTop: '0.75rem' }}>
           <Field label="Monto del mes">{(id) => <MoneyInput id={id} value={amount} onChange={setAmount} />}</Field>
           <Field label="Modo del mes" help="Real: solo cuenta lo que anotaste. Estimado: además supone que vas a gastar lo que te queda del presupuesto (sirve para planear meses que todavía no pasaron).">
@@ -84,9 +85,19 @@ export function PresupuestoPage() {
           <p className="muted">Sin gastos cotidianos registrados en el mes.</p>
         ) : (
           <ul className="list">
-            {[...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([c, v]) => (
-              <li key={c}><span>{c}</span><Money value={v} /></li>
-            ))}
+            {[...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([c, v]) => {
+              const Icon = categoryIcon(c);
+              return (
+                <li key={c} style={{ alignItems: 'center' }}>
+                  <span className="cat-ic" aria-hidden><Icon /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong>{c}</strong><Money value={v} /></span>
+                    <span className="d-block" style={{ marginTop: 6 }}><Progress value={v} max={Math.max(registered, 1)} /></span>
+                    <small className="muted">{Math.round((v / Math.max(registered, 1)) * 100)} % de lo gastado en el día a día</small>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

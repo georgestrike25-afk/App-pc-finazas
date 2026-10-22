@@ -48,7 +48,7 @@ export function NotificationsSettingsCard() {
     >
       <ol className="steps">
         <li>
-          {permitido ? <span className="ok-text">✓ Permiso para leer notificaciones dado</span> : <>Dale permiso a la app para leer notificaciones: <button className="btn small primary" onClick={() => Notificaciones.abrirAjustes()}>Dar permiso</button> → buscá <strong>Finanzas Personales</strong> y activalo.</>}
+          {permitido ? <span className="ok-text">✓ Permiso para leer notificaciones dado</span> : <>Dale permiso a la app para leer notificaciones: <button className="btn small primary" onClick={() => Notificaciones.abrirAjustes()}>Dar permiso</button> → buscá <strong>Brote</strong> y activalo.</>}
         </li>
         <li>
           <label className="check">

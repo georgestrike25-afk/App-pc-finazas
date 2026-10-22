@@ -43,7 +43,7 @@
 <div class="bar">
   <div class="seg" id="device"><button data-v="desktop" aria-pressed="true">Escritorio 1366 × 768</button><button data-v="mobile" aria-pressed="false">Celular 390 × 844</button></div>
   <div class="seg" id="tema"><button data-v="claro" aria-pressed="true">Claro</button><button data-v="oscuro" aria-pressed="false">Oscuro</button></div>
-  <div class="seg" id="modo"><button data-v="comparar" aria-pressed="true">Comparar con el actual</button><button data-v="solo" aria-pressed="false">Solo la propuesta</button></div>
+  <div class="seg" id="modo"><button data-v="comparar" aria-pressed="true">Propuesta vs. diseño anterior</button><button data-v="implementado" aria-pressed="false">Propuesta vs. app implementada</button><button data-v="solo" aria-pressed="false">Solo la propuesta</button></div>
 </div>
 <main id="list"></main>
 <script>
@@ -85,7 +85,9 @@
       const full = `capturas/${device}-${k}-${tema}-completa.png`;
       const viejo = `actual/${device}-${k}-${tema}.png`;
       const fig1 = `<figure>${img(nuevo, `Propuesta: ${t}`)}<figcaption><span>Propuesta · ${nuevo}</span>${device === 'mobile' && !['formulario-gasto', 'confirmar-eliminar'].includes(k) ? `<a href="${full}" target="_blank">Ver pantalla completa</a>` : ''}</figcaption></figure>`;
-      const fig2 = modo === 'comparar' && !noOld ? `<figure>${img(viejo, `Actual: ${t}`)}<figcaption><span>Actual · ${viejo}</span></figcaption></figure>` : '';
+      const impl = `implementado/${device}-${k}-${tema}.png`;
+      const fig2 = modo === 'comparar' && !noOld ? `<figure>${img(viejo, `Anterior: ${t}`)}<figcaption><span>Anterior · ${viejo}</span></figcaption></figure>`
+        : modo === 'implementado' && k !== 'gastos-vacio' ? `<figure>${img(impl, `Implementado: ${t}`)}<figcaption><span>App implementada · ${impl}</span></figcaption></figure>` : '';
       return `<section><h2>${t}</h2><p class="note">${n}</p><div class="pair ${fig2 ? '' : 'solo'}">${fig1}${fig2}</div></section>`;
     }).join('') + `<section class="notes"><h2>Decisiones de diseño</h2><ul>
       <li>Verde bosque para la estructura (menú, tarjeta principal, botones) y lima solo como acento: ítem activo, progreso, foco en modo oscuro.</li>

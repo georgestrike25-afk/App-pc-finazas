@@ -1,8 +1,16 @@
-# Finanzas Personales — PWA local, gratuita y sin conexión
+# Brote — tus finanzas, en crecimiento
+
+PWA local, gratuita y sin conexión (antes "Finanzas Personales").
 
 Aplicación para **Android (APK)**, **Windows** y navegador (PWA) para gestionar ingresos variables, gastos personales y cotidianos, gastos compartidos en pareja, Sancor Salud, tarjetas, préstamos, compras en cuotas y el objetivo de ahorro del **viaje de abril de 2027**. Funciona en **Windows (PC)** y **Android**, sin servicios pagos, sin telemetría y con los datos guardados **solo en el dispositivo**.
 
 > La aplicación inicia **vacía**: $0 de ingresos, deudas, gastos y ahorro. El único valor precargado es el **presupuesto cotidiano orientativo de $700.000**, identificado en pantalla como "valor inicial editable" y nunca contado como gasto real.
+
+---
+
+## Diseño
+
+Identidad visual **Forest Finance**: verde bosque (#123C3A) para la estructura y lima (#A3E635) como acento, tipografía Inter incluida en la app (funciona sin conexión), íconos de una sola familia (lucide) y contraste verificado (WCAG AA). En *Configuración → Apariencia* se elige **Sistema, Claro u Oscuro**; es una preferencia de cada dispositivo y no cambia los datos. La propuesta aprobada, el prototipo y las capturas (antes y después) están en `design-preview/` (abrí `design-preview/index.html`). El estado anterior al rediseño quedó marcado con la etiqueta `antes-de-brote`.
 
 ---
 
@@ -54,10 +62,10 @@ El APK se compila **gratis en GitHub Actions** (`.github/workflows/android.yml`)
 ### Instalar en el celular
 
 1. Abra el enlace de arriba **desde el celular** (Chrome).
-2. En *Assets*, toque `FinanzasPersonales-1.1.N.apk` para descargarlo.
+2. En *Assets*, toque `Brote-1.1.N.apk` para descargarlo.
 3. Abra el archivo descargado. Android pedirá permitir **"Instalar apps desconocidas"** para Chrome (o para "Archivos"): actívelo y vuelva atrás.
 4. Toque **Instalar**. Si aparece *Play Protect* ("app no reconocida"), elija **Más detalles → Instalar de todas formas**. Es normal en apps que no están en Play Store.
-5. Abra **Finanzas Personales** desde el ícono.
+5. Abra **Brote** desde el ícono.
 
 **Actualizar**: instale el APK más nuevo encima del anterior; los datos se conservan (misma firma).
 
@@ -92,10 +100,10 @@ cd android && ./gradlew assembleDebug   # APK en android/app/build/outputs/apk/d
 
 Se compila sola en **GitHub Actions** (`.github/workflows/windows.yml`) y queda en **Releases** con el nombre `pc-v1.2.N`:
 
-- `FinanzasPersonales-Instalador-1.2.N.exe`: instala para el usuario actual (sin permisos de administrador) y crea accesos directos en el escritorio y en el menú Inicio.
-- `FinanzasPersonales-Portable-1.2.N.exe`: se abre sin instalar.
+- `Brote-Instalador-1.2.N.exe`: instala para el usuario actual (sin permisos de administrador) y crea accesos directos en el escritorio y en el menú Inicio.
+- `Brote-Portable-1.2.N.exe`: se abre sin instalar.
 
-Los dos usan la misma carpeta de datos (`%APPDATA%\Finanzas Personales`), así que se puede pasar de uno a otro sin perder nada.
+Los dos usan la misma carpeta de datos (`%APPDATA%\Finanzas Personales`, el nombre anterior de la app, para no perder lo guardado), así que se puede pasar de uno a otro sin perder nada.
 
 **Primera vez**: como la app no tiene una firma paga, Windows puede mostrar *"Windows protegió su PC"* → **Más información** → **Ejecutar de todas formas**. Si pregunta por el acceso a la red, elegir **Permitir** (redes privadas): es para que el celular se conecte por el Wi-Fi de la casa.
 

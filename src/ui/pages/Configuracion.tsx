@@ -6,6 +6,26 @@ import { clearLock, getLock, setLock } from '../lock';
 import { prefetchOcrAssets } from '../../importers/ocr';
 import { Card, confirmDialog, Field, MoneyInput } from '../components/ui';
 import { NotificationsSettingsCard } from './Notificaciones';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { getThemePref, setThemePref, type ThemePref } from '../theme';
+
+/** Tema de la interfaz en este dispositivo (no cambia ni sincroniza datos). */
+function ThemeCard() {
+  const [pref, setPref] = useState<ThemePref>(getThemePref);
+  const opts: Array<[ThemePref, string, typeof Sun]> = [['system', 'Sistema', Monitor], ['light', 'Claro', Sun], ['dark', 'Oscuro', Moon]];
+  return (
+    <Card title="Apariencia">
+      <p className="muted small" style={{ marginTop: 0 }}>Elegí cómo se ve la app en este dispositivo. Tus datos no cambian.</p>
+      <div className="seg" role="radiogroup" aria-label="Tema">
+        {opts.map(([v, label, Icon]) => (
+          <button key={v} type="button" role="radio" aria-checked={pref === v} onClick={() => { setThemePref(v); setPref(v); }}>
+            <Icon aria-hidden />{label}
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
 
 export function ConfiguracionPage() {
   const { data, toast } = useApp();
@@ -32,6 +52,7 @@ export function ConfiguracionPage() {
   };
   return (
     <div className="page">
+      <ThemeCard />
       <NotificationsSettingsCard />
       <Card title="Preferencias">
         <div className="form-grid">

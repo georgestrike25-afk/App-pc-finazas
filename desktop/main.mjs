@@ -20,6 +20,10 @@ const SMOKE = process.argv.includes('--smoke-test');
 const SMOKE_OUT = process.argv.find((a) => a.startsWith('--smoke-out='))?.slice('--smoke-out='.length);
 const PORTS = [8787, 8788, 8789, 8790, 8791];
 
+// La app se llamaba "Finanzas Personales": se sigue usando esa carpeta de datos para no perder
+// lo guardado (base local, emparejamiento y sincronización) al pasar a llamarse "Brote".
+app.setPath('userData', join(app.getPath('appData'), 'Finanzas Personales'));
+
 if (!SMOKE && !app.requestSingleInstanceLock()) app.quit();
 
 let win = null;
@@ -99,8 +103,8 @@ function createWindow(url) {
     height: 860,
     minWidth: 380,
     minHeight: 500,
-    title: 'Finanzas Personales',
-    backgroundColor: '#0b1220',
+    title: 'Brote',
+    backgroundColor: '#0d1714',
     autoHideMenuBar: true,
     show: !SMOKE,
     webPreferences: { preload: join(here, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false },
@@ -161,7 +165,7 @@ app.whenReady().then(async () => {
     }
   } catch (e) {
     console.error(e);
-    if (!SMOKE) dialog.showErrorBox('Finanzas Personales', `No se pudo iniciar la aplicación.\n\n${e?.code === 'EADDRINUSE' ? 'Los puertos 8787 a 8791 están ocupados por otro programa.' : e?.message ?? e}`);
+    if (!SMOKE) dialog.showErrorBox('Brote', `No se pudo iniciar la aplicación.\n\n${e?.code === 'EADDRINUSE' ? 'Los puertos 8787 a 8791 están ocupados por otro programa.' : e?.message ?? e}`);
     app.exit(1);
   }
 });

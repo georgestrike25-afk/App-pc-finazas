@@ -4,8 +4,7 @@ import { App } from './ui/App';
 import { ensureInitialized } from './db/repo';
 import { registerPwa } from './ui/pwa';
 import { startAutoSync } from './sync/autoSync';
-import '@fontsource-variable/bricolage-grotesque/wght.css';
-import '@fontsource-variable/public-sans/wght.css';
+import '@fontsource-variable/inter/wght.css';
 import './ui/styles.css';
 import { startNotificationIngest } from './notifications/native';
 

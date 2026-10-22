@@ -30,7 +30,7 @@ export function CapacityCard() {
     label: monthShort(m.month),
     values: [
       { name: 'Gastando el máximo del día a día', value: Math.max(0, m.saveLow), color: 'var(--c-income)' },
-      { name: 'Extra si gastás el mínimo', value: Math.max(0, m.saveHigh - Math.max(0, m.saveLow)), color: 'var(--c-accent)' },
+      { name: 'Extra si gastás el mínimo', value: Math.max(0, m.saveHigh - Math.max(0, m.saveLow)), color: 'var(--lime)' },
     ],
   }));
   return (

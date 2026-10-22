@@ -1,6 +1,6 @@
 {
   "appId": "ar.finanzaspersonales.escritorio",
-  "productName": "Finanzas Personales",
+  "productName": "Brote",
   "electronVersion": "33.2.1",
   "directories": { "app": "desktop-build/app", "output": "desktop-build/out", "buildResources": "desktop-build/resources" },
   "asar": true,
@@ -15,10 +15,10 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "Finanzas Personales",
-    "artifactName": "FinanzasPersonales-Instalador-${version}.exe",
+    "shortcutName": "Brote",
+    "artifactName": "Brote-Instalador-${version}.exe",
     "language": "3082"
   },
-  "portable": { "artifactName": "FinanzasPersonales-Portable-${version}.exe" },
+  "portable": { "artifactName": "Brote-Portable-${version}.exe" },
   "linux": { "target": ["dir"] }
 }

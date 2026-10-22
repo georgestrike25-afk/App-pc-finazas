@@ -33,7 +33,7 @@ jobs:
         run: npx electron-builder --config desktop/electron-builder.json --win --publish never
       - name: Prueba en Windows (abre la app, servidor y código de emparejamiento)
         run: |
-          "desktop-build/out/win-unpacked/Finanzas Personales.exe" --smoke-test --smoke-out="$PWD/smoke.log" || echo "salida: $?"
+          "desktop-build/out/win-unpacked/Brote.exe" --smoke-test --smoke-out="$PWD/smoke.log" || echo "salida: $?"
           cat smoke.log
           grep -q 'SMOKE: titulo="Este mes" escritorio=true health=200 codigo=' smoke.log
       - name: Preparar archivos
@@ -43,18 +43,18 @@ jobs:
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
-          name: FinanzasPersonales-windows
+          name: Brote-windows
           path: out/*.exe
       - name: Publicar en Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="pc-v1.2.${{ github.run_number }}"
-          NOTES="App de escritorio para Windows de Finanzas Personales (versión 1.2.${{ github.run_number }}).
+          NOTES="App de escritorio para Windows de Brote (versión 1.2.${{ github.run_number }}).
 
-          - Instalador: FinanzasPersonales-Instalador-….exe (crea accesos directos; no pide permisos de administrador).
-          - Portable: FinanzasPersonales-Portable-….exe (se abre sin instalar).
+          - Instalador: Brote-Instalador-….exe (crea accesos directos; no pide permisos de administrador).
+          - Portable: Brote-Portable-….exe (se abre sin instalar).
 
           Windows puede mostrar \"Windows protegió su PC\" porque la app no tiene firma paga: tocar \"Más información\" → \"Ejecutar de todas formas\".
           Compilado desde ${GITHUB_SHA::7}."
-          gh release create "$TAG" out/*.exe --title "Finanzas Personales $TAG (Windows)" --notes "$NOTES" --target "$GITHUB_SHA" --latest=false
+          gh release create "$TAG" out/*.exe --title "Brote $TAG (Windows)" --notes "$NOTES" --target "$GITHUB_SHA" --latest=false

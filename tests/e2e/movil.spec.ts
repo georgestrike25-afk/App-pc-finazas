@@ -9,7 +9,9 @@ test('diseño adaptable en Android: sin desplazamiento horizontal y navegación 
   }
   await go(page, 'inicio');
   await expect(page.locator('nav.bottom')).toBeVisible();
-  await expect(page.locator('nav.bottom a')).toHaveCount(5);
+  // Inicio, Gastos, Deudas y Viaje abajo (más el botón "Más"); "Subir" queda arriba, en el encabezado.
+  await expect(page.locator('nav.bottom a')).toHaveCount(4);
+  await expect(page.locator('.topbar').getByRole('link', { name: 'Subir documento' })).toBeVisible();
   await page.getByRole('button', { name: 'Más' }).click();
   await page.locator('.side').getByRole('link', { name: /Viaje/ }).click();
   await expect(page.locator('.topbar h1')).toHaveText('Objetivo de viaje');

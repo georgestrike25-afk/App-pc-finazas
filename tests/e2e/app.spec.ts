@@ -21,7 +21,8 @@ test('1. instalación y apertura sin datos previos (manifiesto y service worker)
   const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href');
   expect(manifestHref).toBeTruthy();
   const manifest = await (await page.request.get(manifestHref!)).json();
-  expect(manifest.name).toBe('Finanzas Personales');
+  expect(manifest.name).toBe('Brote: tus finanzas, en crecimiento');
+  expect(manifest.short_name).toBe('Brote');
   expect(manifest.display).toBe('standalone');
   expect(manifest.lang).toBe('es-AR');
   expect(manifest.icons.some((i: { sizes: string }) => i.sizes === '512x512')).toBe(true);

@@ -8,6 +8,8 @@ import { uid } from '../../domain/text';
 import type { SavingsGoal } from '../../domain/types';
 import { Badge, BarChart, Card, confirmDialog, Field, Money, MoneyInput, MonthSelect, Progress, Warnings } from '../components/ui';
 import { CapacityCard } from './Capacity';
+import { TripScene } from '../components/TripScene';
+import { CircleCheck, TriangleAlert } from 'lucide-react';
 
 export function ViajePage() {
   const { data, today, toast } = useApp();
@@ -37,28 +39,48 @@ export function ViajePage() {
     values: projections.map((x, i) => ({
       name: x.scenario.label,
       value: x.months.find((y) => y.month === m.month)?.accumulated ?? 0,
-      color: ['var(--c-expense)', 'var(--c-income)', 'var(--c-accent)'][i],
+      color: ['var(--cat5)', 'var(--cat2)', 'var(--cat1)'][i],
       estimated: true,
     })),
   }));
 
+  const daysLeft = Math.max(0, Math.round((new Date(`${saved.targetMonth}-01T00:00:00`).getTime() - new Date(`${todayIso()}T00:00:00`).getTime()) / 86400000));
   return (
     <div className="page">
-      <Card className="hero" title={saved.name}>
+      <section className="card trip" aria-label={saved.name}>
+        <TripScene />
+        <div className="in" style={{ minHeight: 200 }}>
+          <div>
+            <div className="days">{daysLeft !== null ? `Faltan ${daysLeft} días · ` : ''}{monthLabel(saved.targetMonth)}</div>
+            <h3 style={{ fontSize: '1.4rem' }}>{saved.name}</h3>
+          </div>
+          {saved.estimatedCost > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <Money value={progress} className="amount" />
+                <span className="of">de <Money value={saved.estimatedCost} /> · {Math.round((progress / saved.estimatedCost) * 100)} %</span>
+              </div>
+              <div className="bar"><i style={{ width: `${Math.min(100, (progress / saved.estimatedCost) * 100)}%` }} /></div>
+            </div>
+          )}
+        </div>
+      </section>
+      <Card>
         {saved.estimatedCost <= 0 ? (
-          <p data-testid="viaje-respuesta">Poné abajo <strong>cuánto cuesta el viaje</strong> y cuánto querés ahorrar por mes para saber si llegás a {monthLabel(saved.targetMonth)}.</p>
+          <p data-testid="viaje-respuesta" style={{ margin: 0 }}>Poné abajo <strong>cuánto cuesta el viaje</strong> y cuánto querés ahorrar por mes para saber si llegás a {monthLabel(saved.targetMonth)}.</p>
         ) : (
-          <>
-            <strong className={`answer ${p.reachable ? 'ok-text' : 'warn'}`} data-testid="viaje-respuesta">
-              {p.reachable ? `✓ Llegás a ${monthLabel(saved.targetMonth)} con lo que planeás ahorrar` : `Con lo planeado no llegás a ${monthLabel(saved.targetMonth)}`}
-            </strong>
-            <span>Tenés <Money value={progress} /> de <Money value={saved.estimatedCost} /> ({saved.estimatedCost ? Math.round((progress / saved.estimatedCost) * 100) : 0} %).</span>
-            <Progress value={progress} max={saved.estimatedCost} />
-            {!p.reachable && (
-              <span>Para llegar, ahorrá <strong><Money value={p.requiredMonthly} /></strong> por mes durante {p.monthsRemaining} meses.</span>
-            )}
-            <small className="muted">Cálculo con tus ingresos, gastos y cuotas cargados. Es una estimación, no un resultado garantizado.</small>
-          </>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span className="cat-ic" aria-hidden style={p.reachable ? { background: 'var(--ok-soft)', color: 'var(--ok)' } : { background: 'var(--warn-soft)', color: 'var(--warn)' }}>{p.reachable ? <CircleCheck /> : <TriangleAlert />}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <strong className="answer" data-testid="viaje-respuesta">
+                {p.reachable ? `Llegás a ${monthLabel(saved.targetMonth)} con lo que planeás ahorrar` : `Con lo planeado no llegás a ${monthLabel(saved.targetMonth)}`}
+              </strong>
+              {!p.reachable && (
+                <span>Para llegar, ahorrá <strong><Money value={p.requiredMonthly} /></strong> por mes durante {p.monthsRemaining} meses.</span>
+              )}
+              <small className="muted">Cálculo con tus ingresos, gastos y cuotas cargados. Es una estimación, no un resultado garantizado.</small>
+            </div>
+          </div>
         )}
       </Card>
       <CapacityCard />

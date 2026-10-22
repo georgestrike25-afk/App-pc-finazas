@@ -2,6 +2,8 @@ import { ArrowDownToLine, CalendarClock, CircleHelp, CreditCard, History, Landma
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost, Help } from './components/ui';
+import { applyTheme, watchSystemTheme } from './theme';
+import { monthLabel } from '../domain/dates';
 import { Tour } from './components/Tour';
 import { getLock, verifyPin } from './lock';
 import { ResumenPage } from './pages/Resumen';
@@ -67,7 +69,22 @@ const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
   deudas: [['entidades', 'Por entidad'], ['cuotas', 'Cuotas por mes'], ['deudas', 'Préstamos y tarjetas']],
   plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['presupuesto', 'Presupuesto']],
 };
-const GROUP_HOME = { deudas: 'entidades', plata: 'gastos' } as const;
+/** Menú lateral (escritorio): las secciones de uso diario a la vista. */
+const SIDE_MAIN = ['inicio', 'gastos', 'ingresos', 'compartidos', 'presupuesto', 'entidades', 'viaje', 'resumen', 'importar'];
+const SIDE_LABEL: Record<string, string> = { inicio: 'Este mes', compartidos: 'Compartidos', presupuesto: 'Presupuesto', entidades: 'Deudas', viaje: 'Viaje', importar: 'Subir documento' };
+/** Navegación inferior (celular). "Subir" queda arriba, en el encabezado. */
+const BOTTOM = ['inicio', 'gastos', 'entidades', 'viaje'];
+const SUBTITLES: Record<string, string> = {
+  entidades: 'Cuánto debés y cuándo terminás',
+  cuotas: 'Cuánto debés y cuándo terminás',
+  deudas: 'Cuánto debés y cuándo terminás',
+  viaje: 'Tu meta de ahorro',
+  importar: 'Resúmenes, cronogramas, capturas y planillas',
+  resumen: 'La cuenta completa del mes',
+  configuracion: 'Preferencias de este dispositivo',
+  copias: 'Tus datos, a salvo y en tus equipos',
+};
+const LOGO = `${import.meta.env.BASE_URL}icons/brote-mark.png`;
 
 const tourId = (p: string) => `nav-${p === 'entidades' ? 'deudas' : p}`;
 
@@ -111,7 +128,8 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
           }
         }}
       >
-        <h1>Finanzas Personales</h1>
+        <img className="logo" src={LOGO} alt="" />
+        <h1>Brote</h1>
         <p className="muted">La aplicación está bloqueada.</p>
         <label htmlFor="pin">PIN</label>
         <input id="pin" type="password" inputMode="numeric" autoComplete="off" autoFocus value={pin} onChange={(e) => setPin(e.target.value)} />
@@ -133,25 +151,36 @@ function Shell() {
     return () => clearTimeout(t);
   }, [pwa.offlineReady, pwa.dismiss]);
   const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    applyTheme();
+    return watchSystemTheme();
+  }, []);
   const current = ROUTES.find((r) => r.path === route) ?? ROUTES[0];
   const Page = current.el;
   useEffect(() => {
-    document.title = `${current.label} · Finanzas Personales`;
+    document.title = `${current.label} · Brote`;
     setMenu(false);
   }, [current]);
+  const firstName = ctx?.data?.settings.ownNames?.trim().split(/\s+/)[0];
+  const month = ctx?.month;
+  const sub = current.path === 'inicio' ? `${firstName ? `Hola, ${firstName}. ` : ''}Así viene tu plata en ${month ? monthLabel(month).split(' de ')[0] : 'este mes'}` : SUBTITLES[current.path];
+  const activeSide = (p: string) => p === current.path || (p === 'entidades' && current.group === 'deudas');
+  const activeBottom = (p: string) => p === current.path || (p === 'gastos' && current.group === 'plata') || (p === 'entidades' && current.group === 'deudas');
+  const byPath = (p: string) => ROUTES.find((r) => r.path === p)!;
   return (
     <div className="shell">
       <aside className={`side ${menu ? 'open' : ''}`} aria-label="Navegación">
         <div className="brand">
-          <span className="logo" aria-hidden>$</span>
-          <span>Finanzas<br /><small>Personales</small></span>
+          <img className="logo" src={LOGO} alt="" />
+          <span><strong>Brote</strong><small>Tus finanzas, en crecimiento</small></span>
         </div>
         <nav>
-          {ROUTES.filter((r) => r.nav === 'main').map((r) => {
-            const active = r.path === current.path || (!!r.group && r.group === current.group);
+          {SIDE_MAIN.map((p) => {
+            const r = byPath(p);
+            const active = activeSide(p);
             return (
-              <a key={r.path} href={`#/${r.path}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} data-tour={tourId(r.path)}>
-                <r.icon className="ico" aria-hidden size={18} strokeWidth={1.8} /> {r.short ?? r.label}
+              <a key={p} href={`#/${p}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} data-tour={tourId(p)}>
+                <r.icon className="ico" aria-hidden size={18} strokeWidth={1.8} /> {SIDE_LABEL[p] ?? r.short ?? r.label}
               </a>
             );
           })}
@@ -166,16 +195,18 @@ function Shell() {
         </nav>
         <div className="side-foot">
           <span className={`net ${pwa.online ? 'on' : 'off'}`}>{pwa.online ? 'En línea' : 'Sin conexión'}</span>
-          <small className="muted">Datos guardados solo en este dispositivo</small>
+          <small className="muted">Tus datos quedan en tus equipos</small>
         </div>
       </aside>
       {menu && <div className="side-back" onClick={() => setMenu(false)} />}
       <div className="main">
         <header className="topbar">
-          <button className="btn ghost icon only-mobile" onClick={() => setMenu(true)} aria-label="Abrir menú"><Menu size={22} strokeWidth={1.8} /></button>
           <div className="topbar-t" data-tour="ayuda-pagina">
-            <h1>{current.label}</h1>
-            <Help label={`Qué es la pantalla ${current.label}`}>{current.help}</Help>
+            <div className="t-row">
+              <h1>{current.label}</h1>
+              <Help label={`Qué es la pantalla ${current.label}`}>{current.help}</Help>
+            </div>
+            {sub && <p className="sub">{sub}</p>}
           </div>
           <div className="topbar-r">
             <SyncBadge />
@@ -183,6 +214,8 @@ function Shell() {
             {pwa.canInstall && (
               <button className="btn small" onClick={pwa.install}>Instalar app</button>
             )}
+            <div id="topbar-acts" className="topbar-r" />
+            <a className="btn ghost icon only-mobile" href="#/importar" aria-label="Subir documento" data-tour="nav-importar"><Upload size={20} strokeWidth={1.8} /></a>
           </div>
         </header>
         {pwa.needRefresh && (
@@ -204,12 +237,13 @@ function Shell() {
           {ctx?.data ? <Page /> : <p className="muted">Cargando datos locales…</p>}
         </main>
         <nav className="bottom only-mobile" aria-label="Navegación principal">
-          {ROUTES.filter((r) => r.nav === 'main').map((r) => {
-            const active = r.path === current.path || (!!r.group && r.group === current.group);
+          {BOTTOM.map((p) => {
+            const r = byPath(p);
+            const active = activeBottom(p);
             return (
-              <a key={r.path} href={`#/${r.group ? GROUP_HOME[r.group] : r.path}`} className={active ? 'active' : ''} data-tour={tourId(r.path)}>
+              <a key={p} href={`#/${p}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} data-tour={tourId(p)}>
                 <span aria-hidden><r.icon size={20} strokeWidth={1.8} /></span>
-                <small>{r.short ?? r.label}</small>
+                <small>{SIDE_LABEL[p] === 'Este mes' ? 'Inicio' : SIDE_LABEL[p] ?? r.short ?? r.label}</small>
               </a>
             );
           })}

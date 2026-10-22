@@ -13,10 +13,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['icons/*.png', 'icons/*.svg', 'favicon.svg'],
+      includeAssets: ['icons/*.png', 'favicon.png', 'theme-init.js'],
       manifest: {
-        name: 'Finanzas Personales',
-        short_name: 'Finanzas',
+        name: 'Brote: tus finanzas, en crecimiento',
+        short_name: 'Brote',
         description: 'Gestión local y privada de ingresos, gastos, cuotas, gastos compartidos y ahorro.',
         lang: 'es-AR',
         dir: 'ltr',
@@ -24,8 +24,8 @@ export default defineConfig({
         scope: '.',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#0f172a',
-        theme_color: '#0f766e',
+        background_color: '#072e2c',
+        theme_color: '#123c3a',
         categories: ['finance', 'productivity'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },

@@ -69,20 +69,20 @@ jobs:
       - name: Preparar archivo
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/release/app-release.apk "out/FinanzasPersonales-1.1.${{ github.run_number }}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/Brote-1.1.${{ github.run_number }}.apk"
           "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs out/*.apk | head -5 || true
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
-          name: FinanzasPersonales-apk
+          name: Brote-apk
           path: out/*.apk
       - name: Publicar en Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v1.1.${{ github.run_number }}"
-          NOTES="APK de Android de Finanzas Personales (versión 1.1.${{ github.run_number }}).
+          NOTES="APK de Android de Brote (versión 1.1.${{ github.run_number }}).
 
           Instalación: descargue el archivo .apk desde el celular, ábralo y permita instalar apps de este origen.
           Firma: ${SIGNING_KIND}. Compilado desde ${GITHUB_SHA::7}."
-          gh release create "$TAG" out/*.apk --title "Finanzas Personales $TAG (Android)" --notes "$NOTES" --target "$GITHUB_SHA" --latest
+          gh release create "$TAG" out/*.apk --title "Brote $TAG (Android)" --notes "$NOTES" --target "$GITHUB_SHA" --latest
