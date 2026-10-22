@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forest Finance · galería del rediseño</title>
+<style>
+  @font-face { font-family: 'Inter'; font-weight: 100 900; src: url(prototype/fonts/inter-latin-wght-normal.woff2) format('woff2'); }
+  :root { --forest: #123c3a; --lime: #a3e635; --bg: #f7faf5; --surface: #fff; --text: #18312e; --muted: #5e6f67; --border: #dce5d7; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 Inter, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--forest); color: #fff; padding: 28px 32px; }
+  header h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.02em; }
+  header p { margin: 6px 0 0; color: #b7cdc3; max-width: 760px; }
+  header a { color: var(--lime); }
+  .bar { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 32px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .seg { display: inline-flex; gap: 4px; padding: 4px; background: #eef3eb; border-radius: 12px; }
+  .seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: 8px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; }
+  .seg button[aria-pressed='true'] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  main { padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 28px; }
+  section h2 { margin: 0 0 4px; font-size: 1.1rem; }
+  section .note { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
+  .pair { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-items: start; }
+  .pair.solo { grid-template-columns: 1fr; }
+  figure { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+  figure img { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--border); }
+  .mobile figure img { max-width: 390px; margin: 0 auto; }
+  figcaption { font-size: 0.82rem; color: var(--muted); padding: 8px 2px 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  figcaption a { color: var(--forest); font-weight: 600; }
+  .missing { padding: 40px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+  .notes { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+  .notes h2 { margin: 0 0 8px; }
+  .notes ul { margin: 0; padding-left: 1.2rem; }
+  .notes li { margin-bottom: 4px; }
+  @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } main, .bar, header { padding-left: 16px; padding-right: 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Forest Finance · propuesta de rediseño</h1>
+  <p>Capturas del prototipo hecho para tu app (con datos de prueba) al lado del diseño actual. Nada de esto cambió la app todavía. También podés <a href="prototype/index.html#/inicio">abrir el prototipo navegable</a>; agregá <code>?tema=dark</code> a la dirección para verlo oscuro.</p>
+</header>
+<div class="bar">
+  <div class="seg" id="device"><button data-v="desktop" aria-pressed="true">Escritorio 1366 × 768</button><button data-v="mobile" aria-pressed="false">Celular 390 × 844</button></div>
+  <div class="seg" id="tema"><button data-v="claro" aria-pressed="true">Claro</button><button data-v="oscuro" aria-pressed="false">Oscuro</button></div>
+  <div class="seg" id="modo"><button data-v="comparar" aria-pressed="true">Comparar con el actual</button><button data-v="solo" aria-pressed="false">Solo la propuesta</button></div>
+</div>
+<main id="list"></main>
+<script>
+  const SCREENS = [
+    ['inicio', 'Inicio · Este mes', 'Lo primero que ves: tu plata hasta cobrar, lo que entró y gastaste, el presupuesto, los pendientes, las deudas y el viaje.'],
+    ['gastos', 'Gastos', 'Movimientos con acciones a mano y resumen por categoría.'],
+    ['ingresos', 'Ingresos', 'Lo cobrado por mes, con estado confirmado o estimado.'],
+    ['compartidos', 'Gastos compartidos', 'Gastos del hogar con tu parte y Sancor Salud.'],
+    ['presupuesto', 'Presupuesto', 'Consumo por categoría con estados normal, cerca del límite y excedido.'],
+    ['deudas', 'Deudas por entidad', 'Total, lo de este mes, cuándo terminás y el avance de cada deuda.'],
+    ['cuotas', 'Cuotas por mes', 'Lo que vence cada mes y las cuotas vencidas sin pago.'],
+    ['prestamos-tarjetas', 'Préstamos y tarjetas', 'Tabla en la PC, lista en el celular.'],
+    ['viaje', 'Viaje (meta de ahorro)', 'Avance, cuánto falta, aportes y cuánto podés ahorrar por mes.'],
+    ['detalle-del-mes', 'Detalle del mes (reportes)', 'La cuenta completa y los últimos 6 meses.'],
+    ['importar', 'Subir documento', 'Zona para arrastrar, progreso de lectura y tipos de documento.'],
+    ['historial', 'Historial', 'Registro de cambios y documentos importados.'],
+    ['configuracion', 'Configuración', 'Nuevo selector de tema: sistema, claro u oscuro.'],
+    ['copias-sincronizacion', 'Copias y sincronización', 'Estado de la conexión con la PC y copias de seguridad.'],
+    ['ayuda', 'Cómo usar', 'Pasos simples.'],
+    ['formulario-gasto', 'Formulario: anotar gasto', 'Ventana en la PC, pantalla completa en el celular.'],
+    ['confirmar-eliminar', 'Confirmación antes de eliminar', 'Diálogo claro para acciones que no se pueden deshacer.', true],
+    ['gastos-vacio', 'Estado vacío', 'Un mes sin gastos: qué hacer.', true],
+    ['primeros-pasos', 'Primera vez (app vacía)', 'Los cuatro pasos para empezar.'],
+  ];
+  const st = { device: 'desktop', tema: 'claro', modo: 'comparar' };
+  for (const id of ['device', 'tema', 'modo'])
+    document.getElementById(id).addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      st[id] = b.dataset.v;
+      document.querySelectorAll(`#${id} button`).forEach((x) => x.setAttribute('aria-pressed', x === b));
+      draw();
+    });
+  const img = (src, alt) => `<img src="${src}" alt="${alt}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'missing',textContent:'Esta pantalla no tiene una captura equivalente en el diseño actual.'}))">`;
+  function draw() {
+    const { device, tema, modo } = st;
+    document.getElementById('list').className = device;
+    document.getElementById('list').innerHTML = SCREENS.map(([k, t, n, noOld]) => {
+      const nuevo = `capturas/${device}-${k}-${tema}.png`;
+      const full = `capturas/${device}-${k}-${tema}-completa.png`;
+      const viejo = `actual/${device}-${k}-${tema}.png`;
+      const fig1 = `<figure>${img(nuevo, `Propuesta: ${t}`)}<figcaption><span>Propuesta · ${nuevo}</span>${device === 'mobile' && !['formulario-gasto', 'confirmar-eliminar'].includes(k) ? `<a href="${full}" target="_blank">Ver pantalla completa</a>` : ''}</figcaption></figure>`;
+      const fig2 = modo === 'comparar' && !noOld ? `<figure>${img(viejo, `Actual: ${t}`)}<figcaption><span>Actual · ${viejo}</span></figcaption></figure>` : '';
+      return `<section><h2>${t}</h2><p class="note">${n}</p><div class="pair ${fig2 ? '' : 'solo'}">${fig1}${fig2}</div></section>`;
+    }).join('') + `<section class="notes"><h2>Decisiones de diseño</h2><ul>
+      <li>Verde bosque para la estructura (menú, tarjeta principal, botones) y lima solo como acento: ítem activo, progreso, foco en modo oscuro.</li>
+      <li>Nunca texto lima sobre blanco. En modo oscuro los botones principales son lima con texto verde bosque.</li>
+      <li>Verde para lo que entra, rojo para gastos y errores, ámbar para vencimientos.</li>
+      <li>Contraste verificado (WCAG AA). El texto secundario pasa de #64756D a #5E6F67 porque sobre superficies grisáceas daba 4,33:1.</li>
+      <li>Tipografía Inter incluida en la app, sin descargas. Espaciado en múltiplos de 4 px, bordes de 1 px y radios de 8 a 14 px.</li>
+      <li>Íconos de una sola familia (lucide, la que ya usa la app). Movimientos de 150 a 200 ms, que se apagan con "reducir movimiento".</li>
+    </ul></section>`;
+  }
+  draw();
+</script>
+</body>
+</html>

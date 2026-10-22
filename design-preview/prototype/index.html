@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Forest Finance · prototipo</title>
+  <script>
+    // El tema se aplica antes de pintar, para no mostrar un destello del tema equivocado.
+    (function () {
+      var t = new URLSearchParams(location.search).get('tema') || 'system';
+      var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <script src="icons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -10,3 +10,4 @@ public/ocr/
 *.tsbuildinfo
 tests/local/
 desktop-build/
+design-preview/prototype/node_modules/
