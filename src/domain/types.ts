@@ -262,6 +262,8 @@ export interface Settings extends BaseRecord {
   categories: string[];
   /** "Plata hasta cobrar": lo que el usuario dijo que tenía, cuándo, y hasta qué día le tiene que alcanzar. */
   cash?: { amount: Cents; setAt: string; until?: string };
+  /** Presupuesto del día a día que el usuario quiere tener: entre un mínimo y un máximo por mes. */
+  dailyBudgetRange?: { min: Cents; max: Cents };
 }
 
 export const SYNC_TABLES = [

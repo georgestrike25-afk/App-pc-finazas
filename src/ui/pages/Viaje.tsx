@@ -7,6 +7,7 @@ import { formatARS, type Cents } from '../../domain/money';
 import { uid } from '../../domain/text';
 import type { SavingsGoal, Settings } from '../../domain/types';
 import { Badge, BarChart, Card, confirmDialog, Field, Money, MoneyInput, MonthSelect, Progress, Warnings } from '../components/ui';
+import { CapacityCard } from './Capacity';
 
 export function ViajePage() {
   const { data, today, toast } = useApp();
@@ -65,6 +66,7 @@ export function ViajePage() {
           </>
         )}
       </Card>
+      <CapacityCard />
       <details className="card more-opts">
         <summary>Ver escenarios y proyección mes a mes</summary>
       <div className="kpis">

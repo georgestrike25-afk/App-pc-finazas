@@ -212,6 +212,10 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 - **Editar** con "rige desde": las cuotas de meses anteriores conservan su importe. **Cancelar** desde un mes elimina solo las cuotas desde ese mes. Cada cambio queda en el historial.
 - **Resúmenes sucesivos**: la cuota 5/10 del resumen siguiente se reconoce como la misma compra (entidad, concepto, total de cuotas, importe ±15 % y mes de inicio implícito) y se **vincula** sin duplicar cuotas.
 
+### Cuánto podés ahorrar cada mes (Viaje)
+
+Para cada uno de los próximos 12 meses: **ingreso − gastos fijos − cuotas, préstamos y resúmenes − presupuesto del día a día**, con el presupuesto como rango (por ejemplo, de $600.000 a $700.000). Los gastos fijos son tu parte del hogar, lo de la planilla compartida y lo que se repite; si un mes todavía no está cargado se usa el promedio de los últimos meses (≈). Las deudas son las mismas de *Deuda por entidad*. Muestra cuánto se libera a medida que terminan las deudas y cuánto se podría juntar hasta la fecha del viaje.
+
 ### Objetivo de ahorro
 
 - Proyección desde el mes actual hasta el **mes anterior** a la fecha objetivo (para abril de 2027: aportes hasta marzo de 2027).
