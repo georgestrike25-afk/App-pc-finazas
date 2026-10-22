@@ -17,3 +17,7 @@ npm run build && npx vite preview --port 4173 &      # solo para las capturas de
 cd design-preview/prototype && npm install && cd ../..  # tipografía Inter local
 npx playwright test -c design-preview/capture.config.ts
 ```
+
+## Widget, anotación rápida, avisos y "Compartir con Brote" (propuesta)
+
+`widget/index.html?pantalla=inicio|rapida|avisos|compartir|recibido&tema=light|dark` y las capturas `widget/widget-*.png`. Solo diseño: todavía no está programado.

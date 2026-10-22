@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brote · widget y compartir (propuesta)</title>
+<style>
+  @font-face { font-family: 'Inter'; font-weight: 100 900; src: url(../prototype/fonts/inter-latin-wght-normal.woff2) format('woff2'); }
+  :root {
+    --forest: #123c3a; --lime: #a3e635; --lime-soft: #ecfccb;
+    --bg: #f7faf5; --surface: #ffffff; --surface-2: #eef3eb; --text: #18312e; --muted: #5e6f67; --border: #dce5d7; --border-strong: #c3d1bc;
+    --primary: #123c3a; --primary-ink: #fff; --ok: #15803d; --danger: #dc2626; --warn: #b45309;
+    --ok-soft: color-mix(in srgb, #15803d 12%, transparent); --warn-soft: color-mix(in srgb, #b45309 12%, transparent); --danger-soft: color-mix(in srgb, #dc2626 10%, transparent);
+    --wall-1: #dfe8e2; --wall-2: #bfd0c6; --shade: rgba(247, 250, 245, 0.97); --scrim: rgba(13, 23, 20, 0.45);
+    --sys-text: #18312e;
+  }
+  :root[data-theme='dark'] {
+    --bg: #0d1714; --surface: #192722; --surface-2: #22342c; --text: #f1f7f0; --muted: #b2c3b7; --border: #34483c; --border-strong: #46604f;
+    --primary: #a3e635; --primary-ink: #123c3a; --ok: #86efac; --danger: #fda4af; --warn: #fcd34d;
+    --ok-soft: color-mix(in srgb, #86efac 14%, transparent); --warn-soft: color-mix(in srgb, #fcd34d 14%, transparent); --danger-soft: color-mix(in srgb, #fda4af 14%, transparent);
+    --wall-1: #0f1a16; --wall-2: #1d2f27; --shade: rgba(13, 23, 20, 0.97); --scrim: rgba(0, 0, 0, 0.6);
+    --sys-text: #f1f7f0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font: 15px/1.45 Inter, Roboto, system-ui, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+  svg { flex-shrink: 0; }
+  .phone { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: linear-gradient(160deg, var(--wall-1), var(--wall-2)); }
+  .status { height: 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 0.86rem; font-weight: 600; color: var(--sys-text); position: relative; z-index: 6; }
+  .status .ic { display: flex; gap: 6px; }
+  .status svg { width: 16px; height: 16px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Pantalla de inicio */
+  .home { padding: 20px 16px; display: flex; flex-direction: column; gap: 18px; }
+  .clock { color: var(--sys-text); padding: 18px 8px 4px; }
+  .clock b { font-size: 3.4rem; font-weight: 300; letter-spacing: -0.03em; line-height: 1; display: block; }
+  .clock span { font-size: 0.95rem; opacity: 0.8; }
+  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 10px; padding: 0 6px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--sys-text); }
+  .app i { width: 54px; height: 54px; border-radius: 16px; background: color-mix(in srgb, var(--sys-text) 14%, transparent); display: grid; place-items: center; }
+  .app i svg { width: 24px; height: 24px; opacity: 0.6; }
+  .app img { width: 54px; height: 54px; border-radius: 16px; }
+  .dock { position: absolute; left: 16px; right: 16px; bottom: 26px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px 8px; border-radius: 26px; background: color-mix(in srgb, var(--surface) 35%, transparent); }
+  .gesture { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; border-radius: 2px; background: var(--sys-text); opacity: 0.5; }
+
+  /* Widget */
+  .widget { background: var(--surface); border-radius: 24px; padding: 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14); display: flex; flex-direction: column; gap: 12px; }
+  .w-head { display: flex; align-items: center; gap: 8px; }
+  .w-head img { width: 26px; height: 26px; border-radius: 7px; }
+  .w-head strong { font-size: 0.95rem; flex: 1; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .chip svg { width: 13px; height: 13px; }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .w-last { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); }
+  .w-last .ico { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--surface); }
+  .w-last .ico svg { width: 17px; height: 17px; }
+  .w-last .t { font-size: 0.86rem; font-weight: 600; line-height: 1.25; }
+  .w-last .s { font-size: 0.74rem; color: var(--muted); }
+  .w-last .grow { flex: 1; min-width: 0; }
+  .w-last .amt { font-weight: 700; font-size: 0.95rem; }
+  .w-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .w-btn { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; border-radius: 14px; font-weight: 650; font-size: 0.86rem; border: 0; background: var(--surface-2); color: var(--text); }
+  .w-btn svg { width: 18px; height: 18px; }
+  .w-btn.main { background: var(--primary); color: var(--primary-ink); }
+  .widget.small { width: calc(50% - 6px); padding: 12px; gap: 10px; }
+  .widget.small .big { font-size: 1.8rem; font-weight: 750; letter-spacing: -0.03em; line-height: 1; }
+  .row2 { display: flex; gap: 12px; }
+  .wlabel { position: absolute; font-size: 0.72rem; color: var(--sys-text); opacity: 0.7; }
+
+  /* Ventanita de anotación rápida */
+  .scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 4; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-radius: 26px 26px 0 0; padding: 10px 18px 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25); }
+  .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 0 auto 2px; }
+  .s-head { display: flex; align-items: center; gap: 10px; }
+  .s-head img { width: 28px; height: 28px; border-radius: 8px; }
+  .s-head .grow { flex: 1; }
+  .s-head h2 { margin: 0; font-size: 1.05rem; }
+  .s-head p { margin: 0; font-size: 0.78rem; color: var(--muted); }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-2); }
+  .seg b { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 9px 4px; border-radius: 10px; font-size: 0.86rem; font-weight: 650; color: var(--muted); }
+  .seg b svg { width: 16px; height: 16px; }
+  .seg b.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
+  :root[data-theme='dark'] .seg b.on { background: var(--lime); color: var(--forest); }
+  .amount { text-align: center; font-size: 2.8rem; font-weight: 750; letter-spacing: -0.035em; line-height: 1.05; }
+  .amount .c { font-size: 0.45em; vertical-align: 0.95em; font-weight: 600; }
+  .amount .caret { display: inline-block; width: 2px; height: 0.9em; background: var(--primary); vertical-align: -0.08em; margin-left: 3px; }
+  .from { text-align: center; font-size: 0.82rem; color: var(--muted); margin-top: -8px; }
+  .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .cat { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border-radius: 14px; border: 1.5px solid var(--border); font-size: 0.76rem; font-weight: 600; color: var(--muted); }
+  .cat i { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-2); color: var(--text); }
+  .cat i svg { width: 18px; height: 18px; }
+  .cat.on { border-color: var(--primary); color: var(--text); background: color-mix(in srgb, var(--lime) 16%, transparent); }
+  .cat.on i { background: var(--lime); color: var(--forest); }
+  .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .keys b { display: grid; place-items: center; height: 46px; border-radius: 12px; background: var(--surface-2); font-size: 1.2rem; font-weight: 600; }
+  .keys b svg { width: 22px; height: 22px; }
+  .acts { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; border-radius: 14px; font-weight: 700; font-size: 0.95rem; border: 1.5px solid var(--border-strong); background: transparent; color: var(--text); }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+  .btn svg { width: 18px; height: 18px; }
+
+  /* Avisos (panel de notificaciones) */
+  .shade { position: absolute; inset: 0; background: var(--shade); z-index: 4; padding: 50px 12px 0; display: flex; flex-direction: column; gap: 10px; }
+  .qs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 8px; }
+  .qs i { height: 52px; border-radius: 18px; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); }
+  .qs i svg { width: 22px; height: 22px; }
+  .qs i.on { background: color-mix(in srgb, var(--lime) 30%, var(--surface-2)); color: var(--text); }
+  .notif { background: var(--surface); border-radius: 22px; padding: 14px 14px 10px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid var(--border); }
+  .n-top { display: flex; align-items: center; gap: 8px; font-size: 0.76rem; color: var(--muted); margin-bottom: 6px; }
+  .n-top img { width: 20px; height: 20px; border-radius: 6px; }
+  .n-top b { color: var(--text); font-weight: 650; }
+  .notif h3 { margin: 0; font-size: 0.95rem; }
+  .notif p { margin: 2px 0 0; font-size: 0.86rem; color: var(--muted); }
+  .n-acts { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .n-acts b { padding: 7px 14px; border-radius: 999px; font-size: 0.84rem; font-weight: 650; background: var(--surface-2); color: var(--text); }
+  .n-acts b.main { background: var(--primary); color: var(--primary-ink); }
+  .n-group { font-size: 0.78rem; color: var(--muted); padding: 4px 6px 0; font-weight: 600; }
+  .n-other { opacity: 0.75; }
+
+  /* Compartir */
+  .photo { position: absolute; inset: 36px 0 0; background: #0b0f0d; display: flex; flex-direction: column; }
+  .photo .bar { display: flex; align-items: center; gap: 14px; padding: 12px 16px; color: #fff; }
+  .photo .bar svg { width: 22px; height: 22px; }
+  .photo .bar span { flex: 1; font-size: 0.9rem; }
+  .shot { margin: 8px 40px; border-radius: 14px; background: #f4f6f5; padding: 14px; color: #1f2a26; font-size: 0.78rem; display: flex; flex-direction: column; gap: 8px; }
+  .shot .h { font-weight: 700; font-size: 0.9rem; }
+  .shot .r { display: flex; justify-content: space-between; border-bottom: 1px solid #dfe5e1; padding-bottom: 6px; }
+  .share { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-radius: 26px 26px 0 0; padding: 10px 16px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .share .file { display: flex; align-items: center; gap: 12px; padding: 4px 4px 12px; border-bottom: 1px solid var(--border); }
+  .share .thumb { width: 44px; height: 44px; border-radius: 10px; background: #f4f6f5; display: grid; place-items: center; color: #1f2a26; }
+  .share .thumb svg { width: 20px; height: 20px; }
+  .share .file b { display: block; font-size: 0.9rem; }
+  .share .file span { font-size: 0.78rem; color: var(--muted); }
+  .share h4 { margin: 0; font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+  .targets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 8px; }
+  .tg { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.74rem; text-align: center; line-height: 1.2; }
+  .tg i { width: 52px; height: 52px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); }
+  .tg i svg { width: 22px; height: 22px; }
+  .tg img { width: 52px; height: 52px; border-radius: 50%; }
+  .tg.hl { font-weight: 700; }
+  .tg.hl img { box-shadow: 0 0 0 3px var(--lime); }
+  .hint { position: absolute; z-index: 6; background: var(--forest); color: #fff; font-size: 0.78rem; padding: 6px 10px; border-radius: 10px; font-weight: 600; }
+  .hint::after { content: ''; position: absolute; left: 22px; bottom: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: var(--forest); }
+
+  /* Brote recibe el archivo */
+  .appv { position: absolute; inset: 36px 0 0; background: var(--bg); display: flex; flex-direction: column; }
+  .appv .top { display: flex; align-items: center; gap: 10px; padding: 12px 16px 6px; }
+  .appv .top h1 { margin: 0; font-size: 1.2rem; flex: 1; }
+  .appv .top svg { width: 22px; height: 22px; }
+  .appv .body { padding: 8px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .card h2 { margin: 0 0 10px; font-size: 1rem; }
+  .prog { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 10px; }
+  .prog i { display: block; height: 100%; width: 64%; background: var(--primary); border-radius: 999px; }
+  .lst { list-style: none; margin: 0; padding: 0; }
+  .lst li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  .lst li:last-child { border: 0; }
+  .lst .s { color: var(--muted); font-size: 0.76rem; display: block; }
+  .tag { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--ok-soft); color: var(--ok); white-space: nowrap; align-self: center; }
+  .tag.dup { background: var(--surface-2); color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="icons.js"></script>
+<script>
+  const q = new URLSearchParams(location.search);
+  document.documentElement.dataset.theme = q.get('tema') === 'dark' ? 'dark' : 'light';
+  const I = (n) => window.ICONS[n] || '';
+  const status = `<div class="status"><span>14:32</span><span class="ic">${I('Signal')}${I('Wifi')}${I('BatteryFull')}</span></div>`;
+  const apps = (n) => Array.from({ length: n }, () => `<div class="app"><i>${I('Grid3x3')}</i><span>&nbsp;</span></div>`).join('');
+
+  const widgetBig = `
+    <section class="widget" aria-label="Widget de Brote">
+      <div class="w-head"><img src="brote-mark.png" alt=""><strong>Brote</strong><span class="chip warn">${I('Clock')}2 sin registrar</span></div>
+      <div class="w-last"><span class="ico">${I('ShoppingCart')}</span><div class="grow"><div class="t">Se sumó: Supermercado Día</div><div class="s">Ualá · hace 5 min · Día a día</div></div><span class="amt num">$ 4.500</span></div>
+      <div class="w-btns"><b class="w-btn main">${I('Minus')}Gasto</b><b class="w-btn">${I('Plus')}Ingreso</b><b class="w-btn">${I('Users')}Compartido</b></div>
+    </section>`;
+  const widgetSmall = `
+    <section class="widget small" aria-label="Widget chico de Brote">
+      <div class="w-head"><img src="brote-mark.png" alt=""><span class="chip ok">${I('Check')}Al día</span></div>
+      <div><div class="s" style="font-size:.74rem;color:var(--muted)">Plata hasta cobrar</div><div class="big num">$ 433 mil</div></div>
+      <b class="w-btn main" style="min-height:40px">${I('Plus')}Anotar</b>
+    </section>`;
+
+  const S = {
+    inicio: () => `<div class="phone">${status}
+      <div class="home">
+        <div class="clock"><b>14:32</b><span>jueves, 22 de octubre</span></div>
+        ${widgetBig}
+        <div class="row2">${widgetSmall}<div style="flex:1"><div class="apps" style="grid-template-columns:repeat(2,1fr)">${apps(4)}</div></div></div>
+        <div class="apps">${apps(4)}</div>
+      </div>
+      <div class="dock">${apps(3)}<div class="app"><img src="icon-192.png" alt="Brote"></div></div><div class="gesture"></div></div>`,
+
+    rapida: () => `<div class="phone">${status}
+      <div class="home"><div class="clock"><b>14:32</b><span>jueves, 22 de octubre</span></div>${widgetBig}</div>
+      <div class="scrim"></div>
+      <section class="sheet" role="dialog" aria-label="Anotación rápida">
+        <div class="grab"></div>
+        <div class="s-head"><img src="brote-mark.png" alt=""><div class="grow"><h2>Anotar</h2><p>Transferencia · Ualá · hoy 14:31</p></div></div>
+        <div class="seg"><b class="on">${I('Minus')}Gasto</b><b>${I('Plus')}Ingreso</b><b>${I('Users')}Compartido</b></div>
+        <div class="amount num">$ 6.400<span class="caret"></span></div>
+        <div class="from">a Kiosco San Martín</div>
+        <div class="cats">
+          <div class="cat on"><i>${I('ShoppingCart')}</i>Día a día</div>
+          <div class="cat"><i>${I('Bus')}</i>Transporte</div>
+          <div class="cat"><i>${I('Zap')}</i>Servicios</div>
+          <div class="cat"><i>${I('Shapes')}</i>Otros</div>
+        </div>
+        <div class="keys">${['1','2','3','4','5','6','7','8','9',',','0'].map((k) => `<b>${k}</b>`).join('')}<b>${I('Delete')}</b></div>
+        <div class="acts"><b class="btn">No registrar</b><b class="btn primary">${I('Check')}Guardar</b></div>
+      </section></div>`,
+
+    avisos: () => `<div class="phone">${status}
+      <div class="shade">
+        <div class="qs"><i class="on">${I('Wifi')}</i><i>${I('Bluetooth')}</i><i>${I('Bell')}</i><i>${I('Phone')}</i></div>
+        <div class="n-group">Brote</div>
+        <article class="notif"><div class="n-top"><img src="brote-mark.png" alt=""><b>Brote</b>· ahora</div>
+          <h3>¿Cuánto fue? Transferencia</h3><p>Ualá avisó una transferencia a Kiosco San Martín sin el monto.</p>
+          <div class="n-acts"><b class="main">Anotar</b><b>No registrar</b></div></article>
+        <article class="notif"><div class="n-top"><img src="brote-mark.png" alt=""><b>Brote</b>· hace 5 min</div>
+          <h3>Se anotó $ 4.500 en Día a día</h3><p>Supermercado Día · Ualá. Se descontó de tu plata hasta cobrar.</p>
+          <div class="n-acts"><b>Deshacer</b><b>Cambiar categoría</b></div></article>
+        <div class="n-group">Otras apps</div>
+        <article class="notif n-other"><div class="n-top"><i style="width:20px;height:20px;border-radius:6px;background:var(--surface-2)"></i><b>Billetera</b>· hace 5 min</div><h3>Pagaste $ 4.500</h3><p>Compra en Supermercado</p></article>
+      </div></div>`,
+
+    compartir: () => `<div class="phone">${status}
+      <div class="photo"><div class="bar">${I('ArrowLeft')}<span>Captura de pantalla</span>${I('Share2')}${I('Pencil')}${I('Trash2')}</div>
+        <div class="shot"><div class="h">Mis movimientos</div>${[['Kiosco San Martín', '-$ 6.400'], ['Supermercado Día', '-$ 4.500'], ['Transferencia recibida', '+$ 150.000'], ['SUBE', '-$ 2.000']].map(([a, b]) => `<div class="r"><span>${a}</span><b>${b}</b></div>`).join('')}</div>
+      </div>
+      <div class="scrim" style="background:rgba(0,0,0,.35)"></div>
+      <section class="share" aria-label="Compartir">
+        <div class="grab"></div>
+        <div class="file"><span class="thumb">${I('Image')}</span><div><b>Captura_20261022_1431.jpg</b><span>Imagen · 412 KB</span></div></div>
+        <h4>Compartir con · Brote acepta capturas, videos, PDF, Excel y CSV</h4>
+        <div class="targets">
+          <div class="tg hl"><img src="icon-192.png" alt="">Importar en Brote</div>
+          <div class="tg"><i>${I('MessageCircle')}</i>Mensajes</div>
+          <div class="tg"><i>${I('Mail')}</i>Correo</div>
+          <div class="tg"><i>${I('Cloud')}</i>Guardar en la nube</div>
+          <div class="tg"><i>${I('Send')}</i>Enviar a contacto</div>
+          <div class="tg"><i>${I('Copy')}</i>Copiar</div>
+          <div class="tg"><i>${I('Printer')}</i>Imprimir</div>
+          <div class="tg"><i>${I('Ellipsis')}</i>Más</div>
+        </div>
+      </section>
+    </div>`,
+
+    recibido: () => `<div class="phone">${status}
+      <div class="appv">
+        <div class="top">${I('ArrowLeft')}<h1>Subir documento</h1>${I('FileUp')}</div>
+        <div class="body">
+          <section class="card"><h2>Recibido desde Compartir</h2>
+            <div style="display:flex;gap:12px;align-items:center"><span class="thumb" style="width:44px;height:44px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center">${I('Image')}</span><div style="flex:1"><b style="font-size:.9rem">Captura_20261022_1431.jpg</b><div style="font-size:.78rem;color:var(--muted)">Leyendo los movimientos… (en este celular, sin internet)</div></div><span style="font-size:.8rem;color:var(--muted)">64 %</span></div>
+            <div class="prog"><i></i></div>
+          </section>
+          <section class="card"><h2>Qué se va a cargar</h2>
+            <ul class="lst">
+              <li><span>Kiosco San Martín<span class="s">22/10 · transferencia · Día a día</span></span><span class="num"><b>$ 6.400</b></span><span class="tag">Nuevo</span></li>
+              <li><span>Supermercado Día<span class="s">22/10 · ya anotado por el aviso</span></span><span class="num">$ 4.500</span><span class="tag dup">Ya estaba</span></li>
+              <li><span>SUBE<span class="s">21/10 · Transporte</span></span><span class="num"><b>$ 2.000</b></span><span class="tag">Nuevo</span></li>
+            </ul>
+            <div class="acts" style="margin-top:12px"><b class="btn">Cancelar</b><b class="btn primary">Confirmar e incorporar</b></div>
+          </section>
+        </div>
+      </div></div>`,
+  };
+  const p = q.get('pantalla') || 'inicio';
+  document.getElementById('root').innerHTML = (S[p] || S.inicio)();
+</script>
+</body>
+</html>
