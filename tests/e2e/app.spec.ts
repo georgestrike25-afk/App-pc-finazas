@@ -233,3 +233,20 @@ test('14. funcionamiento sin conexión de las funciones esenciales', async ({ pa
   await expect(kpi(page, 'Gastos efectivamente registrados')).toContainText('5.500,00');
   await context.setOffline(false);
 });
+
+test('botón rápido "½" divide un gasto con la pareja y se puede quitar', async ({ page }) => {
+  await openFresh(page);
+  await go(page, 'gastos');
+  await page.getByRole('button', { name: '+ Anotar gasto' }).click();
+  await page.locator('input[name="concept"]').fill('Compra a medias');
+  await page.locator('input[name="amount"]').fill('10.000');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  const row = page.locator('tr', { hasText: 'Compra a medias' });
+  await expect(row).toContainText('10.000,00');
+  await row.getByRole('button', { name: /^Mitad con/ }).click();
+  await expect(row).toContainText('5.000,00');
+  await expect(row).toContainText('50 %');
+  await row.getByRole('button', { name: /^Quitar mitad con/ }).click();
+  await expect(row).not.toContainText('5.000,00');
+  await expect(row).toContainText('10.000,00');
+});

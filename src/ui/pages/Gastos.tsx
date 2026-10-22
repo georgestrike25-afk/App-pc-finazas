@@ -1,13 +1,33 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store';
-import { softDelete } from '../../db/repo';
+import { saveRecord, softDelete } from '../../db/repo';
 import { occurrencesForMonth, FREQUENCY_LABEL } from '../../domain/expenses';
 import { formatDate, monthLabel } from '../../domain/dates';
 import { sum } from '../../domain/money';
 import type { Expense, ExpenseKind } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Money, MonthNav, useNarrow } from '../components/ui';
-import { ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
+import { DAILY_CATEGORIES, ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
 import { NotifReviewCard } from './Notificaciones';
+
+/** Gasto que pagaste vos entero y tu pareja te devuelve la mitad (marcado con el botón rápido). */
+const isHalf = (e: Expense) => e.kind === 'hogar' && e.userPct === 50 && e.paidBy === 'usuario';
+
+/** Botón rápido "½ con …": pasa el gasto a compartido 50 % (o lo vuelve a solo tuyo). */
+function HalfButton({ e, partner }: { e: Expense; partner: string }) {
+  const on = isHalf(e);
+  if (e.kind === 'hogar' && !on) return null;
+  const toggle = () =>
+    saveRecord<Expense>(
+      'expenses',
+      on ? { ...e, kind: DAILY_CATEGORIES.includes(e.category) ? 'cotidiano' : 'personal', userPct: 100, paidBy: undefined } : { ...e, kind: 'hogar', userPct: 50, paidBy: 'usuario' },
+      `${on ? 'Gasto vuelve a ser solo tuyo' : `Gasto a medias con ${partner}`}: "${e.concept}"`,
+    );
+  return (
+    <button className={`btn small ${on ? 'primary' : 'ghost'}`} aria-pressed={on} onClick={toggle} title={on ? `Quitar: vuelve a ser solo tuyo` : `Lo pagaste vos y ${partner} te devuelve la mitad`} aria-label={`${on ? 'Quitar mitad con' : 'Mitad con'} ${partner}: ${e.concept}`}>
+      ½ {partner}
+    </button>
+  );
+}
 
 export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; emptyText: string }) {
   const { data, month } = useApp();
@@ -16,6 +36,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
   const items = useMemo(() => occurrencesForMonth(data.expenses.filter((e) => kinds.includes(e.kind)), month), [data.expenses, kinds, month]);
   const byId = new Map(data.expenses.map((e) => [e.id, e]));
   const shared = kinds.includes('hogar');
+  const partner = (data.settings.partnerName || 'pareja').trim().split(/\s+/)[0];
   const narrow = useNarrow();
   const remove = async (e: Expense) =>
     (await confirmDialog(`¿Eliminar "${e.concept}"?${e.frequency !== 'unica' ? '\nSe eliminarán todas sus ocurrencias. Para un solo mes use "Ajustar mes" → "No corresponde".' : ''}`, { danger: true, ok: 'Eliminar' })) &&
@@ -46,6 +67,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                       {o.estimated && <Badge tone="est">estimado</Badge>}
                     </span>
                     <span className="exp-acts">
+                      {shared && <HalfButton e={e} partner={partner} />}
                       {e.frequency !== 'unica' && <button className="btn small ghost" onClick={() => setOcc(e)}>Este mes</button>}
                       <button className="btn small ghost" onClick={() => setEditing(e)} aria-label={`Editar ${e.concept}`}>Editar</button>
                       <button className="btn small ghost danger" onClick={() => remove(e)} aria-label={`Eliminar ${e.concept}`}>✕</button>
@@ -94,6 +116,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                       {o.estimated && <Badge tone="est">estimado</Badge>}
                     </td>
                     <td className="actions">
+                      {shared && <HalfButton e={e} partner={partner} />}
                       {e.frequency !== 'unica' && <button className="btn small" onClick={() => setOcc(e)}>Ajustar mes</button>}
                       <button className="btn small" onClick={() => setEditing(e)}>Editar</button>
                       <button className="btn small ghost danger" onClick={() => remove(e)}>
