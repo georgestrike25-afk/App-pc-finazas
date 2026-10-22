@@ -4,6 +4,8 @@ import { parseStatementText, type SourceLine } from '../../src/importers/stateme
 import { buildReview, commitReview } from '../../src/importers/review';
 import { validateFile } from '../../src/importers/fileValidation';
 import { freshDb } from './helpers';
+import { loadDataSet } from '../../src/db/repo';
+import { debtByEntity } from '../../src/domain/obligations';
 
 // OCR FICTICIO de dos cuadros de una grabación de "Tus consumos" (con los errores típicos: "0CT", "PlanZ").
 const frame = (page: number, rows: string[]): SourceLine[] => rows.map((text) => ({ text, ocrConfidence: 90, page }));
@@ -66,6 +68,12 @@ describe('consumos del período abierto (video o capturas de la app de la tarjet
     const prov = (await db.expenses.toArray()).filter((e) => e.provisional);
     expect(prov).toHaveLength(3);
     expect(prov.every((e) => e.month === '2026-11' && e.paymentMethod === 'tarjeta')).toBe(true);
+    // En "Deuda por entidad" aparece la tarjeta: consumos del próximo resumen + la compra en cuotas.
+    const data = await loadDataSet(db);
+    const nx = debtByEntity(data.obligations, '2026-10', data).find((d) => d.group === 'Naranja X')!;
+    expect(nx.card.map((c) => [c.kind, c.amount, c.month])).toEqual([['consumos', 12030000, '2026-11']]);
+    expect(nx.items).toHaveLength(1);
+    expect(nx.remaining).toBe(12030000 + 3 * 3000030);
 
     // Llega el resumen: dos consumos coinciden, la cuota también; uno (Plan Z) no aparece.
     const resumen = `NARANJA X
@@ -95,5 +103,19 @@ Total a pagar 110.300,30`;
     const mp4 = new Uint8Array([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]);
     expect(validateFile('Screen_Recording.mp4', mp4)).toMatchObject({ kind: 'video', mime: 'video/mp4' });
     expect(() => validateFile('falso.mp4', new TextEncoder().encode('hola'))).toThrow();
+  });
+});
+
+describe('deuda por entidad con resúmenes sin pagar', () => {
+  it('suma lo que falta pagar del resumen sin contar dos veces sus cuotas', async () => {
+    const { debtByEntity } = await import('../../src/domain/obligations');
+    const T = '2026-10-01T00:00:00.000Z';
+    const ob = { id: 'o', createdAt: T, updatedAt: T, entity: 'Naranja X', type: 'compra_cuotas' as const, concept: 'Uniformes', paidInstallments: 1, totalInstallments: 5, installmentAmount: 3000000, nextDueMonth: '2026-11', frequency: 'mensual' as const, status: 'pendiente' as const, variableAmount: false, revisions: [] };
+    const st = { id: 's', createdAt: T, updatedAt: T, entity: 'Naranja X', month: '2026-11', dueDate: '2026-11-10', total: 20000000, currency: 'ARS' as const };
+    const pay = { id: 'p', createdAt: T, updatedAt: T, entity: 'Naranja X', statementId: 's', date: '2026-10-30', month: '2026-10', amount: 5000000, source: 'manual' as const };
+    const [nx] = debtByEntity([ob], '2026-10', { statements: [st], cardPayments: [pay], expenses: [] });
+    // Resumen: 200.000 − pagado 50.000 − cuota de noviembre 30.000 (ya en la deuda de cuotas) = 120.000
+    expect(nx.card).toEqual([expect.objectContaining({ kind: 'resumen', amount: 12000000, month: '2026-11' })]);
+    expect(nx.remaining).toBe(12000000 + 4 * 3000000);
   });
 });

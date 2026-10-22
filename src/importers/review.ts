@@ -421,6 +421,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           // Mis Finanzas no distingue débito de crédito: "otro" deja que un resumen posterior lo reconozca.
           paymentMethod: s.docType === 'cuenta' ? 'debito' : s.docType === 'historial' ? (/efectivo/i.test(it.account ?? '') ? 'efectivo' : 'otro') : 'tarjeta',
           ...(s.docType === 'historial' ? { importedFrom: 'mis-finanzas' as const } : {}),
+          ...(s.docType !== 'cuenta' && s.docType !== 'historial' && s.entity ? { cardEntity: s.entity } : {}),
           documentId,
           linkedLineFingerprints: [it.fingerprint],
           source: 'importado',

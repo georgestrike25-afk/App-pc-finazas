@@ -8,7 +8,7 @@ import { Badge, BarChart, Card, Empty, Money } from '../components/ui';
 /** Cuánto falta para saldar todas las deudas con cada entidad (préstamos y cuotas de tarjetas). */
 export function EntidadesPage() {
   const { data, today } = useApp();
-  const debts = useMemo(() => debtByEntity(data.obligations, today), [data.obligations, today]);
+  const debts = useMemo(() => debtByEntity(data.obligations, today, data), [data, today]);
   const total = sum(debts.map((d) => d.remaining));
   const last = debts.map((d) => d.lastMonth).filter(Boolean).sort().at(-1);
   const months = Array.from({ length: 12 }, (_, i) => addMonths(today, i));
@@ -42,6 +42,15 @@ export function EntidadesPage() {
             {d.overdue > 0 && <> · <span className="err">vencido sin pagar: <Money value={d.overdue} /></span></>}
           </p>
           <ul className="list" data-testid="entity-items">
+            {d.card.map((c, i) => (
+              <li key={`c${i}`} data-testid="entity-card-item">
+                <span>
+                  <strong>{c.label}</strong> <Badge tone={c.kind === 'consumos' ? 'info' : 'warn'}>{c.kind === 'consumos' ? 'Tarjeta: próximo resumen' : 'Tarjeta: resumen'}</Badge>
+                  <small className="muted d-block">{c.detail}</small>
+                </span>
+                <Money value={c.amount} />
+              </li>
+            ))}
             {d.items.map(({ ob, progress: p }) => (
               <li key={ob.id}>
                 <span>
@@ -67,7 +76,7 @@ export function EntidadesPage() {
           </details>
         </Card>
       ))}
-      <p className="small muted">Incluye las cuotas pendientes de préstamos, compras en cuotas, Plan V y planes de pago cargados. No incluye consumos futuros que todavía no figuran en un resumen.</p>
+      <p className="small muted">Incluye las cuotas pendientes de préstamos, compras en cuotas, Plan V y planes de pago, los resúmenes de tarjeta sin pagar y los consumos que ya hiciste y vienen en el próximo resumen (si subiste el video o las capturas de la app de la tarjeta).</p>
     </div>
   );
 }

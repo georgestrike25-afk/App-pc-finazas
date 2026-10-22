@@ -72,6 +72,8 @@ export interface Expense extends BaseRecord {
   source: 'manual' | 'importado';
   /** Consumo del período abierto (visto en la app de la tarjeta): se confirma al subir el resumen. */
   provisional?: boolean;
+  /** Tarjeta del consumo (Naranja X, Visa Banco Patagonia…), para sumarlo a la deuda de esa entidad. */
+  cardEntity?: string;
   /** Ajuste para que lo cargado coincida con la plata real ("gastos sin anotar"): no se descuenta de esa plata. */
   cashAdjust?: boolean;
   /** Gasto traído del historial de otra app (Mis Finanzas). */

@@ -3,7 +3,9 @@ import { useApp } from '../store';
 import { saveRecord } from '../../db/repo';
 import { budgetForMonth } from '../../domain/monthly';
 import { occurrencesForMonth } from '../../domain/expenses';
-import { monthLabel } from '../../domain/dates';
+import { monthLabel, todayIso } from '../../domain/dates';
+import { cashStatus } from '../../domain/cash';
+import { formatARS } from '../../domain/money';
 import { sum, type Cents } from '../../domain/money';
 import type { Settings } from '../../domain/types';
 import { Badge, Card, Field, Money, MoneyInput, MonthNav, Progress } from '../components/ui';
@@ -23,6 +25,11 @@ export function PresupuestoPage() {
   const byCat = new Map<string, number>();
   for (const o of occ) byCat.set(o.category, (byCat.get(o.category) ?? 0) + o.userShare);
   const cardPending = occ.filter((o) => !o.paid && data.expenses.find((e) => e.id === o.expenseId)?.paymentMethod === 'tarjeta');
+  const cash = month === today ? cashStatus(data, todayIso()) : null;
+  const available = b.amount - registered;
+  const adjustToCash = () =>
+    cash &&
+    saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount: registered + Math.max(0, cash.left), mode: b.mode } } }, `Presupuesto de ${monthLabel(month)} ajustado a la plata disponible (${formatARS(cash.left)})`);
   const saveSettings = (patch: Partial<Settings>, msg: string) => saveRecord<Settings>('settings', { ...s, ...patch }, msg).then(() => toast('Presupuesto actualizado'));
 
   return (
@@ -32,8 +39,21 @@ export function PresupuestoPage() {
         <div className="kpi"><span>Presupuesto estimado {b.isInitialValue && <Badge tone="info">valor inicial editable</Badge>}</span><Money value={b.amount} /></div>
         <div className="kpi"><span>Gastos efectivamente registrados</span><Money value={registered} /></div>
         <div className="kpi"><span>Consumos con tarjeta pendientes de pago</span><Money value={sum(cardPending.map((o) => o.userShare))} /></div>
-        <div className={`kpi ${b.amount - registered < 0 ? 'bad' : 'good'}`}><span>Disponible del presupuesto</span><Money value={b.amount - registered} /></div>
+        <div className={`kpi ${available < 0 ? 'bad' : 'good'}`}><span>Disponible del presupuesto</span><Money value={available} /></div>
+        {cash && <div className="kpi"><span>Tu plata hasta cobrar</span><Money value={cash.left} /></div>}
       </div>
+      {cash && Math.abs(available - cash.left) >= 100 && (
+        <Card className="cash-diff-card" title="El presupuesto no es tu plata" help="El presupuesto es un límite que te ponés para el día a día. 'Tu plata hasta cobrar' es lo que tenés de verdad (lo cargaste en Este mes). Si tenés menos de lo que el presupuesto te deja gastar, lo que manda es tu plata.">
+          <p className="small" style={{ marginTop: 0 }} data-testid="presupuesto-vs-plata">
+            {available > cash.left ? (
+              <>El presupuesto todavía te deja gastar <strong><Money value={available} /></strong>, pero tenés <strong><Money value={cash.left} /></strong>. Para no pasarte, guiate por tu plata.</>
+            ) : (
+              <>Tenés <strong><Money value={cash.left} /></strong> y el presupuesto del día a día te deja gastar <strong><Money value={available} /></strong>: el resto de tu plata es para cuotas, servicios o ahorro.</>
+            )}
+          </p>
+          {available > cash.left && <button className="btn primary" onClick={adjustToCash}>Ajustar el presupuesto a mi plata</button>}
+        </Card>
+      )}
       <Card title={`Avance de ${monthLabel(month)}`}>
         <Progress value={registered} max={b.amount} />
         <p className="muted small">

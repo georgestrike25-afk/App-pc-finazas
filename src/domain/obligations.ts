@@ -1,7 +1,7 @@
-import { addMonths, monthDiff, type MonthKey } from './dates';
+import { addMonths, monthDiff, monthLabel, type MonthKey } from './dates';
 import { sum, type Cents } from './money';
 import { conceptSimilarity, normalizeText } from './text';
-import type { Frequency, Obligation, ObligationStatus } from './types';
+import type { CardPayment, Expense, Frequency, Obligation, ObligationStatus, Statement } from './types';
 
 export interface Installment {
   obligationId: string;
@@ -423,17 +423,31 @@ export interface EntityDebt {
   lastMonth?: MonthKey;
   overdue: Cents;
   items: Array<{ ob: Obligation; progress: ObligationProgress }>;
+  /** De las tarjetas: resúmenes sin pagar y consumos que vienen en el próximo resumen. */
+  card: Array<{ kind: 'resumen' | 'consumos'; label: string; detail: string; amount: Cents; month: MonthKey }>;
+}
+
+/** Entidad de un consumo con tarjeta (los registros viejos la tienen solo en las notas). */
+export function expenseCardEntity(e: Expense): string | undefined {
+  return e.cardEntity ?? e.notes?.match(/^(?:Consumo de|Importado de) (.+?)(?: visto en su app.*)?$/)?.[1];
+}
+
+export interface CardDebtSources {
+  statements: Statement[];
+  cardPayments: CardPayment[];
+  expenses: Expense[];
 }
 
 /** Deuda pendiente agrupada por entidad: cuánto falta para saldar todo con cada una. */
-export function debtByEntity(obs: Obligation[], today: MonthKey): EntityDebt[] {
+export function debtByEntity(obs: Obligation[], today: MonthKey, cards?: CardDebtSources): EntityDebt[] {
   const map = new Map<string, EntityDebt>();
+  const get = (g: string) => map.get(g) ?? { group: g, remaining: 0, estimated: false, byMonth: {}, overdue: 0, items: [], card: [] };
   for (const ob of obs) {
     if (ob.deleted || ob.status === 'cancelada') continue;
     const pending = buildSchedule(ob, today).filter((i) => i.status === 'pendiente' || i.status === 'vencida');
     if (!pending.length) continue;
     const g = entityGroup(ob.entity);
-    const e = map.get(g) ?? { group: g, remaining: 0, estimated: false, byMonth: {}, overdue: 0, items: [] };
+    const e = get(g);
     for (const i of pending) {
       const v = i.amount ?? 0;
       e.remaining += v;
@@ -444,6 +458,37 @@ export function debtByEntity(obs: Obligation[], today: MonthKey): EntityDebt[] {
     }
     e.items.push({ ob, progress: obligationProgress(ob, today) });
     map.set(g, e);
+  }
+  if (cards) {
+    const add = (g: string, it: EntityDebt['card'][number]) => {
+      if (it.amount <= 0) return;
+      const e = get(g);
+      e.card.push(it);
+      e.remaining += it.amount;
+      e.byMonth[it.month] = (e.byMonth[it.month] ?? 0) + it.amount;
+      if (!e.lastMonth || it.month > e.lastMonth) e.lastMonth = it.month;
+      map.set(g, e);
+    };
+    // Resúmenes sin pagar (del mes actual en adelante). Sus cuotas ya se cuentan en las deudas: se restan.
+    for (const st of cards.statements) {
+      if (st.deleted || !st.total || st.total <= 0 || st.month < today) continue;
+      const g = entityGroup(st.entity);
+      const paid = cards.cardPayments.filter((p) => !p.deleted && p.statementId === st.id).reduce((a, p) => a + p.amount, 0);
+      const inObligations = (map.get(g)?.items ?? []).reduce((a, { ob }) => a + buildSchedule(ob, today).filter((i) => i.month === st.month && (i.status === 'pendiente' || i.status === 'vencida')).reduce((x, i) => x + (i.amount ?? 0), 0), 0);
+      const unpaid = st.total - paid - inObligations;
+      add(g, { kind: 'resumen', label: `Resumen de ${monthLabel(st.month)}`, detail: `falta pagar${st.dueDate ? ` · vence el ${st.dueDate.split('-').reverse().join('/')}` : ''}${inObligations ? ' (sin contar sus cuotas, que están arriba)' : ''}`, amount: unpaid, month: st.month });
+    }
+    // Consumos que todavía no tienen resumen (vistos en la app de la tarjeta).
+    const prov = new Map<string, { amount: Cents; n: number; month: MonthKey }>();
+    for (const e of cards.expenses) {
+      if (e.deleted || !e.provisional || e.paid) continue;
+      const ent = expenseCardEntity(e);
+      if (!ent) continue;
+      const k = `${entityGroup(ent)}|${e.month}`;
+      const cur = prov.get(k) ?? { amount: 0, n: 0, month: e.month };
+      prov.set(k, { amount: cur.amount + e.totalAmount, n: cur.n + 1, month: e.month });
+    }
+    for (const [k, v] of prov) add(k.split('|')[0], { kind: 'consumos', label: `Consumos del próximo resumen (${monthLabel(v.month)})`, detail: `${v.n} consumo(s) que todavía no tienen resumen`, amount: v.amount, month: v.month });
   }
   return [...map.values()].sort((a, b) => b.remaining - a.remaining);
 }

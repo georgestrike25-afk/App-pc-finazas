@@ -74,7 +74,7 @@ export function EsteMesPage() {
   const get = (k: string) => r.sections.find((s) => s.key === k)!.total;
   const spent = get('fijos') + get('personales') + get('cotidiano');
   const checklist = useMemo(() => monthChecklist(data, today, todayIso(), lastBackup), [data, today, lastBackup]);
-  const debts = useMemo(() => debtByEntity(data.obligations, today), [data.obligations, today]);
+  const debts = useMemo(() => debtByEntity(data.obligations, today, data), [data, today]);
   const debtTotal = sum(debts.map((d) => d.remaining));
   const debtEnd = debts.map((d) => d.lastMonth).filter(Boolean).sort().at(-1);
   const goal = data.goal;
