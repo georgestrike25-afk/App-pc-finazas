@@ -3,7 +3,7 @@ name: Compilar EXE Windows
 on:
   push:
     branches: [main, ccr-d0ab1290-u3vi9s]
-    paths-ignore: ['**.md', 'release/**', 'android/**']
+    paths-ignore: ['**.md', 'release/**', 'android/**', 'design-preview/**']
   workflow_dispatch:
 permissions:
   contents: write
