@@ -169,8 +169,11 @@ test('12. proyección del ahorro hasta abril de 2027', async ({ page }) => {
   await expect(page.getByTestId('viaje-respuesta')).toContainText('abril de 2027');
   await page.getByText('Ver escenarios y proyección mes a mes').click();
   await expect(page.locator('.scen')).toHaveCount(3);
-  await expect(page.locator('table').first()).toContainText('marzo de 2027');
-  await expect(page.locator('table').first()).not.toContainText('abril de 2027');
+  const proj = page.locator('details.more-opts table').first();
+  await expect(proj).toContainText('marzo de 2027');
+  await expect(proj).not.toContainText('abril de 2027');
+  // Ahorro posible por mes: ingreso 2.000.000 − presupuesto del día a día (600 a 700 mil)
+  await expect(page.getByTestId('capacity-months')).toContainText('$ 1.300.000 a $ 1.400.000');
   await expect(page.getByText(/Aporte mensual necesario/)).toBeVisible();
 });
 
