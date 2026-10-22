@@ -7,6 +7,8 @@ import type { Expense } from './types';
 export interface CashStatus {
   start: Cents;
   spent: Cents;
+  /** Lo que te devolvieron (p. ej. tu pareja, su parte de Sancor) desde que anotaste tu plata. */
+  returned: Cents;
   left: Cents;
   /** Gastos que se descontaron (para mostrarlos). */
   items: Array<{ concept: string; amount: Cents; date: string }>;
@@ -23,7 +25,7 @@ const outOfPocket = (e: Expense) => (e.kind === 'hogar' ? splitShared(e.totalAmo
  * los gastos que anota o que detecta la app (efectivo, débito, transferencias, billeteras) y
  * los pagos de resumen. Las compras con tarjeta de crédito no: se pagan con el resumen.
  */
-export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'settings'>, todayIso: string): CashStatus | null {
+export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'settings'> & Partial<Pick<DataSet, 'sancor'>>, todayIso: string): CashStatus | null {
   const c = data.settings.cash;
   if (!c) return null;
   const since = c.setAt.slice(0, 10);
@@ -34,7 +36,10 @@ export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'se
     ...payments.map((p) => ({ concept: `Pago del resumen de ${p.entity}`, amount: p.amount, date: p.date })),
   ].sort((a, b) => b.date.localeCompare(a.date));
   const spent = sum(items.map((i) => i.amount));
-  const left = c.amount - spent;
+  // Lo que te devuelve tu pareja (Sancor) después de anotar tu plata: vuelve a tu bolsillo.
+  const back = (data.sancor ?? []).filter((x) => !x.deleted).flatMap((x) => x.received.filter((r) => r.date > since || (r.date === since && (r.at ?? '') > c.setAt)));
+  const returned = sum(back.map((r) => r.amount));
+  const left = c.amount - spent + returned;
   const days = c.until && c.until >= todayIso ? daysBetween(todayIso, c.until) + 1 : undefined;
-  return { start: c.amount, spent, left, items, days, perDay: days ? Math.floor(Math.max(0, left) / days) : undefined };
+  return { start: c.amount, spent, returned, left, items, days, perDay: days ? Math.floor(Math.max(0, left) / days) : undefined };
 }

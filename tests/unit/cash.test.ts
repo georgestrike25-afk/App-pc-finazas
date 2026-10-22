@@ -33,3 +33,17 @@ describe('ajuste de gastos sin detalle', () => {
     expect(cashStatus(d, '2026-10-22')!.left).toBe(10000000);
   });
 });
+
+describe('reintegro de Sancor y tu plata', () => {
+  it('lo que te devuelve tu pareja después de anotar tu plata se suma a lo que te queda', () => {
+    const d = emptyData();
+    d.settings.cash = { amount: 10000000, setAt: '2026-10-22T10:00:00.000Z' };
+    d.sancor.push({ id: 's', createdAt: 'x', updatedAt: 'x', month: '2026-10', chargeAmount: 286456_00, partnerPct: 50, received: [
+      { date: '2026-10-21', amount: 14322800 }, // antes: ya estaba incluido en lo que anotaste
+      { date: '2026-11-05', amount: 15000000, at: '2026-11-05T12:00:00.000Z' },
+    ] });
+    const s = cashStatus(d, '2026-11-06')!;
+    expect(s.returned).toBe(15000000);
+    expect(s.left).toBe(25000000);
+  });
+});

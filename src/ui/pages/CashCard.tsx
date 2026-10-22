@@ -60,7 +60,8 @@ export function CashCard() {
           hasta el {formatDate(c.until)} · {st.days} día{st.days === 1 ? '' : 's'} · <strong><Money value={st.perDay!} /> por día</strong>
         </p>
       )}
-      <Progress value={st.spent} max={st.start} />
+      <Progress value={st.spent} max={st.start + st.returned} />
+      {st.returned > 0 && <small className="ok-text">+ <Money value={st.returned} /> que te devolvieron (Sancor)</small>}
       <button className="linklike small" onClick={() => setShowItems(!showItems)}>
         Gastaste <Money value={st.spent} /> desde el {formatDate(c.setAt.slice(0, 10))} ({st.items.length} gasto{st.items.length === 1 ? '' : 's'}) {showItems ? '▲' : '▼'}
       </button>

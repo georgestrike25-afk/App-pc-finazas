@@ -163,6 +163,8 @@ export interface CardPayment extends BaseRecord {
 export interface Reimbursement {
   date: string;
   amount: Cents;
+  /** Cuándo se registró (para saber si ya estaba incluido en "Plata hasta cobrar"). */
+  at?: string;
   notes?: string;
 }
 

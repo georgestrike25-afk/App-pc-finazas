@@ -42,7 +42,7 @@ function ReimbursementForm({ charge, onClose }: { charge: SancorCharge; onClose:
   const [err, setErr] = useState('');
   const save = async () => {
     if (!amount || amount <= 0) return setErr('Ingrese el importe recibido');
-    await saveRecord<SancorCharge>('sancor', { ...charge, received: [...charge.received, { date, amount }] }, `Reintegro Sancor recibido (${formatARS(amount)})`);
+    await saveRecord<SancorCharge>('sancor', { ...charge, received: [...charge.received, { date, amount, at: new Date().toISOString() }] }, `Reintegro Sancor recibido (${formatARS(amount)})`);
     onClose();
   };
   return (
