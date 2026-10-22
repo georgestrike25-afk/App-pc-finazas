@@ -8,7 +8,7 @@ import { cashStatus } from '../../domain/cash';
 import { formatARS } from '../../domain/money';
 import { sum, type Cents } from '../../domain/money';
 import type { Settings } from '../../domain/types';
-import { Badge, Card, Field, Money, MoneyInput, MonthNav, Progress } from '../components/ui';
+import { Card, Field, Money, MoneyInput, MonthNav, Progress } from '../components/ui';
 import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 
 export function PresupuestoPage() {
@@ -16,10 +16,9 @@ export function PresupuestoPage() {
   const s = data.settings;
   const b = budgetForMonth(s, month, today);
   const [amount, setAmount] = useState<Cents | undefined>(b.amount);
-  const [def, setDef] = useState<Cents | undefined>(s.dailyBudgetDefault);
+  const [asDefault, setAsDefault] = useState(false);
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   useEffect(() => setAmount(b.amount), [b.amount, month]);
-  useEffect(() => setDef(s.dailyBudgetDefault), [s.dailyBudgetDefault]);
   const occ = useMemo(() => occurrencesForMonth(data.expenses.filter((e) => e.kind === 'cotidiano'), month), [data.expenses, month]);
   const registered = sum(occ.map((o) => o.userShare));
   const byCat = new Map<string, number>();
@@ -36,11 +35,10 @@ export function PresupuestoPage() {
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
       <div className="kpis">
-        <div className="kpi"><span>Presupuesto estimado {b.isInitialValue && <Badge tone="info">valor inicial editable</Badge>}</span><Money value={b.amount} /></div>
-        <div className="kpi"><span>Gastos efectivamente registrados</span><Money value={registered} /></div>
-        <div className="kpi"><span>Consumos con tarjeta pendientes de pago</span><Money value={sum(cardPending.map((o) => o.userShare))} /></div>
-        <div className={`kpi ${available < 0 ? 'bad' : 'good'}`}><span>Disponible del presupuesto</span><Money value={available} /></div>
-        {cash && <div className="kpi"><span>Tu plata hasta cobrar</span><Money value={cash.left} /></div>}
+        <div className="kpi"><span>Presupuesto</span><Money value={b.amount} /></div>
+        <div className="kpi"><span>Gastado</span><Money value={registered} /></div>
+        {cardPending.length > 0 && <div className="kpi"><span>Con tarjeta, sin pagar</span><Money value={sum(cardPending.map((o) => o.userShare))} /></div>}
+        <div className={`kpi ${available < 0 ? 'bad' : 'good'}`}><span>Disponible</span><Money value={available} /></div>
       </div>
       {cash && Math.abs(available - cash.left) >= 100 && (
         <Card className="cash-diff-card" title="El presupuesto no es tu plata" help="El presupuesto es un límite que te ponés para el día a día. 'Tu plata hasta cobrar' es lo que tenés de verdad (lo cargaste en Este mes). Si tenés menos de lo que el presupuesto te deja gastar, lo que manda es tu plata.">
@@ -54,13 +52,10 @@ export function PresupuestoPage() {
           {available > cash.left && <button className="btn primary" onClick={adjustToCash}>Ajustar el presupuesto a mi plata</button>}
         </Card>
       )}
-      <Card title={`Avance de ${monthLabel(month)}`}>
+      <Card title={`Presupuesto de ${monthLabel(month)}`} help="Es el máximo que querés gastar en el mes en comida, transporte, salidas y demás gastos chicos. La barra muestra cuánto llevás.">
         <Progress value={registered} max={b.amount} />
-        <p className="muted small">
-          Modo del mes: <strong>{b.mode === 'estimado' ? 'estimado' : 'real'}</strong>. En modo estimado, la calculadora suma lo registrado más la parte del presupuesto aún no consumida (identificada como estimación). En modo real, solo lo registrado.
-        </p>
-        <div className="form-grid">
-          <Field label={`Presupuesto de ${monthLabel(month)}`}>{(id) => <MoneyInput id={id} value={amount} onChange={setAmount} />}</Field>
+        <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+          <Field label="Monto del mes">{(id) => <MoneyInput id={id} value={amount} onChange={setAmount} />}</Field>
           <Field label="Modo del mes" help="Real: solo cuenta lo que anotaste. Estimado: además supone que vas a gastar lo que te queda del presupuesto (sirve para planear meses que todavía no pasaron).">
             {(id) => (
               <select id={id} value={b.mode} onChange={(e) => saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount: s.monthBudgets[month]?.amount ?? b.amount, mode: e.target.value as 'real' | 'estimado' } } }, `Modo de presupuesto ${monthLabel(month)}`)}>
@@ -70,12 +65,19 @@ export function PresupuestoPage() {
             )}
           </Field>
         </div>
-        <button className="btn primary" onClick={() => amount !== undefined && saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount, mode: b.mode } } }, `Presupuesto de ${monthLabel(month)}`)}>Guardar presupuesto del mes</button>
-      </Card>
-      <Card title="Presupuesto por defecto" help="El presupuesto del día a día que se usa en todos los meses, salvo que cambies uno en particular arriba.">
-        <p className="muted small">Se aplica a los meses sin presupuesto propio. El valor inicial de $700.000 es orientativo: no es un gasto registrado.</p>
-        <Field label="Presupuesto cotidiano mensual por defecto">{(id) => <MoneyInput id={id} value={def} onChange={setDef} />}</Field>
-        <button className="btn" onClick={() => def !== undefined && saveSettings({ dailyBudgetDefault: def, dailyBudgetIsInitialValue: false }, 'Presupuesto por defecto')}>Guardar valor por defecto</button>
+        <label className="check">
+          <input type="checkbox" checked={asDefault} onChange={(e) => setAsDefault(e.target.checked)} />
+          Usar este monto también en los meses siguientes
+        </label>
+        <button
+          className="btn primary"
+          onClick={() =>
+            amount !== undefined &&
+            saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount, mode: b.mode } }, ...(asDefault ? { dailyBudgetDefault: amount, dailyBudgetIsInitialValue: false } : {}) }, `Presupuesto de ${monthLabel(month)}`)
+          }
+        >
+          Guardar presupuesto
+        </button>
       </Card>
       <Card title="Gastos cotidianos por categoría" actions={<button className="btn small primary" onClick={() => setEditing(newExpenseDraft('cotidiano', month, s.defaultUserPct))}>+ Registrar gasto</button>}>
         {byCat.size === 0 ? (
@@ -87,7 +89,6 @@ export function PresupuestoPage() {
             ))}
           </ul>
         )}
-        <p className="muted small">Si un gasto cotidiano se pagó con tarjeta, se computa aquí una sola vez. Al importar el resumen, la línea correspondiente se vincula y no se vuelve a sumar.</p>
       </Card>
       {editing && <ExpenseForm initial={editing} onClose={() => setEditing(null)} />}
     </div>

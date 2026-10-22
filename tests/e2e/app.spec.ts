@@ -164,8 +164,9 @@ test('12. proyección del ahorro hasta abril de 2027', async ({ page }) => {
   await page.locator('input[name="planned"]').fill('200.000');
   await page.locator('input[name="planned"]').blur();
   await page.getByRole('button', { name: 'Guardar objetivo' }).click();
-  await page.locator('input[name="projectedIncome"]').fill('2.000.000');
-  await page.getByRole('button', { name: 'Guardar estimación' }).click();
+  await page.getByLabel('Ingreso mensual (sueldo neto)').fill('2.000.000');
+  await page.getByLabel('Ingreso mensual (sueldo neto)').blur();
+  await page.getByRole('button', { name: 'Calcular' }).click();
   await expect(page.getByTestId('viaje-respuesta')).toContainText('abril de 2027');
   await page.getByText('Ver escenarios y proyección mes a mes').click();
   await expect(page.locator('.scen')).toHaveCount(3);
@@ -230,7 +231,7 @@ test('14. funcionamiento sin conexión de las funciones esenciales', async ({ pa
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.locator('tr', { hasText: 'Verdulería sin conexión' })).toContainText('5.500,00');
   await go(page, 'presupuesto');
-  await expect(kpi(page, 'Gastos efectivamente registrados')).toContainText('5.500,00');
+  await expect(kpi(page, 'Gastado')).toContainText('5.500,00');
   await context.setOffline(false);
 });
 

@@ -21,7 +21,7 @@ import {
 import { addMonths, formatDate, monthLabel, monthOf, todayIso, type MonthKey } from '../../domain/dates';
 import { formatARS, type Cents } from '../../domain/money';
 import type { CardPayment, Obligation, ObligationStatus, ObligationType, Statement } from '../../domain/types';
-import { Badge, Card, confirmDialog, Empty, Field, Modal, Money, MoneyInput, MonthSelect, useNarrow, Warnings } from '../components/ui';
+import { Badge, Card, confirmDialog, Empty, Field, Modal, Money, MoneyInput, MonthSelect, useNarrow } from '../components/ui';
 
 const STATUS_TONE: Record<ObligationStatus, 'ok' | 'warn' | 'bad' | 'info' | 'neutral'> = {
   pendiente: 'info',
@@ -269,8 +269,6 @@ export function DeudasPage() {
       <div className="page-actions">
         <button className="btn primary" onClick={() => setEditing(newOb())}>+ Nueva deuda</button>
         <button className="btn" onClick={() => setPaying({})}>Registrar pago de resumen</button>
-        <a className="btn" href="#/importar">Importar resumen</a>
-        
       </div>
 
       {ahead.length > 0 && (
@@ -355,8 +353,7 @@ export function DeudasPage() {
         )}
       </Card>
 
-      <Card title="Resúmenes de tarjeta" help="Los resúmenes que subiste: total a pagar, vencimiento y si ya está pagado.">
-        <Warnings items={statements.length ? ['El total del resumen es lo que exige la tarjeta. No se suma como deuda nueva: los consumos y cuotas ya se computan por separado.'] : []} />
+      <Card title="Resúmenes de tarjeta" help="Los resúmenes que subiste: total a pagar, vencimiento y si ya está pagado. El total no se suma como deuda nueva: los consumos y cuotas ya se cuentan por separado.">
         {statements.length === 0 ? (
           <Empty title="Sin resúmenes registrados">Los resúmenes se registran al importar un documento.</Empty>
         ) : narrow ? (

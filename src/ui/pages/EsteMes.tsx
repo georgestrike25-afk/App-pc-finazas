@@ -113,9 +113,9 @@ export function EsteMesPage() {
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
       {isCurrent && <CashCard />}
-      <Card className={`hero ${cash ? 'hero-secondary' : ''}`}>
-        <span className="hero-label inline-help">
-          {cash ? 'Según lo cargado este mes' : isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`}
+      {(() => {
+        const label = cash ? 'Según lo cargado este mes' : isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`;
+        const help = (
           <Help label="Cómo se calcula lo que te queda">
             <p><strong>Te quedan</strong> = lo que entró − lo que gastaste − las cuotas y préstamos del mes.</p>
             <ul>
@@ -125,42 +125,63 @@ export function EsteMesPage() {
             </ul>
             <p>Solo cuenta lo que ya pasó, no estimaciones. Tocá cada línea para ver el detalle.</p>
           </Help>
-        </span>
-        <Money value={r.available} className="hero-money" />
-        {cash && Math.abs(diff) >= 100 && (
-          <div className="cash-diff" data-testid="cash-diff">
-            {diff > 0 ? (
-              <>
-                <p className="small" style={{ margin: 0 }}>
-                  Es <strong><Money value={diff} /></strong> más de lo que tenés: seguramente son gastos que no anotaste.
-                </p>
-                <button className="btn small" onClick={adjust}>Anotar la diferencia como "gastos sin detalle"</button>
-              </>
-            ) : (
-              <p className="small muted" style={{ margin: 0 }}>Tenés <Money value={-diff} /> más de lo que dicen las cuentas del mes (por ejemplo, plata ahorrada de antes).</p>
+        );
+        const accounts = (
+          <>
+            {cash && Math.abs(diff) >= 100 && (
+              <div className="cash-diff" data-testid="cash-diff">
+                {diff > 0 ? (
+                  <>
+                    <p className="small" style={{ margin: 0 }}>
+                      Es <strong><Money value={diff} /></strong> más de lo que tenés: seguramente son gastos que no anotaste.
+                    </p>
+                    <button className="btn small" onClick={adjust}>Anotar la diferencia como "gastos sin detalle"</button>
+                  </>
+                ) : (
+                  <p className="small muted" style={{ margin: 0 }}>Tenés <Money value={-diff} /> más de lo que dicen las cuentas del mes (por ejemplo, plata ahorrada de antes).</p>
+                )}
+              </div>
             )}
-          </div>
-        )}
-        {r.incomeStatus !== 'confirmado' && <small className="warn d-block">Todavía no está cargado el sueldo de este mes.</small>}
-        <ul className="hero-lines">
-          <li><a href="#/ingresos"><span>Entró</span><Money value={get('ingresos')} /></a></li>
-          <li><a href="#/gastos"><span>Gastaste</span><Money value={spent} /></a></li>
-          <li><a href="#/entidades"><span>Cuotas y préstamos</span><Money value={get('obligaciones')} /></a></li>
-        </ul>
-        <div className="hero-budget">
-          <span className="inline-help small muted">
-            Presupuesto del día a día
-            <Help label="Qué es el presupuesto del día a día">Es el máximo que querés gastar en el mes en comida, transporte, salidas y demás gastos chicos. La barra muestra cuánto llevás. Lo cambiás en Gastos → Presupuesto.</Help>
-          </span>
-          <a href="#/presupuesto" className="muted small">Día a día: gastaste <Money value={r.info.dailyRegistered} /> de <Money value={r.info.dailyBudget} /></a>
-          <Progress value={r.info.dailyRegistered} max={r.info.dailyBudget} />
-        </div>
-        <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
-          <a className="btn primary" href="#/importar">Subir documento</a>
-          <button className="btn" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
-          <a className="btn ghost small" href="#/resumen">Ver el detalle →</a>
-        </div>
-      </Card>
+            {r.incomeStatus !== 'confirmado' && <small className="warn d-block">Todavía no está cargado el sueldo de este mes.</small>}
+            <ul className="hero-lines">
+              <li><a href="#/ingresos"><span>Entró</span><Money value={get('ingresos')} /></a></li>
+              <li><a href="#/gastos"><span>Gastaste</span><Money value={spent} /></a></li>
+              <li><a href="#/entidades"><span>Cuotas y préstamos</span><Money value={get('obligaciones')} /></a></li>
+            </ul>
+            <a className="btn ghost small" href="#/resumen" style={{ alignSelf: 'flex-start' }}>Ver la cuenta completa</a>
+          </>
+        );
+        return (
+          <Card className={`hero ${cash ? 'hero-secondary' : ''}`}>
+            {cash ? (
+              // Con la plata cargada, "Te quedan" es la tarjeta de arriba: las cuentas del mes quedan plegadas.
+              <details className="hero-fold">
+                <summary>
+                  <span className="hero-label inline-help">{label}{help}</span>
+                  <Money value={r.available} className="hero-money" />
+                </summary>
+                {accounts}
+              </details>
+            ) : (
+              <>
+                <span className="hero-label inline-help">{label}{help}</span>
+                <Money value={r.available} className="hero-money" />
+                {accounts}
+              </>
+            )}
+            <div className="hero-budget">
+              <a href="#/presupuesto" className="inline-help small muted">
+                Día a día: gastaste <Money value={r.info.dailyRegistered} /> de <Money value={r.info.dailyBudget} />
+              </a>
+              <Progress value={r.info.dailyRegistered} max={r.info.dailyBudget} />
+            </div>
+            <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
+              <a className="btn primary" href="#/importar">Subir documento</a>
+              <button className="btn" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
+            </div>
+          </Card>
+        );
+      })()}
 
       {isCurrent && <Pendientes items={checklist} />}
       {isCurrent && <NotifReviewCard />}

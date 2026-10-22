@@ -41,7 +41,6 @@ export function EntidadesPage() {
     <div className="page">
       <div className="kpis">
         <div className="kpi"><span>Deuda total pendiente</span><Money value={total} estimated={debts.some((d) => d.estimated)} /></div>
-        <div className="kpi"><span>Entidades</span><strong className="big">{debts.length}</strong></div>
         <div className="kpi"><span>Este mes</span><Money value={sum(debts.map((d) => d.byMonth[today] ?? 0))} /></div>
         <div className="kpi"><span>Libre de deudas en</span><strong className="big">{last ? monthLabel(last) : '—'}</strong></div>
       </div>
@@ -52,8 +51,7 @@ export function EntidadesPage() {
       {debts.map((d) => (
         <Card key={d.group} title={d.group} actions={<Money value={d.remaining} estimated={d.estimated} />} className="entity-card">
           <p className="small muted">
-            Para saldar todo con {d.group} faltan <strong><Money value={d.remaining} /></strong>
-            {d.lastMonth && <> · último pago en <strong>{monthLabel(d.lastMonth)}</strong></>}
+            {d.lastMonth ? <>Último pago en <strong>{monthLabel(d.lastMonth)}</strong></> : 'Sin fecha de fin'}
             {d.overdue > 0 && <> · <span className="err">vencido sin pagar: <Money value={d.overdue} /></span></>}
           </p>
           <ul className="list" data-testid="entity-items">
@@ -91,7 +89,6 @@ export function EntidadesPage() {
           </details>
         </Card>
       ))}
-      <p className="small muted">Incluye las cuotas pendientes de préstamos, compras en cuotas, Plan V y planes de pago, los resúmenes de tarjeta sin pagar y los consumos que ya hiciste y vienen en el próximo resumen (si subiste el video o las capturas de la app de la tarjeta).</p>
     </div>
   );
 }

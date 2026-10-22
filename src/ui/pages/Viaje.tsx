@@ -5,14 +5,13 @@ import { goalProgress, projectGoal } from '../../domain/savings';
 import { formatDate, monthLabel, monthOf, monthShort, todayIso } from '../../domain/dates';
 import { formatARS, type Cents } from '../../domain/money';
 import { uid } from '../../domain/text';
-import type { SavingsGoal, Settings } from '../../domain/types';
+import type { SavingsGoal } from '../../domain/types';
 import { Badge, BarChart, Card, confirmDialog, Field, Money, MoneyInput, MonthSelect, Progress, Warnings } from '../components/ui';
 import { CapacityCard } from './Capacity';
 
 export function ViajePage() {
   const { data, today, toast } = useApp();
   const [g, setG] = useState<SavingsGoal>(data.goal);
-  const [income, setIncome] = useState<Cents | undefined>(data.settings.projectedMonthlyIncome);
   const [scenarioKey, setScenarioKey] = useState<'conservador' | 'intermedio' | 'optimista'>('intermedio');
   const [cAmount, setCAmount] = useState<Cents | undefined>();
   const [cDate, setCDate] = useState(todayIso());
@@ -26,10 +25,6 @@ export function ViajePage() {
   const save = async () => {
     await saveRecord<SavingsGoal>('goals', g, 'Configuración del objetivo de viaje');
     toast('Objetivo guardado');
-  };
-  const saveIncome = async () => {
-    await saveRecord<Settings>('settings', { ...data.settings, projectedMonthlyIncome: income ?? 0 }, 'Ingreso mensual estimado para proyecciones');
-    toast('Estimación guardada');
   };
   const addContribution = async () => {
     if (!cAmount || cAmount <= 0) return;
@@ -149,11 +144,6 @@ export function ViajePage() {
           <button className="btn primary" disabled={!dirty} onClick={save}>Guardar objetivo</button>
         </Card>
         <div>
-          <Card title="Ingreso mensual estimado para proyecciones" help="Para calcular los meses que todavía no cobraste. No se suma como cobrado.">
-            <p className="muted small">Se usa solo en meses sin ingreso cargado. No es un ingreso cobrado.</p>
-            <Field label="Ingreso mensual estimado">{(id) => <MoneyInput id={id} name="projectedIncome" value={income} onChange={setIncome} />}</Field>
-            <button className="btn" onClick={saveIncome}>Guardar estimación</button>
-          </Card>
           <Card title="Aportes efectivamente realizados" help="Cada vez que guardás plata para el viaje, anotala acá. Así la app sabe cuánto llevás de verdad.">
             <div className="form-grid">
               <Field label="Importe">{(id) => <MoneyInput id={id} value={cAmount} onChange={setCAmount} />}</Field>

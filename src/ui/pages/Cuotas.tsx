@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { buildSchedule, type Installment } from '../../domain/obligations';
-import { addMonths, monthLabel, monthShort } from '../../domain/dates';
+import { addMonths, monthLabel } from '../../domain/dates';
 import { sum } from '../../domain/money';
-import { Badge, BarChart, Card, Empty, Money } from '../components/ui';
+import { Badge, Card, Empty, Money } from '../components/ui';
 
 export function CuotasPage() {
   const { data, today } = useApp();
@@ -12,10 +12,6 @@ export function CuotasPage() {
   const all = useMemo(() => data.obligations.flatMap((o) => buildSchedule(o, today)), [data.obligations, today]);
   const overdue = all.filter((i) => i.status === 'vencida');
   const byMonth = (m: string) => all.filter((i) => i.month === m && (i.status === 'pendiente' || i.status === 'vencida'));
-  const chart = months.map((m) => {
-    const xs = byMonth(m);
-    return { label: monthShort(m), values: [{ name: 'Cuotas del mes', value: sum(xs.map((x) => x.amount)), color: 'var(--c-debt)', estimated: xs.some((x) => x.estimated) }] };
-  });
   const row = (i: Installment) => (
     <li key={`${i.obligationId}-${i.n}`}>
       <span>{i.entity ? `${i.entity} · ` : ''}{i.concept} — cuota {i.n}{i.total ? `/${i.total}` : ''} {i.estimated && <Badge tone="est">estimada</Badge>}</span>
@@ -37,7 +33,6 @@ export function CuotasPage() {
           </select>
         </label>
       </div>
-      <Card title="Cuotas por mes"><BarChart data={chart} ariaLabel="Cuotas futuras por mes" /></Card>
       {overdue.length > 0 && (
         <Card title="Cuotas vencidas sin pago registrado" className="alert" help="Cuotas cuya fecha ya pasó y no figuran pagadas. Si ya las pagaste, subí la captura de los movimientos del banco o marcalas como pagadas en la deuda.">
           <ul className="list">{overdue.map(row)}</ul>

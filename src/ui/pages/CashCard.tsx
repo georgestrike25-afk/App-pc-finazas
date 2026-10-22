@@ -60,11 +60,15 @@ export function CashCard() {
           hasta el {formatDate(c.until)} · {st.days} día{st.days === 1 ? '' : 's'} · <strong><Money value={st.perDay!} /> por día</strong>
         </p>
       )}
-      <Progress value={st.spent} max={st.start + st.returned} />
+      {st.items.length > 0 && <Progress value={st.spent} max={st.start + st.returned} />}
       {st.returned > 0 && <small className="ok-text">+ <Money value={st.returned} /> que te devolvieron (Sancor)</small>}
-      <button className="linklike small" onClick={() => setShowItems(!showItems)}>
-        Gastaste <Money value={st.spent} /> desde el {formatDate(c.setAt.slice(0, 10))} ({st.items.length} gasto{st.items.length === 1 ? '' : 's'}) {showItems ? '▲' : '▼'}
-      </button>
+      {st.items.length === 0 ? (
+        <small className="muted">Desde el {formatDate(c.setAt.slice(0, 10))} se descuenta cada gasto que anotes.</small>
+      ) : (
+        <button className="linklike small" onClick={() => setShowItems(!showItems)}>
+          Gastaste <Money value={st.spent} /> desde el {formatDate(c.setAt.slice(0, 10))} ({st.items.length} gasto{st.items.length === 1 ? '' : 's'}) {showItems ? '▲' : '▼'}
+        </button>
+      )}
       {showItems && st.items.length > 0 && (
         <ul className="list small" data-testid="cash-items">
           {st.items.slice(0, 30).map((i, k) => (

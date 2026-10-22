@@ -35,7 +35,9 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
   const [occ, setOcc] = useState<Expense | null>(null);
   const items = useMemo(() => occurrencesForMonth(data.expenses.filter((e) => kinds.includes(e.kind)), month), [data.expenses, kinds, month]);
   const byId = new Map(data.expenses.map((e) => [e.id, e]));
-  const shared = kinds.includes('hogar');
+  // Total y porcentaje solo aportan si este mes hay algún gasto compartido.
+  const shared = kinds.includes('hogar') && items.some((o) => o.userPct !== 100);
+  const canSplit = kinds.includes('hogar');
   const partner = (data.settings.partnerName || 'pareja').trim().split(/\s+/)[0];
   const narrow = useNarrow();
   const remove = async (e: Expense) =>
@@ -62,12 +64,12 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                   </div>
                   <div className="exp-foot">
                     <span className="exp-badges">
-                      {o.paid ? <Badge tone="ok">Pagado</Badge> : e.paymentMethod === 'tarjeta' ? <Badge tone={e.provisional ? 'info' : 'neutral'}>{e.provisional ? 'Provisorio: se confirma con el resumen' : e.source === 'importado' ? 'Del resumen de la tarjeta' : 'Llega con el resumen'}</Badge> : <Badge tone="warn">Pendiente</Badge>}
+                      {o.paid ? null : e.paymentMethod === 'tarjeta' ? <Badge tone={e.provisional ? 'info' : 'neutral'}>{e.provisional ? 'Provisorio: se confirma con el resumen' : e.source === 'importado' ? 'Del resumen de la tarjeta' : 'Llega con el resumen'}</Badge> : <Badge tone="warn">Pendiente</Badge>}
                       {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
                       {o.estimated && <Badge tone="est">estimado</Badge>}
                     </span>
                     <span className="exp-acts">
-                      {shared && <HalfButton e={e} partner={partner} />}
+                      {canSplit && <HalfButton e={e} partner={partner} />}
                       {e.frequency !== 'unica' && <button className="btn small ghost" onClick={() => setOcc(e)}>Este mes</button>}
                       <button className="btn small ghost" onClick={() => setEditing(e)} aria-label={`Editar ${e.concept}`}>Editar</button>
                       <button className="btn small ghost danger" onClick={() => remove(e)} aria-label={`Eliminar ${e.concept}`}>✕</button>
@@ -112,11 +114,11 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                     {shared && <td className="num">{o.userPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} %</td>}
                     <td className="num"><Money value={o.userShare} estimated={o.estimated} /></td>
                     <td>
-                      {o.paid ? <Badge tone="ok">Pagado</Badge> : e.paymentMethod === 'tarjeta' ? <Badge tone="warn">Consumo de tarjeta pendiente</Badge> : <Badge tone="warn">Pendiente</Badge>}
+                      {o.paid ? null : e.paymentMethod === 'tarjeta' ? <Badge tone="neutral">Llega con el resumen</Badge> : <Badge tone="warn">Pendiente</Badge>}
                       {o.estimated && <Badge tone="est">estimado</Badge>}
                     </td>
                     <td className="actions">
-                      {shared && <HalfButton e={e} partner={partner} />}
+                      {canSplit && <HalfButton e={e} partner={partner} />}
                       {e.frequency !== 'unica' && <button className="btn small" onClick={() => setOcc(e)}>Ajustar mes</button>}
                       <button className="btn small" onClick={() => setEditing(e)}>Editar</button>
                       <button className="btn small ghost danger" onClick={() => remove(e)}>
@@ -153,18 +155,9 @@ export function GastosPage() {
       <div className="page-actions">
         <button className="btn primary" data-tour="anotar-gasto" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
       </div>
-      <Card title={`Gastos de ${monthLabel(month)}`} help="Todos tus gastos del mes: los que anotaste a mano y los que llegaron con los resúmenes. Si es compartido con tu pareja, se cuenta solo tu parte.">
+      <Card title={`Gastos de ${monthLabel(month)}`} help={<><p>Todos tus gastos del mes: los que anotaste a mano y los que llegaron con los resúmenes. Si es compartido con tu pareja, se cuenta solo tu parte (botón ½).</p><p>Nada se cuenta dos veces: una compra con tarjeta se cuenta una sola vez; el pago del resumen no es un gasto nuevo; si anotaste algo que después llega en el resumen (mismo importe, ±5 días), se vincula; las cuotas se cuentan una por una en Deudas.</p></>}>
         <ExpenseTable kinds={['cotidiano', 'personal', 'hogar']} emptyText="Anotá lo que pagás en efectivo o débito. Lo de la tarjeta llega solo cuando subís el resumen." />
       </Card>
-      <details className="card more-opts">
-        <summary>¿Cómo evita la app contar dos veces un gasto?</summary>
-        <ul className="rules small">
-          <li>Una compra con tarjeta se cuenta <strong>una sola vez</strong>, como gasto del mes.</li>
-          <li>El <strong>pago del resumen</strong> no es un gasto nuevo: cancela lo que ya se contó.</li>
-          <li>Si anotaste a mano algo que después llega en el resumen (mismo importe, ±5 días), se <strong>vincula</strong> y no se duplica.</li>
-          <li>Las compras en cuotas se cuentan cuota por cuota, en Deudas.</li>
-        </ul>
-      </details>
       {editing && <ExpenseForm initial={editing} onClose={() => setEditing(null)} />}
     </div>
   );
