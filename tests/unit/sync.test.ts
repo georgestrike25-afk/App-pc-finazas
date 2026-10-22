@@ -113,3 +113,19 @@ describe('código de emparejamiento', () => {
     expect(() => parsePairingCode('cualquier cosa')).toThrow(/inválido/);
   });
 });
+
+import { findServer } from '../../src/sync/syncClient';
+import { describe as d2, it as it2, expect as ex2 } from 'vitest';
+d2('la PC cambió de dirección en el Wi-Fi', () => {
+  it2('el celular la encuentra en la misma red y puerto (solo responde con el token correcto)', async () => {
+    const f = (async (url: string, init?: RequestInit) => {
+      const auth = (init?.headers as Record<string, string>)?.Authorization;
+      if (url === 'http://192.168.0.23:8787/api/health' && auth === 'Bearer token-correcto-1234567') return new Response('{}', { status: 200 });
+      if (url === 'http://192.168.0.40:8787/api/health') return new Response('{}', { status: 401 }); // otro equipo
+      throw new TypeError('sin respuesta');
+    }) as typeof fetch;
+    ex2(await findServer({ serverUrl: 'http://192.168.0.15:8787', token: 'token-correcto-1234567' }, f)).toBe('http://192.168.0.23:8787');
+    ex2(await findServer({ serverUrl: 'http://192.168.0.15:8787', token: 'otro' }, f)).toBeNull();
+    ex2(await findServer({ serverUrl: 'https://mi-servidor.com', token: 'x' }, f)).toBeNull();
+  });
+});

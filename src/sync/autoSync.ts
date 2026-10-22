@@ -1,6 +1,6 @@
 import { getDb } from '../db/db';
 import { mergeSancorCoupons, notify, subscribe } from '../db/repo';
-import { syncNow, type SyncConfig } from './syncClient';
+import { findServer, syncNow, type SyncConfig } from './syncClient';
 
 export interface StoredSyncConfig extends SyncConfig {
   /** Sincronizar automáticamente (requiere recordar la frase en este dispositivo). */
@@ -19,6 +19,7 @@ let running = false;
 let started = false;
 let debounce: ReturnType<typeof setTimeout> | null = null;
 let lastAttempt = 0;
+let lastSearch = 0;
 
 function setStatus(s: SyncStatus) {
   status = s;
@@ -59,7 +60,20 @@ export async function runSync(cfgOverride?: StoredSyncConfig): Promise<SyncStatu
   lastAttempt = Date.now();
   setStatus({ ...status, state: 'sincronizando', message: 'Sincronizando…' });
   try {
-    const r = await syncNow(cfg);
+    let r;
+    try {
+      r = await syncNow(cfg);
+    } catch (e) {
+      // La PC no responde en la dirección guardada: puede haber cambiado su dirección en el Wi-Fi.
+      if (!(e instanceof TypeError) || (!cfgOverride && Date.now() - lastSearch < 5 * 60_000)) throw e;
+      lastSearch = Date.now();
+      setStatus({ ...status, state: 'sincronizando', message: 'Buscando la PC en tu Wi-Fi…' });
+      const url = await findServer(cfg);
+      if (!url) throw e;
+      cfg.serverUrl = url;
+      await saveSyncConfig(cfg);
+      r = await syncNow(cfg);
+    }
     // Datos de un dispositivo con una versión anterior: se unen los cupones de Sancor del mismo resumen.
     if (r.incorporated && (await mergeSancorCoupons())) notify();
     const at = new Date().toISOString();
@@ -72,7 +86,7 @@ export async function runSync(cfgOverride?: StoredSyncConfig): Promise<SyncStatu
   } catch (e) {
     const msg =
       e instanceof TypeError
-        ? 'No se pudo conectar con la PC. Verifique que esté encendida y en la misma red.'
+        ? 'No se encontró la PC en tu Wi-Fi. Fijate que esté prendida con la app abierta y en el mismo Wi-Fi que el celular; si es así, revisá el firewall de Windows (instrucciones en Copias, en la PC).'
         : (e as Error).message;
     setStatus({ state: 'error', message: msg, at: status.at });
   } finally {

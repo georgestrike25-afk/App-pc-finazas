@@ -50,6 +50,43 @@ export async function checkServer(cfg: Pick<SyncConfig, 'serverUrl' | 'token'>, 
   return r.ok;
 }
 
+/**
+ * Busca la PC en la misma red Wi-Fi cuando cambió su dirección (el router le da otra al reconectarse).
+ * Prueba las 254 direcciones de la red de la dirección guardada, en el mismo puerto; solo responde
+ * nuestro servidor con este token. Devuelve la nueva dirección o null.
+ */
+export async function findServer(cfg: Pick<SyncConfig, 'serverUrl' | 'token'>, f: FetchLike = fetch, timeoutMs = 1500): Promise<string | null> {
+  let u: URL;
+  try {
+    u = new URL(normalizeServerUrl(cfg.serverUrl));
+  } catch {
+    return null;
+  }
+  const m = u.hostname.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3})\.(\d{1,3})$/);
+  if (!m || !/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(u.hostname)) return null;
+  const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+  const hosts = Array.from({ length: 254 }, (_, i) => i + 1).filter((h) => String(h) !== m[2]);
+  let found: string | null = null;
+  let next = 0;
+  const worker = async () => {
+    while (!found && next < hosts.length) {
+      const base = `${u.protocol}//${m[1]}.${hosts[next++]}:${port}`;
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), timeoutMs);
+      try {
+        const r = await f(`${base}/api/health`, { headers: { Authorization: `Bearer ${cfg.token}` }, signal: ctl.signal });
+        if (r.ok && !found) found = base;
+      } catch {
+        /* no está ahí */
+      } finally {
+        clearTimeout(t);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: 32 }, worker));
+  return found;
+}
+
 /** Huella barata del estado local: cantidad de registros y última modificación. */
 export async function localStamp(db: FinanzasDB = getDb()): Promise<string> {
   return stampOf(await collectData(db));

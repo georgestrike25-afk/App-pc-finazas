@@ -54,6 +54,17 @@ export function DesktopPairingCard({ cfg, setCfg }: { cfg: StoredSyncConfig; set
         <li>En el celular: <strong>Más → Copias</strong> → pegá el código → <strong>Usar código</strong> → poné la misma frase → <strong>Sincronizar ahora</strong>.</li>
       </ol>
       {msg && <p className="small" role="status">{msg}</p>}
+      <details className="more-opts small">
+        <summary>El celular no se conecta</summary>
+        <ol>
+          <li>Que la PC y el celular estén en el <strong>mismo Wi-Fi</strong> (no en datos móviles) y esta app abierta en la PC.</li>
+          <li>Si la dirección de la PC cambió, el celular la busca solo. Si igual no la encuentra, volvé a copiar el código de arriba y pegalo en el celular.</li>
+          <li>
+            <strong>Firewall de Windows:</strong> Inicio → escribí <em>"Permitir una aplicación a través de Firewall de Windows"</em> → <em>Cambiar la configuración</em> → buscá <strong>Finanzas Personales</strong> y marcá <strong>Privada</strong> y <strong>Pública</strong> → Aceptar.
+          </li>
+          <li>Usá la versión <strong>instalada</strong> (Instalador), no la portable: la portable cambia de lugar cada vez que se abre y Windows vuelve a bloquearla.</li>
+        </ol>
+      </details>
       <p className="small muted">
         Si Windows pregunta si permite el acceso a la red, elegí <strong>Permitir</strong> en redes privadas. Dirección de esta PC: {p.lanUrl ?? '—'}
         {p.otherUrls.length > 0 && <> (otras: {p.otherUrls.join(', ')})</>}. La PC tiene que tener la app abierta para que el celular sincronice.
