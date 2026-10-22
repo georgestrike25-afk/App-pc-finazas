@@ -291,7 +291,11 @@ export function sheetRows(sheet: SharedSheet, me: string, expenses: Expense[], t
         include = false;
         note = `Ya anotaste «${manual.concept}» en ese mes. Marcalo solo si es otro gasto.`;
       }
-      if (isHealth(g.name) && !note) note = 'Si esta obra social te la descuentan del sueldo o viene en el resumen de una tarjeta, desmarcala para no contarla dos veces.';
+      // La obra social (Sancor) ya viene en el resumen de la tarjeta: cargarla también desde la planilla la contaría dos veces.
+      if (isHealth(g.name) && !existing) {
+        include = false;
+        note = 'Ya viene en el resumen de la tarjeta (Sancor): no se carga para no contarla dos veces. Marcala solo si la pagás aparte.';
+      }
       rows.push({
         key: `${g.name}|${month}`,
         include,

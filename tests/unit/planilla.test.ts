@@ -66,8 +66,9 @@ describe('planilla de gastos compartidos', () => {
     const r = (m: string, c: string) => rows.find((x) => x.month === m && x.concept === c)!;
     expect(r('2026-10', 'Alquiler')).toMatchObject({ kind: 'hogar', total: 31000000, user: 15500000, userPct: 50, include: true });
     expect(r('2026-10', 'Cochera')).toMatchObject({ kind: 'personal', total: 1500000, userPct: 100 });
-    // Obra social / prepaga: la columna de la pareja es lo que devuelve (no se carga); la tuya es tuya.
-    expect(r('2026-10', 'Prepaga')).toMatchObject({ kind: 'personal', total: 12000000 });
+    // Obra social / prepaga: ya viene en el resumen de la tarjeta (Sancor) → no se carga por defecto; lo de la pareja es su reintegro.
+    expect(r('2026-10', 'Prepaga')).toMatchObject({ kind: 'personal', total: 12000000, include: false });
+    expect(r('2026-10', 'Prepaga').note).toMatch(/resumen de la tarjeta/);
     expect(skipped.join(' ')).toMatch(/Prepaga de Caro/);
     // Meses que todavía no llegaron: desmarcados
     expect(r('2026-11', 'Prepaga').include).toBe(false);
@@ -113,7 +114,7 @@ describe('planilla de gastos compartidos', () => {
       expect(oct.find((o) => o.concept === 'Alquiler')).toMatchObject({ total: 31000000, userShare: 15500000, paid: true });
       const m = computeMonth(data, '2026-10', '2026-10');
       expect(m.sections.find((s) => s.key === 'fijos')!.total).toBe(15500000 + 1250000);
-      expect(m.sections.find((s) => s.key === 'personales')!.total).toBe(1500000 + 12000000);
+      expect(m.sections.find((s) => s.key === 'personales')!.total).toBe(1500000);
       // Ya pagado: no queda deuda con la pareja
       expect(oct.filter((o) => o.kind === 'hogar').every((o) => o.paidBy === 'cada_uno')).toBe(true);
 
