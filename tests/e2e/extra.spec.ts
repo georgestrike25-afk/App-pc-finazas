@@ -325,4 +325,6 @@ test('plata hasta cobrar: se descuenta lo que gastás', async ({ page }) => {
   await card.getByLabel('¿Cuánta plata tenés hoy?').fill('80.000');
   await card.getByRole('button', { name: 'Guardar' }).click();
   await expect(card).toContainText('80.000,00');
+  // Con la plata cargada, las cuentas del mes pasan a ser la referencia y se puede ajustar la diferencia.
+  await expect(page.locator('.hero')).toContainText('Según lo cargado este mes');
 });

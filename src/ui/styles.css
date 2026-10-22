@@ -345,3 +345,5 @@ th { white-space: nowrap; }
 .cash-card .hero-money.neg { color: var(--danger); }
 .cash-days { margin: 0; color: var(--muted); }
 .cash-card .linklike { text-align: left; color: var(--muted); }
+.hero-secondary .hero-money { font-size: 1.5rem; color: var(--muted); }
+.cash-diff { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-start; padding: 0.5rem 0.6rem; border-radius: 8px; background: var(--surface-2); }

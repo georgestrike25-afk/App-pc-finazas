@@ -15,6 +15,10 @@ import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 import type { Obligation } from '../../domain/types';
 import { NotifReviewCard } from './Notificaciones';
 import { CashCard } from './CashCard';
+import { cashStatus } from '../../domain/cash';
+import { uid } from '../../domain/text';
+import { formatARS } from '../../domain/money';
+import type { Expense } from '../../domain/types';
 
 function Pendientes({ items }: { items: CheckItem[] }) {
   const { data, toast } = useApp();
@@ -60,7 +64,7 @@ function Pendientes({ items }: { items: CheckItem[] }) {
 }
 
 export function EsteMesPage() {
-  const { data, month, setMonth, today } = useApp();
+  const { data, month, setMonth, today, toast } = useApp();
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   const [lastBackup, setLastBackup] = useState<string | undefined>();
   useEffect(() => {
@@ -76,6 +80,16 @@ export function EsteMesPage() {
   const goal = data.goal;
   const proj = useMemo(() => (goal.estimatedCost > 0 ? projectGoal(data, goal, today, goal.scenarios.find((s) => s.key === 'intermedio') ?? goal.scenarios[0]) : null), [data, goal, today]);
   const isCurrent = month === today;
+  // Si el usuario cargó cuánta plata tiene, ese es el número principal; las cuentas del mes quedan como referencia.
+  const cash = isCurrent ? cashStatus(data, todayIso()) : null;
+  const diff = cash ? r.available - cash.left : 0;
+  const adjust = async () => {
+    if (!(await confirmDialog(`¿Anotar ${formatARS(diff)} como "gastos sin detalle" de este mes?\nAsí las cuentas del mes coinciden con la plata que tenés. No se descuenta de tu plata (ya lo gastaste).`, { ok: 'Anotar' }))) return;
+    const now = new Date().toISOString();
+    const t = todayIso();
+    await saveRecord<Expense>('expenses', { id: uid(), createdAt: now, updatedAt: now, kind: 'personal', category: 'Otros', concept: 'Gastos sin detalle (ajuste)', date: t, month: t.slice(0, 7), totalAmount: diff, userPct: 100, paid: true, frequency: 'unica', paymentMethod: 'efectivo', source: 'manual', cashAdjust: true, notes: 'Diferencia entre las cuentas del mes y la plata real.' }, 'Ajuste: gastos sin detalle');
+    toast('Listo: las cuentas del mes coinciden con tu plata.');
+  };
   const empty = !data.incomes.length && !data.expenses.length && !data.obligations.length && !data.statements.length;
 
   if (empty)
@@ -99,9 +113,9 @@ export function EsteMesPage() {
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
       {isCurrent && <CashCard />}
-      <Card className="hero">
+      <Card className={`hero ${cash ? 'hero-secondary' : ''}`}>
         <span className="hero-label inline-help">
-          {isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`}
+          {cash ? 'Según lo cargado este mes' : isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`}
           <Help label="Cómo se calcula lo que te queda">
             <p><strong>Te quedan</strong> = lo que entró − lo que gastaste − las cuotas y préstamos del mes.</p>
             <ul>
@@ -113,6 +127,20 @@ export function EsteMesPage() {
           </Help>
         </span>
         <Money value={r.available} className="hero-money" />
+        {cash && Math.abs(diff) >= 100 && (
+          <div className="cash-diff" data-testid="cash-diff">
+            {diff > 0 ? (
+              <>
+                <p className="small" style={{ margin: 0 }}>
+                  Es <strong><Money value={diff} /></strong> más de lo que tenés: seguramente son gastos que no anotaste.
+                </p>
+                <button className="btn small" onClick={adjust}>Anotar la diferencia como "gastos sin detalle"</button>
+              </>
+            ) : (
+              <p className="small muted" style={{ margin: 0 }}>Tenés <Money value={-diff} /> más de lo que dicen las cuentas del mes (por ejemplo, plata ahorrada de antes).</p>
+            )}
+          </div>
+        )}
         {r.incomeStatus !== 'confirmado' && <small className="warn d-block">Todavía no está cargado el sueldo de este mes.</small>}
         <ul className="hero-lines">
           <li><a href="#/ingresos"><span>Entró</span><Money value={get('ingresos')} /></a></li>

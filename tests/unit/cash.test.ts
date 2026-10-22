@@ -24,3 +24,12 @@ describe('plata hasta cobrar', () => {
     expect(cashStatus({ ...d, settings: { ...d.settings, cash: undefined } }, '2026-10-24')).toBeNull();
   });
 });
+
+describe('ajuste de gastos sin detalle', () => {
+  it('no se descuenta de la plata que tenés', () => {
+    const d = emptyData();
+    d.settings.cash = { amount: 10000000, setAt: '2026-10-22T10:00:00.000Z' };
+    d.expenses.push({ ...expense({ kind: 'personal', month: '2026-10', date: '2026-10-22', totalAmount: 4627186, paymentMethod: 'efectivo', concept: 'Gastos sin detalle (ajuste)' }), createdAt: '2026-10-22T11:00:00.000Z', updatedAt: '2026-10-22T11:00:00.000Z', cashAdjust: true });
+    expect(cashStatus(d, '2026-10-22')!.left).toBe(10000000);
+  });
+});

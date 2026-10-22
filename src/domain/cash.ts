@@ -27,7 +27,7 @@ export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'se
   const c = data.settings.cash;
   if (!c) return null;
   const since = c.setAt.slice(0, 10);
-  const counted = data.expenses.filter((e) => !e.deleted && e.createdAt > c.setAt && e.date >= since && e.paymentMethod !== 'tarjeta' && !e.provisional);
+  const counted = data.expenses.filter((e) => !e.deleted && e.createdAt > c.setAt && e.date >= since && e.paymentMethod !== 'tarjeta' && !e.provisional && !e.cashAdjust);
   const payments = data.cardPayments.filter((p) => !p.deleted && p.createdAt > c.setAt && p.date >= since);
   const items = [
     ...counted.map((e) => ({ concept: e.concept, amount: outOfPocket(e), date: e.date })),
