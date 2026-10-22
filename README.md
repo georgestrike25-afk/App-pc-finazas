@@ -180,8 +180,8 @@ Todos los importes se guardan como **enteros en centavos** (sin errores de redon
 ### Resultado mensual
 
 ```
-  Ingresos cobrados (confirmados) + reintegros de Sancor efectivamente recibidos
-− gastos fijos atribuibles al usuario (su % de los gastos del hogar + cargo de Sancor)
+  Ingresos cobrados (confirmados)
+− gastos fijos atribuibles al usuario (su % de los gastos del hogar + Sancor: cargo de la tarjeta menos lo que ya devolvió la pareja)
 − gastos personales
 − gastos cotidianos imputados (registrados + parte no registrada del presupuesto, si el mes está en modo "estimado")
 − cuotas y obligaciones que vencen en el mes
@@ -197,7 +197,7 @@ Toque cada renglón en **Resumen** para ver las operaciones que lo componen.
 3. **Compras en cuotas**: se computan cuota por cuota en el mes de vencimiento, no por el total.
 4. **Presupuesto cotidiano**: en modo *estimado* solo se suma la parte **todavía no registrada** (`presupuesto − registrado`), identificada como estimación. En modo *real* solo cuenta lo registrado. Por defecto: meses actuales y futuros en *estimado*, meses pasados en *real*.
 5. **Gasto manual + línea importada**: al importar, una línea con el mismo importe y fecha ±5 días que un gasto manual pagado con tarjeta se **vincula** (no se crea otro gasto).
-6. **Sancor Salud**: se resta el cargo completo (lo que efectivamente cobra la tarjeta). El reintegro esperado se muestra aparte; solo el reintegro **recibido** suma, en el mes en que se cobra. El total de la tarjeta nunca se reduce por un reintegro pendiente.
+6. **Sancor Salud**: mientras la pareja no devuelve su parte, se resta el cargo completo (lo que cobra la tarjeta). Lo que devuelve **no es un ingreso**: baja el gasto de Sancor de ese mes hasta quedar en tu parte. Un reintegro pendiente nunca reduce el gasto.
 7. **Ingresos**: los estimados no se suman como cobrados; el ingreso de un mes no se copia al siguiente.
 
 ### Imputación de consumos importados

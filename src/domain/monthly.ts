@@ -3,7 +3,7 @@ import { occurrencesForMonth } from './expenses';
 import { incomeNet } from './income';
 import { sum, type Cents } from './money';
 import { installmentsForMonth, obligationIssues } from './obligations';
-import { reimbursementsReceivedInMonth, sancorSummary } from './sancor';
+import { sancorSummary } from './sancor';
 import type { CardPayment, Expense, Income, Obligation, SancorCharge, Settings, Statement } from './types';
 
 export interface DataSet {
@@ -96,15 +96,8 @@ export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey, op
     note: i.extras.length || i.deductions.length ? 'Neto: principal + adicionales − deducciones' : undefined,
     ref: { table: 'incomes', id: i.id },
   }));
+  // Lo que devuelve la pareja de Sancor no es un ingreso: baja el gasto de Sancor (ver más abajo).
   const sancorLive = live(data.sancor);
-  for (const { charge, r } of reimbursementsReceivedInMonth(sancorLive, month)) {
-    incomeLines.push({
-      label: 'Reintegro Sancor Salud recibido',
-      amount: r.amount,
-      note: `Corresponde al cargo de ${charge.month}`,
-      ref: { table: 'sancor', id: charge.id },
-    });
-  }
   const incomeStatus = confirmed.length ? 'confirmado' : estimatedRecs.length ? 'estimado' : 'sin_cargar';
   const estimatedIncome = estimatedRecs.length
     ? sum(estimatedRecs.map(incomeNet))
@@ -126,10 +119,12 @@ export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey, op
     }));
   const sancorMonth = sancorLive.filter((c) => c.month === month);
   for (const c of sancorMonth) {
+    // Mientras la pareja no devuelve su parte, cuenta lo que cobró la tarjeta; lo que devuelve baja el gasto.
+    const sm = sancorSummary(c);
     fixedLines.push({
-      label: 'Sancor Salud (cargo total en tarjeta)',
-      amount: c.chargeAmount,
-      note: `Reintegro esperado de la pareja: ${fmtShort(sancorSummary(c).expected)} (se muestra aparte)`,
+      label: sm.pending > 0 ? 'Sancor Salud (cargo en la tarjeta)' : 'Sancor Salud (tu parte)',
+      amount: sm.netWithReceived,
+      note: sm.received > 0 ? `Cobró la tarjeta ${fmtShort(sm.cardAmount)}; te devolvieron ${fmtShort(sm.received)}${sm.pending > 0 ? `; faltan ${fmtShort(sm.pending)}` : ''}` : `Cuando te devuelvan ${fmtShort(sm.expected)}, este gasto baja a tu parte`,
       ref: { table: 'sancor', id: c.id },
     });
   }

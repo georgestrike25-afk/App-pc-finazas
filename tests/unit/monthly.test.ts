@@ -48,6 +48,9 @@ describe('Sancor Salud', () => {
     r = computeMonth(d, '2026-10', '2026-10');
     expect(r.available).toBe(100000000 - 9800000 + 4900000);
     expect(r.info.sancorPending).toBe(0);
+    // Lo devuelto no es un ingreso: "Entró" sigue siendo el sueldo y el gasto de Sancor baja a tu parte
+    expect(r.sections.find((s) => s.key === 'ingresos')!.total).toBe(100000000);
+    expect(r.sections.find((s) => s.key === 'fijos')!.lines.find((l) => l.label.startsWith('Sancor'))).toMatchObject({ label: 'Sancor Salud (tu parte)', amount: 4900000 });
   });
 });
 

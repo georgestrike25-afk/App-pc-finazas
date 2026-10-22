@@ -75,11 +75,6 @@ export function IncomeForm({ initial, onClose }: { initial: Draft; onClose: () =
 export function IngresosPage() {
   const narrow = useNarrow();
   const { data, today } = useApp();
-  // Reintegros de Sancor cobrados: se suman en "Entró" del mes en que se cobran.
-  const extraIn = data.sancor
-    .filter((c) => !c.deleted)
-    .flatMap((c) => c.received.map((r) => ({ month: r.date.slice(0, 7), date: r.date, amount: r.amount, label: 'Reintegro de Sancor Salud' })))
-    .sort((a, b) => b.date.localeCompare(a.date));
   const [editing, setEditing] = useState<Draft | null>(null);
   const [history, setHistory] = useState<Income | null>(null);
   const sorted = useMemo(() => [...data.incomes].sort((a, b) => b.month.localeCompare(a.month)), [data.incomes]);
@@ -185,18 +180,6 @@ export function IngresosPage() {
           </div>
         )}
       </Card>
-      {extraIn.length > 0 && (
-        <Card title="Además entró" help="Plata que también se suma en 'Entró' de Este mes, aunque no es sueldo: por ejemplo, lo que te devuelve tu pareja de Sancor.">
-          <ul className="list" data-testid="ingresos-extra">
-            {extraIn.map((x, k) => (
-              <li key={k}>
-                <span>{monthLabel(x.month)} · {x.label}<small className="muted d-block">Cobrado el {formatDate(x.date)}</small></span>
-                <Money value={x.amount} />
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
       {editing && <IncomeForm initial={editing} onClose={() => setEditing(null)} />}
       {history && (
         <Modal title={`Historial de ${monthLabel(history.month)}`} onClose={() => setHistory(null)}>
