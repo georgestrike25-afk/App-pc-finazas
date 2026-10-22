@@ -4,6 +4,7 @@ import { parseStatementText, type ParsedDocument, type SourceLine } from './stat
 import { parseAccountMovements } from './accountMovements';
 import { parseBankExtract } from './bankExtract';
 import { parseCardActivity } from './cardActivity';
+import { parseWalletMovements } from './walletMovements';
 import { misFinanzasToParsed, readMisFinanzasJson, readMisFinanzasRows } from './misFinanzas';
 import type { ParsedDocument as PD } from './statementParser';
 import { decodeText, parseCsv, parseSpreadsheet, rowsToLines } from './tabular';
@@ -28,7 +29,7 @@ async function pdfLib(): Promise<PdfLib> {
 }
 
 /** Lee el archivo localmente (sin red) y lo convierte en datos estructurados. */
-export async function extractFile(file: File, opts: { allowOcr: boolean; onProgress?: Progress }): Promise<Extraction> {
+export async function extractFile(file: File, opts: { allowOcr: boolean; onProgress?: Progress; names?: { partner?: string; own?: string[] } }): Promise<Extraction> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const validated = validateFile(file.name, bytes);
   const hash = await sha256Hex(bytes);
@@ -108,7 +109,12 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     }
   }
   // Primero se prueba el formato de movimientos de cuenta (capturas de home banking).
-  const parsed = history ?? parseCardActivity(lines) ?? parseBankExtract(lines) ?? parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
+  const parsed =
+    history ??
+    parseCardActivity(lines) ??
+    parseBankExtract(lines) ??
+    parseWalletMovements(lines, { partnerName: opts.names?.partner, ownNames: opts.names?.own, fileName: file.name, today: new Date().toISOString().slice(0, 10) }) ??
+    parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
   parsed.warnings.unshift(...notes);
   return { validated, hash, lines, parsed, ocrUsed, notes };
 }

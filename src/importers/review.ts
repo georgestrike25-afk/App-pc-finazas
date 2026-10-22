@@ -183,7 +183,7 @@ export async function buildReview(
       }
     } else if (action === 'gasto' && p.amount !== undefined && p.date) {
       const m = expenses.find(
-        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && (!(e.linkedLineFingerprints?.length) || e.provisional || !!e.importedFrom) && (e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
+        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && (!(e.linkedLineFingerprints?.length) || e.provisional || !!e.importedFrom) && (isAccount || e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
       );
       if (m) {
         usedManual.add(m.id);

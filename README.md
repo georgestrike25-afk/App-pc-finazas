@@ -277,6 +277,8 @@ Para cada uno de los próximos 12 meses: **ingreso − gastos fijos − cuotas, 
 
 **Plata hasta cobrar** (*Este mes*): se anota cuánta plata hay hoy y, opcionalmente, hasta qué día tiene que alcanzar. Desde ese momento se descuentan los gastos que se anotan o detectan (efectivo, débito, transferencias, billeteras, tu parte de los compartidos) y los pagos de resumen; las compras con tarjeta de crédito no, porque se pagan con el resumen. Muestra cuánto queda y cuánto se puede gastar por día. *Corregir* vuelve a fijar el monto.
 
+**Video o capturas de "Mis movimientos" de una billetera** (p. ej. Ualá; probado con una grabación real que no se guarda en el repositorio): cada movimiento (nombre e importe, tipo y fecha) se lee de los cuadros del video y los cuadros se unen en orden, de modo que lo que se repite al desplazar se cuenta una sola vez y dos compras iguales del mismo día se mantienen. Compras y pagos → gastos; transferencias enviadas → gasto "Transferencias", salvo a tu pareja (compartidos) o a tus propias cuentas (por el nombre configurado o el del saludo de la app); recibidas, rendimientos y compra/venta de dólares no se cargan; las devoluciones de Uber se anulan con su viaje. Lo que ya se anotó por notificaciones, a mano o por extractos queda vinculado y no se duplica. Algunas grabaciones vienen en formato HEVC: el celular las abre, pero algunas PC no.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites

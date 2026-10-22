@@ -266,6 +266,8 @@ export interface Settings extends BaseRecord {
   cash?: { amount: Cents; setAt: string; until?: string };
   /** Presupuesto del día a día que el usuario quiere tener: entre un mínimo y un máximo por mes. */
   dailyBudgetRange?: { min: Cents; max: Cents };
+  /** Tu nombre y apellido: para reconocer transferencias entre tus propias cuentas. */
+  ownNames?: string;
 }
 
 export const SYNC_TABLES = [

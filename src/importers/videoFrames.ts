@@ -42,7 +42,7 @@ export function sigDiff(a: Uint8Array, b: Uint8Array): number {
 }
 
 export async function videoFrames(file: Blob, opts: { maxFrames?: number; onProgress?: (pct: number) => void } = {}): Promise<HTMLCanvasElement[]> {
-  const maxFrames = opts.maxFrames ?? 30;
+  const maxFrames = opts.maxFrames ?? 60;
   const url = URL.createObjectURL(file);
   const v = document.createElement('video');
   v.muted = true;
@@ -53,7 +53,7 @@ export async function videoFrames(file: Blob, opts: { maxFrames?: number; onProg
     try {
       await once(v, 'loadeddata', 15000);
     } catch {
-      throw new Error('No se pudo abrir el video en este dispositivo. Probá con capturas de pantalla (una por pantalla).');
+      throw new Error('No se pudo abrir el video en este dispositivo (algunas grabaciones vienen en formato HEVC/H.265). Probá desde el celular, o con capturas de pantalla (una por pantalla).');
     }
     let duration = v.duration;
     if (!Number.isFinite(duration)) {
@@ -71,6 +71,7 @@ export async function videoFrames(file: Blob, opts: { maxFrames?: number; onProg
     const kept: HTMLCanvasElement[] = [];
     let prev: Uint8Array | null = null;
     let lastKept: Uint8Array | null = null;
+    let lastKeptT = -Infinity;
     const step = duration > 120 ? duration / 480 : 0.25;
     for (let t = 0.05; t < duration && kept.length < maxFrames; t += step) {
       v.currentTime = t;
@@ -79,7 +80,9 @@ export async function videoFrames(file: Blob, opts: { maxFrames?: number; onProg
       const still = prev !== null && sigDiff(prev, s) < 2.5;
       prev = s;
       opts.onProgress?.(Math.min(1, t / duration));
-      if (!still) continue;
+      // Se prefieren los cuadros quietos; si la pantalla se desplaza sin parar, se toma uno cada ~0,75 s
+      // (las grabaciones de pantalla no se ven movidas, así que igual se leen bien).
+      if (!still && t - lastKeptT < 0.75) continue;
       if (lastKept && sigDiff(lastKept, s) < 4) continue;
       const c = document.createElement('canvas');
       c.width = Math.round((v.videoWidth || 1080) * scale);
@@ -87,6 +90,7 @@ export async function videoFrames(file: Blob, opts: { maxFrames?: number; onProg
       c.getContext('2d')!.drawImage(v, 0, 0, c.width, c.height);
       kept.push(c);
       lastKept = s;
+      lastKeptT = t;
     }
     if (!kept.length) throw new Error('No se encontraron pantallas quietas en el video. Grabalo deteniéndote un momento en cada pantalla.');
     return kept;

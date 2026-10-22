@@ -36,6 +36,7 @@ export function ConfiguracionPage() {
       <Card title="Preferencias">
         <div className="form-grid">
           <Field label="Nombre de la pareja (para los repartos)">{(id) => <input id={id} value={s.partnerName} onChange={(e) => setS({ ...s, partnerName: e.target.value })} />}</Field>
+          <Field label="Tu nombre y apellido" help="Para reconocer las transferencias entre tus propias cuentas (por ejemplo, de Patagonia a Ualá) y que no se cuenten como gastos ni ingresos.">{(id) => <input id={id} value={s.ownNames ?? ''} placeholder="Ej.: Jorge Exequiel Aguero" onChange={(e) => setS({ ...s, ownNames: e.target.value })} />}</Field>
           <Field label="Reparto por defecto de gastos del hogar (% del usuario)" help="Qué parte de los gastos compartidos pagás vos. 50 = mitad y mitad. Se puede cambiar en cada gasto.">{(id) => <input id={id} type="number" min={0} max={100} value={s.defaultUserPct} onChange={(e) => setS({ ...s, defaultUserPct: Number(e.target.value) })} />}</Field>
           <Field label="Sancor Salud: % que corresponde a la pareja">{(id) => <input id={id} type="number" min={0} max={100} value={s.sancorPartnerPct} onChange={(e) => setS({ ...s, sancorPartnerPct: Number(e.target.value) })} />}</Field>
           <Field label="Presupuesto cotidiano por defecto" hint="Valor inicial orientativo: $700.000 (editable).">{(id) => <MoneyInput id={id} value={s.dailyBudgetDefault} onChange={(v) => setS({ ...s, dailyBudgetDefault: v ?? 0, dailyBudgetIsInitialValue: false })} />}</Field>

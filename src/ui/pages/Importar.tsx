@@ -228,7 +228,7 @@ export function ImportarPage() {
     setFile(f);
     setBusy('Procesando el documento localmente…');
     try {
-      const ex = await extractFile(f, { allowOcr, onProgress: (m, p) => { setBusy(m); setPct(p); } });
+      const ex = await extractFile(f, { allowOcr, onProgress: (m, p) => { setBusy(m); setPct(p); }, names: { partner: data.settings.partnerName, own: data.settings.ownNames ? [data.settings.ownNames] : [] } });
       const sheet = detectSharedSheet(ex.lines, { fileName: f.name, fallbackYear: new Date().getFullYear() });
       if (sheet) {
         // Planilla de gastos compartidos: un gasto por mes y por concepto, con la parte de cada uno.
