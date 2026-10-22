@@ -28,6 +28,8 @@
     "@capacitor/filesystem": "^7.1.9",
     "@capacitor/share": "^7.0.4",
     "@e965/xlsx": "0.20.3",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/public-sans": "^5.3.0",
     "@tesseract.js-data/spa": "1.0.0",
     "dexie": "4.0.11",
     "papaparse": "5.5.3",

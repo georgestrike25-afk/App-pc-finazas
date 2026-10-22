@@ -17,11 +17,17 @@ export function useNarrow(): boolean {
   return narrow;
 }
 
+/** Separa los centavos para poder mostrarlos más chicos en los importes grandes. */
+function cents(text: string) {
+  const i = text.lastIndexOf(',');
+  return i < 0 ? text : <>{text.slice(0, i)}<span className="cents">{text.slice(i)}</span></>;
+}
+
 export function Money({ value, estimated, className }: { value: Cents | undefined | null; estimated?: boolean; className?: string }) {
   const neg = typeof value === 'number' && value < 0;
   return (
     <span className={`money ${neg ? 'neg' : ''} ${estimated ? 'est' : ''} ${className ?? ''}`} title={estimated ? 'Valor estimado' : undefined}>
-      {formatARS(value)}
+      {cents(formatARS(value))}
       {estimated ? <sup aria-label="estimado">≈</sup> : null}
     </span>
   );
