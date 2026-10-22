@@ -75,6 +75,10 @@ El APK se compila **gratis en GitHub Actions** (`.github/workflows/android.yml`)
 - Las copias de seguridad se **guardan o envían** con el menú Compartir (Drive, WhatsApp, correo) o en *Documentos/FinanzasPersonales*.
 - Puede sincronizar con la PC por la red Wi-Fi de su casa (`http://192.168.x.x:8787`) sin HTTPS.
 - Se desactivó la copia automática de Android a Google (`allowBackup=false`) para que los datos financieros no salgan del teléfono; use las copias de la app.
+- **Compartir → Importar en Brote**: desde la galería, el administrador de archivos o cualquier app, una captura, un video, un PDF, un Excel/CSV o una copia (.json) se abre directo en *Subir documento*.
+- **Widget** (mantener apretado el inicio → Widgets → Brote): el grande muestra si hay avisos sin registrar, lo último que se sumó y los botones **Gasto**, **Ingreso** y **Compartido**; el chico, la plata hasta cobrar y **Anotar**.
+- **Anotación rápida**: se abre encima de lo que esté usando (desde el widget o un aviso), con el monto, Gasto/Ingreso/Compartido y cuatro categorías (Día a día, Transporte, Servicios, Otros). Se guarda al instante y la app lo registra al abrirse.
+- **Avisos de Brote** (con la lectura automática activada): "Se anotó $ …" con **Deshacer** y **Cambiar categoría**, o "¿Cuánto fue?" cuando el aviso de Ualá, Mercado Pago, Naranja X, BNA+, Banco Patagonia o un pago sin contacto no trae el monto, con **Anotar** y **No registrar**. Nada sale del teléfono.
 
 ### Firma del APK
 

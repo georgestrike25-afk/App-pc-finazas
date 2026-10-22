@@ -24,7 +24,59 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- "Compartir → Importar en Brote": capturas, videos, PDF y planillas -->
+            <intent-filter android:label="Importar en Brote">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="text/comma-separated-values" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+
         </activity>
+
+        <!-- Anotación rápida: se abre encima de lo que estés usando (desde el widget o un aviso) -->
+        <activity
+            android:name=".AnotarActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=".anotar"
+            android:launchMode="singleTask"
+            android:theme="@style/Brote.Anotar" />
+
+        <receiver
+            android:name=".AccionReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".BroteWidget"
+            android:exported="true"
+            android:label="Brote">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_brote_info" />
+        </receiver>
+
+        <receiver
+            android:name=".BroteWidgetChico"
+            android:exported="true"
+            android:label="Brote: plata hasta cobrar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_brote_chico_info" />
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -51,4 +103,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Avisos de Brote ("Se anotó…", "¿Cuánto fue?") en Android 13 o más nuevo -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Colores de Brote (Forest Finance) para el widget y la anotación rápida. Modo oscuro en values-night. -->
+<resources>
+    <color name="brote_bosque">#123C3A</color>
+    <color name="brote_lima">#A3E635</color>
+    <color name="brote_fondo">#F7FAF5</color>
+    <color name="brote_superficie">#FFFFFF</color>
+    <color name="brote_superficie2">#EEF3EB</color>
+    <color name="brote_texto">#18312E</color>
+    <color name="brote_texto2">#5E6F67</color>
+    <color name="brote_borde">#DCE5D7</color>
+    <color name="brote_borde_fuerte">#C3D1BC</color>
+    <color name="brote_primario">#123C3A</color>
+    <color name="brote_primario_texto">#FFFFFF</color>
+    <color name="brote_aviso">#B45309</color>
+    <color name="brote_aviso_suave">#1FB45309</color>
+    <color name="brote_ok">#15803D</color>
+    <color name="brote_ok_suave">#1F15803D</color>
+    <color name="brote_seleccion">#29A3E635</color>
+</resources>

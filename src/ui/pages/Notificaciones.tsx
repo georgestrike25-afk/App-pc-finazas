@@ -6,7 +6,7 @@ import { isNative } from '../../platform';
 import { formatARS } from '../../domain/money';
 import { expenseFromDetected } from '../../notifications/ingest';
 import type { LogNotif, ReviewNotif } from '../../notifications/ingest';
-import { getNotifConfig, getNotifLog, getNotifReview, ingestNotifications, Notificaciones, setNotifConfig, setNotifReview } from '../../notifications/native';
+import { getNotifConfig, getNotifLog, getNotifReview, ingestNotifications, Notificaciones, setNotifConfig, setNotifReview, syncWidget } from '../../notifications/native';
 import { Card, Money, MoneyInput } from '../components/ui';
 import type { Cents } from '../../domain/money';
 
@@ -15,10 +15,12 @@ export function NotificationsSettingsCard() {
   const { toast } = useApp();
   const [permitido, setPermitido] = useState<boolean | null>(null);
   const [activo, setActivo] = useState(false);
+  const [avisos, setAvisos] = useState(true);
   const [log, setLog] = useState<LogNotif[]>([]);
   const refresh = async () => {
     setPermitido((await Notificaciones.estado()).permitido);
     setActivo((await getNotifConfig()).activo);
+    setAvisos((await Notificaciones.permisoAvisos().catch(() => ({ permitido: true }))).permitido);
     setLog(await getNotifLog());
   };
   useEffect(() => {
@@ -36,6 +38,8 @@ export function NotificationsSettingsCard() {
   const toggle = async (v: boolean) => {
     await setNotifConfig({ activo: v });
     setActivo(v);
+    void syncWidget();
+    if (v) await Notificaciones.pedirPermisoAvisos().catch(() => {});
     if (v) {
       const n = await ingestNotifications();
       if (n) toast(`${n} gasto(s) registrados desde las notificaciones.`);
@@ -55,8 +59,15 @@ export function NotificationsSettingsCard() {
             <input type="checkbox" checked={activo} onChange={(e) => toggle(e.target.checked)} disabled={!permitido} /> Anotar los gastos automáticamente
           </label>
         </li>
+        <li>
+          {avisos ? (
+            <span className="ok-text">✓ Brote te avisa cuando anota un gasto o cuando un aviso no trae el monto</span>
+          ) : (
+            <>Para que Brote te avise ("Se anotó…", "¿Cuánto fue?"): <button className="btn small primary" onClick={() => Notificaciones.pedirPermisoAvisos().then(() => setTimeout(refresh, 1500))}>Permitir avisos</button></>
+          )}
+        </li>
       </ol>
-      <p className="small muted">Solo se leen las notificaciones de esas apps; el resto se ignora sin guardarse. Si usabas Mis Finanzas, subí su copia (.json) en <strong>Subir</strong> para traer lo anterior y después podés desinstalarla.</p>
+      <p className="small muted">También podés agregar el <strong>widget de Brote</strong> a la pantalla de inicio (mantené apretado el inicio → Widgets → Brote) para anotar un gasto, un ingreso o un gasto compartido sin abrir la app. Solo se leen las notificaciones de esas apps; el resto se ignora sin guardarse. Si usabas Mis Finanzas, subí su copia (.json) en <strong>Subir</strong> para traer lo anterior y después podés desinstalarla.</p>
       {log.length > 0 && (
         <details className="more-opts">
           <summary>Últimas notificaciones leídas ({log.length})</summary>
@@ -92,9 +103,13 @@ export function NotifReviewCard() {
   }, []);
   if (!items.length) return null;
   const drop = async (id: string) => {
+    const r = items.find((x) => x.id === id);
     const next = items.filter((x) => x.id !== id);
     await setNotifReview(next);
     setItems(next);
+    // Resuelto en la app: se quita el aviso "¿Cuánto fue?" del celular y se actualiza el widget.
+    if (r?.clave) await Notificaciones.quitarAviso({ clave: r.clave }).catch(() => {});
+    void syncWidget();
   };
   const asExpense = async (r: ReviewNotif) => {
     const monto = r.monto || amounts[r.id];

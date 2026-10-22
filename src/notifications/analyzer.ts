@@ -111,7 +111,7 @@ export const propias = [
 const recibidas = ['te transfirio', 'te transfirieron', 'te envio', 'te enviaron', 'recibiste una transferencia', 'recibiste dinero', 'transferencia recibida', 'ingreso de dinero', 'ingreso dinero', 'te depositaron', 'recibiste $'];
 const ingresos = ['acreditamos', 'se acredito', 'acreditacion', 'recibiste un pago', 'cobraste', 'rendimiento', 'rendiste', 'devolucion', 'reintegro', 'cashback', 'te devolvimos'];
 const enviadas = ['transferiste', 'enviaste', 'transferencia enviada', 'transferencia realizada', 'realizaste una transferencia', 'hiciste una transferencia'];
-const gastos = ['pagaste', 'compraste', 'compra ', 'compra de', 'consumo', 'pago ', 'pago de', 'debito', 'debitamos', 'abonaste', 'extrajiste', 'retiraste', 'realizaste un pago', 'usaste tu tarjeta', 'con tu tarjeta', 'cobro de'];
+const gastos = ['pagaste', 'compraste', 'compra ', 'compra de', 'consumo', 'pago ', 'pago de', 'debito', 'debitamos', 'abonaste', 'extrajiste', 'retiraste', 'realizaste un pago', 'usaste tu tarjeta', 'con tu tarjeta', 'cobro de', 'se pago', 'se debito'];
 
 const has = (n: string, list: string[]) => list.some((x) => n.includes(x));
 
@@ -180,6 +180,11 @@ export function analizar(paquete: string, titulo: string | null | undefined, tex
     if (has(n, enviadas) && !has(n, fallidas)) {
       const a = destinatario(original);
       return { movimiento: { fecha: instante, monto: 0, tipo: 'GASTO', descripcion: a ? `Transferencia a ${a}` : 'Transferencia enviada', cuenta, contraparte: a, transferencia: 'ENVIADA', textoOriginal: original } };
+    }
+    // Un pago o débito avisado sin el importe ("Se debitó tu pago en …"): también queda para completar.
+    if (has(n, gastos) && !has(n, fallidas) && !has(n, promociones) && !has(n, propias) && !has(n, recibidas) && !has(n, ingresos)) {
+      const c = comercio(original);
+      return { movimiento: { fecha: instante, monto: 0, tipo: 'GASTO', descripcion: c ? `Pago en ${c}` : 'Pago sin importe', cuenta, textoOriginal: original } };
     }
     return { ignorada: 'SIN_MONTO' };
   }

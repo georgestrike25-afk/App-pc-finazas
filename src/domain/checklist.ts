@@ -25,7 +25,8 @@ export function monthChecklist(data: DataSet, today: MonthKey, todayIso: string,
   const items: CheckItem[] = [];
   const empty = !data.incomes.length && !data.expenses.length && !data.obligations.length && !data.statements.length;
 
-  const inc = data.incomes.find((i) => i.month === today && i.status === 'confirmado');
+  // Un ingreso suelto anotado rápido (sin sueldo) no cuenta como sueldo cargado.
+  const inc = data.incomes.find((i) => !i.deleted && i.month === today && i.status === 'confirmado' && i.amountReceived > 0);
   items.push({
     key: 'sueldo',
     done: !!inc,

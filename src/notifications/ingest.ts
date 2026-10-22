@@ -23,6 +23,8 @@ export interface ReviewNotif {
   cuenta: string;
   texto: string;
   motivo: string;
+  /** Notificación de origen (para resolverla desde el aviso de Brote o la anotación rápida). */
+  clave?: string;
 }
 
 export interface LogNotif {
@@ -46,7 +48,7 @@ const isoLocal = (ms: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: string): Expense {
+export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: string, clave?: string): Expense {
   const date = isoLocal(d.fecha);
   const sug = suggestCategory(d.descripcion);
   return {
@@ -69,7 +71,7 @@ export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: str
     source: 'importado',
     importedFrom: 'notificacion',
     notes: `Notificación de ${d.cuenta} · ${new Date(d.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`,
-    linkedLineFingerprints: [`notif|${d.cuenta}|${d.fecha}|${d.monto}`],
+    linkedLineFingerprints: [`notif|${d.cuenta}|${d.fecha}|${d.monto}`, ...(clave ? [`notifkey|${clave}`] : [])],
   };
 }
 
@@ -123,15 +125,15 @@ export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; proc
       log(d.cuenta, 'Repetida (ya registrada)');
       continue;
     }
-    if (d.transferencia === 'ENVIADA' && (d.monto === 0 || isPartner(d.contraparte))) {
+    if (d.monto === 0 || (d.transferencia === 'ENVIADA' && isPartner(d.contraparte))) {
       // Sin importe en el aviso, o a tu pareja (puede ser el alquiler, que ya está en los compartidos): decide el usuario.
       const motivo = d.monto === 0 ? 'El aviso no dice el importe: poné cuánto fue' : 'Transferencia a tu pareja: ¿es un gasto nuevo o ya está en los compartidos?';
-      out.review.push({ id: uid(), fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo });
+      out.review.push({ id: uid(), fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo, clave: r.clave });
       pending.push({ d });
-      log(d.cuenta, d.monto === 0 ? 'Para revisar (transferencia sin importe)' : 'Para revisar (transferencia a tu pareja)');
+      log(d.cuenta, d.monto === 0 ? (d.transferencia ? 'Para revisar (transferencia sin importe)' : 'Para revisar (pago sin importe)') : 'Para revisar (transferencia a tu pareja)');
       continue;
     }
-    out.expenses.push(expenseFromDetected(d, ctx.nowIso, ctx.deviceId));
+    out.expenses.push(expenseFromDetected(d, ctx.nowIso, ctx.deviceId, r.clave));
     pending.push({ d });
     log(d.cuenta, `Gasto registrado: ${d.descripcion}`);
   }

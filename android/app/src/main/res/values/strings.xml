@@ -4,4 +4,7 @@
     <string name="title_activity_main">Brote</string>
     <string name="package_name">ar.finanzas.personales</string>
     <string name="custom_url_scheme">ar.finanzas.personales</string>
+    <string name="widget_brote_desc">Lo último que se anotó, lo que falta registrar y botones para anotar un gasto, un ingreso o un gasto compartido.</string>
+    <string name="widget_chico_desc">Tu plata hasta cobrar y un botón para anotar.</string>
+    <string name="widget_brote_nombre">Brote</string>
 </resources>

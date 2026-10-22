@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brote_bosque">#123C3A</color>
+    <color name="brote_lima">#A3E635</color>
+    <color name="brote_fondo">#0D1714</color>
+    <color name="brote_superficie">#192722</color>
+    <color name="brote_superficie2">#22342C</color>
+    <color name="brote_texto">#F1F7F0</color>
+    <color name="brote_texto2">#B2C3B7</color>
+    <color name="brote_borde">#34483C</color>
+    <color name="brote_borde_fuerte">#46604F</color>
+    <color name="brote_primario">#A3E635</color>
+    <color name="brote_primario_texto">#123C3A</color>
+    <color name="brote_aviso">#FCD34D</color>
+    <color name="brote_aviso_suave">#24FCD34D</color>
+    <color name="brote_ok">#86EFAC</color>
+    <color name="brote_ok_suave">#2486EFAC</color>
+    <color name="brote_seleccion">#2EA3E635</color>
+</resources>

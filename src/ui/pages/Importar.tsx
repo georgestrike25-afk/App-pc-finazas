@@ -1,5 +1,6 @@
 import { FileUp, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { onSharedFile, takeSharedFile } from '../../notifications/native';
 import { useApp } from '../store';
 import { extractFile } from '../../importers/extract';
 import { buildReview, commitReview, validateReview, verifyReview, type ImportReview, type ReviewAction, type ReviewItem } from '../../importers/review';
@@ -268,6 +269,18 @@ export function ImportarPage() {
       if (input.current) input.current.value = '';
     }
   };
+  // "Compartir → Importar en Brote" (Android): el archivo compartido se lee como si se hubiera elegido acá.
+  const idle = !busy && !review && !loan && !plan && !shared;
+  useEffect(() => {
+    if (!idle) return;
+    const next = () => {
+      const f = takeSharedFile();
+      if (f) void onFile(f);
+    };
+    next();
+    return onSharedFile(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idle]);
 
   const update = (key: string, p: Partial<ReviewItem>) => setReview((r) => (r ? { ...r, items: r.items.map((i) => (i.key === key ? { ...i, ...p } : i)) } : r));
   const issues = review ? validateReview(review) : [];

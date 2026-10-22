@@ -69,9 +69,43 @@ public class LectorNotificaciones extends NotificationListenerService {
             o.put("clave", sbn.getKey() + "|" + sbn.getPostTime());
             guardar(this, o);
             NotificacionesPlugin.avisar();
+            avisoDeBrote(sbn.getPackageName(), titulo, texto, sbn.getPostTime(), o.getString("clave"));
         } catch (Exception ignorada) {
             // Una notificación con un formato raro no debe detener la lectura.
         }
+    }
+
+    private static final long REPETIDA_MS = 10 * 60 * 1000;
+
+    /**
+     * Con la app cerrada, avisa al instante: "Se anotó…" si el aviso trae el monto, o "¿Cuánto fue?" si no.
+     * Solo si la lectura automática está activada en Brote. La app registra el gasto al abrirse.
+     */
+    private void avisoDeBrote(String paquete, CharSequence titulo, CharSequence texto, long fecha, String clave) {
+        android.content.SharedPreferences p = Brote.prefs(this);
+        if (!p.getBoolean("activo", false)) return;
+        // Al reconectarse el lector revisa las notificaciones que ya estaban: no se avisa dos veces.
+        String vistas = p.getString("avisadas", "");
+        if (vistas.contains("\n" + clave + "\n")) return;
+        String nuevas = vistas + "\n" + clave + "\n";
+        p.edit().putString("avisadas", nuevas.length() > 20000 ? nuevas.substring(nuevas.length() - 20000) : nuevas).apply();
+        Analisis.Resultado r = Analisis.analizar(paquete, titulo == null ? null : titulo.toString(), texto == null ? null : texto.toString());
+        if (r.tipo == Analisis.Tipo.NADA) return;
+        String pareja = p.getString("pareja", "");
+        String n = Analisis.normalizar((titulo == null ? "" : titulo) + " " + (texto == null ? "" : texto));
+        // Una transferencia a tu pareja puede ser el alquiler (ya cargado): la decide la app, sin aviso automático.
+        if (r.transferencia && pareja.length() >= 3 && n.contains(Analisis.normalizar(pareja))) return;
+        if (r.tipo == Analisis.Tipo.SIN_MONTO) {
+            Brote.agregarPendiente(this, clave);
+            Avisos.sinMonto(this, clave, r.descripcion, r.cuenta, fecha, r.transferencia);
+        } else {
+            // La misma compra avisada por dos apps (p. ej. Google Pay y el banco) se avisa una sola vez.
+            if (p.getLong("ultimoMonto", -1) == r.monto && Math.abs(fecha - p.getLong("ultimaFecha", 0)) <= REPETIDA_MS) return;
+            p.edit().putLong("ultimoMonto", r.monto).putLong("ultimaFecha", fecha).apply();
+            Brote.ultimo(this, "Se sumó: " + r.descripcion, r.cuenta + " · recién", r.monto);
+            Avisos.anotado(this, clave, r.monto, r.descripcion, r.cuenta, fecha, r.transferencia);
+        }
+        Brote.actualizarWidgets(this);
     }
 
     static void guardar(Context c, JSONObject o) throws Exception {

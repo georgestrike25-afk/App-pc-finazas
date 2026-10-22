@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost, Help } from './components/ui';
 import { applyTheme, watchSystemTheme } from './theme';
+import { syncWidget } from '../notifications/native';
 import { monthLabel } from '../domain/dates';
 import { Tour } from './components/Tour';
 import { getLock, verifyPin } from './lock';
@@ -155,6 +156,11 @@ function Shell() {
     applyTheme();
     return watchSystemTheme();
   }, []);
+  // El widget del celular muestra lo último anotado y la plata hasta cobrar: se actualiza con cada cambio.
+  useEffect(() => {
+    const t = setTimeout(() => void syncWidget(), 800);
+    return () => clearTimeout(t);
+  }, [ctx?.data]);
   const current = ROUTES.find((r) => r.path === route) ?? ROUTES[0];
   const Page = current.el;
   useEffect(() => {

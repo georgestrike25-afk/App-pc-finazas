@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono de la familia lucide (la misma que usa la app). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24" android:tint="@color/brote_texto">
+    <path android:pathData="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z" android:strokeColor="#FF000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M4.0,14.0h5.0a1.0,1.0 0 0 1 1.0,1.0v5.0a1.0,1.0 0 0 1 -1.0,1.0h-5.0a1.0,1.0 0 0 1 -1.0,-1.0v-5.0a1.0,1.0 0 0 1 1.0,-1.0z" android:strokeColor="#FF000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M14.0,17.5a3.5,3.5 0 1,0 7.0,0a3.5,3.5 0 1,0 -7.0,0" android:strokeColor="#FF000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+</vector>
