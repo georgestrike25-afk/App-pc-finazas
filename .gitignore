@@ -11,3 +11,4 @@ public/ocr/
 tests/local/
 desktop-build/
 design-preview/prototype/node_modules/
+release/*.apk

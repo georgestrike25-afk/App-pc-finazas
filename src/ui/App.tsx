@@ -29,7 +29,8 @@ function SyncBadge() {
   const [s, setS] = useState<SyncStatus>(getSyncStatus());
   useEffect(() => onSyncStatus(setS), []);
   if (s.state === 'inactivo') return null;
-  const label = s.state === 'ok' ? `⟳ ${new Date(s.at!).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : s.state === 'error' ? '⟳ Sin sincronizar' : '⟳ …';
+  // En el celular se ve solo el ícono (la hora queda en Copias y sincronización) para no apretar el título.
+  const label = s.state === 'ok' ? <>⟳<span className="sync-time"> {new Date(s.at!).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span></> : s.state === 'error' ? '⟳ Sin sincronizar' : '⟳ …';
   return <a href="#/copias" className={`badge ${s.state === 'error' ? 'badge-warn' : 'badge-ok'}`} title={s.message}>{label}</a>;
 }
 
