@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '../store';
 import { addMonths, formatDate, monthLabel, monthShort } from '../../domain/dates';
-import { debtByEntity, OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
+import { debtByEntity, entityGroup, expenseCardEntity, OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
 import { sum } from '../../domain/money';
 import { Badge, BarChart, Card, Empty, Money } from '../components/ui';
 
@@ -10,6 +10,19 @@ export function EntidadesPage() {
   const { data, today } = useApp();
   const debts = useMemo(() => debtByEntity(data.obligations, today, data), [data, today]);
   const total = sum(debts.map((d) => d.remaining));
+  // Tarjetas que usás (tienen resúmenes o consumos cargados) pero sin nada pendiente cargado.
+  const missing = useMemo(() => {
+    const known = new Set([...data.statements.filter((s) => !s.deleted).map((s) => entityGroup(s.entity)), ...data.expenses.filter((e) => !e.deleted).map(expenseCardEntity).filter((x): x is string => !!x).map(entityGroup)]);
+    return [...known].filter((g) => g !== 'Sin entidad' && !debts.some((d) => d.group === g)).sort();
+  }, [data.statements, data.expenses, debts]);
+  const missingCard = missing.length > 0 && (
+    <Card className="alert" title={`Sin deuda cargada: ${missing.join(', ')}`} help="La app solo sabe lo que le subiste. Si usaste la tarjeta después del último resumen, subí el video o las capturas de 'Tus consumos' de su app, o el resumen nuevo cuando llegue.">
+      <p className="small" style={{ marginTop: 0 }} data-testid="entidades-sin-datos">
+        De {missing.join(', ')} no hay nada pendiente cargado (el último resumen ya venció). Para ver cuánto le debés mes a mes, subí el <strong>video o las capturas de "Tus consumos"</strong> de su app, o el <strong>resumen nuevo</strong>.
+      </p>
+      <a className="btn primary" href="#/importar">Subir</a>
+    </Card>
+  );
   const last = debts.map((d) => d.lastMonth).filter(Boolean).sort().at(-1);
   const months = Array.from({ length: 12 }, (_, i) => addMonths(today, i));
   const colors = ['var(--c-debt)', 'var(--c-expense)', 'var(--c-accent)', 'var(--c-income)', 'var(--c-est)'];
@@ -20,6 +33,7 @@ export function EntidadesPage() {
   if (!debts.length)
     return (
       <div className="page">
+        {missingCard}
         <Card><Empty title="No hay deudas pendientes" action={<a className="btn primary" href="#/importar">Importar resumen, cronograma o plan de pagos</a>}>Cuando cargue préstamos, compras en cuotas o planes de pago, aquí verá cuánto le falta con cada entidad.</Empty></Card>
       </div>
     );
@@ -31,6 +45,7 @@ export function EntidadesPage() {
         <div className="kpi"><span>Este mes</span><Money value={sum(debts.map((d) => d.byMonth[today] ?? 0))} /></div>
         <div className="kpi"><span>Libre de deudas en</span><strong className="big">{last ? monthLabel(last) : '—'}</strong></div>
       </div>
+      {missingCard}
       <Card title="Cuotas por mes y entidad (próximos 12 meses)" help="Cuánto vas a pagar cada mes a cada entidad. Cuando una deuda termina, la barra baja: esa plata te queda libre.">
         <BarChart data={chart} ariaLabel="Cuotas por mes y entidad" />
       </Card>
