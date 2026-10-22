@@ -81,7 +81,7 @@ describe('gastos automáticos desde notificaciones', () => {
         raw('com.mercadopago.wallet', 'Ingresaste dinero', 'Ingresaste $ 20.000 a tu cuenta desde Banco Patagonia', 40),
         raw('com.tarjetanaranja.emisor', '¡Aprovechá!', 'Comprá con 20% de descuento, compra mínima $ 5.000', 50),
       ],
-      { expenses: [], processed, nowIso: '2026-10-22T16:00:00.000Z' },
+      { expenses: [], processed, nowIso: '2026-10-22T16:00:00.000Z', partnerName: 'Antonella' },
     );
     expect(r.expenses.map((e) => [e.concept, e.totalAmount, e.kind, e.paymentMethod, e.month])).toEqual([
       ['Kiosco El Sol', 150050, 'cotidiano', 'otro', '2026-10'],
@@ -96,5 +96,24 @@ describe('gastos automáticos desde notificaciones', () => {
     // Una segunda compra igual, horas después, sí se anota
     const later = decide([raw('com.mercadopago.wallet', 'Pagaste con tu QR', 'Pagaste $ 1.500,50 en Kiosco El Sol con tu dinero disponible.', 240)], { expenses: r.expenses, processed: new Set(), nowIso: '2026-10-22T20:00:00.000Z' });
     expect(later.expenses).toHaveLength(1);
+  });
+});
+
+describe('transferencias por notificación', () => {
+  const t0 = new Date('2026-10-22T12:38:00').getTime();
+  it('Ualá sin importe: queda para revisar con el destinatario; con importe a otra persona se anota', () => {
+    const r = decide(
+      [
+        { paquete: 'ar.com.bancar.uala', titulo: 'Realizaste una transferencia', texto: 'Victorino Bernardo Heredia recibió el dinero.', fecha: t0, clave: 'u1' },
+        { paquete: 'com.mercadopago.wallet', titulo: 'Transferencia enviada', texto: 'Le transferiste $ 15.000 a Carlos Prueba.', fecha: t0 + 60000, clave: 'm1' },
+        { paquete: 'com.mercadopago.wallet', titulo: 'Transferencia enviada', texto: 'Le transferiste $ 224.879 a Antonella Prueba.', fecha: t0 + 120000, clave: 'm2' },
+      ],
+      { expenses: [], processed: new Set(), nowIso: '2026-10-22T16:00:00.000Z', partnerName: 'Antonella' },
+    );
+    expect(r.review.map((x) => [x.descripcion, x.monto])).toEqual([
+      ['Transferencia a Victorino Bernardo Heredia', 0],
+      ['Transferencia a Antonella Prueba', 22487900],
+    ]);
+    expect(r.expenses.map((e) => [e.concept, e.totalAmount, e.category, e.kind, e.paymentMethod])).toEqual([['Transferencia a Carlos Prueba', 1500000, 'Transferencias', 'personal', 'transferencia']]);
   });
 });

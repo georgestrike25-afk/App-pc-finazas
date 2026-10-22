@@ -1,6 +1,6 @@
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { getDb } from '../db/db';
-import { addAudit, getDeviceId, notify, nowIso } from '../db/repo';
+import { addAudit, getDeviceId, getSettings, notify, nowIso } from '../db/repo';
 import { isNative } from '../platform';
 import { decide, type LogNotif, type RawNotification, type ReviewNotif } from './ingest';
 
@@ -41,7 +41,8 @@ export async function ingestNotifications(): Promise<number> {
     if (!items.length) return 0;
     const db = getDb();
     const processed = new Set(await meta<string[]>('notifKeys', []));
-    const r = decide(items, { expenses: await db.expenses.toArray(), processed, nowIso: nowIso(), deviceId: await getDeviceId(db) });
+    const settings = await getSettings(db);
+    const r = decide(items, { expenses: await db.expenses.toArray(), processed, nowIso: nowIso(), deviceId: await getDeviceId(db), partnerName: settings.partnerName });
     await db.transaction('rw', [db.expenses, db.meta, db.audit], async () => {
       for (const e of r.expenses) await db.expenses.put(e);
       if (r.review.length) await setNotifReview([...(await getNotifReview()), ...r.review].slice(-100));

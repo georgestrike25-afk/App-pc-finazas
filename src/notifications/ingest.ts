@@ -54,8 +54,9 @@ export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: str
     createdAt: nowIso,
     updatedAt: nowIso,
     deviceId,
-    kind: 'cotidiano',
-    category: sug.category,
+    // Las transferencias a otras personas no son del día a día (comida, transporte…): van como gasto personal.
+    kind: d.transferencia === 'ENVIADA' ? 'personal' : 'cotidiano',
+    category: d.transferencia === 'ENVIADA' ? 'Transferencias' : sug.category,
     concept: d.descripcion,
     date,
     month: monthOf(date),
@@ -64,7 +65,7 @@ export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: str
     paid: true,
     frequency: 'unica',
     // No se sabe si fue débito o crédito: "otro" deja que el resumen de la tarjeta lo reconozca después.
-    paymentMethod: 'otro',
+    paymentMethod: d.transferencia === 'ENVIADA' ? 'transferencia' : 'otro',
     source: 'importado',
     importedFrom: 'notificacion',
     notes: `Notificación de ${d.cuenta} · ${new Date(d.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`,
@@ -79,7 +80,9 @@ export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: str
  * - compras en cuotas → no se cargan (llegan con el resumen de la tarjeta);
  * - ingresos, movimientos entre tus cuentas, promociones y avisos sin monto → solo quedan en el registro.
  */
-export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; processed: Set<string>; nowIso: string; deviceId?: string; cotizacionDolar?: number }): IngestResult {
+export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; processed: Set<string>; nowIso: string; deviceId?: string; cotizacionDolar?: number; partnerName?: string }): IngestResult {
+  const partner = (ctx.partnerName ?? '').trim().split(/\s+/)[0]?.toLowerCase().normalize('NFD').replace(/\p{Mn}+/gu, '');
+  const isPartner = (who?: string) => !!who && !!partner && partner !== 'pareja' && who.toLowerCase().normalize('NFD').replace(/\p{Mn}+/gu, '').split(/\s+/).some((w) => w.length >= 3 && (w.startsWith(partner) || partner.startsWith(w)));
   const out: IngestResult = { expenses: [], review: [], log: [], keys: [] };
   const recent = ctx.expenses.filter((e) => !e.deleted && e.importedFrom === 'notificacion');
   const pending: Array<{ d: Detectado }> = [];
@@ -120,10 +123,12 @@ export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; proc
       log(d.cuenta, 'Repetida (ya registrada)');
       continue;
     }
-    if (d.transferencia === 'ENVIADA') {
-      out.review.push({ id: uid(), fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo: 'Transferencia enviada: ¿es un gasto?' });
+    if (d.transferencia === 'ENVIADA' && (d.monto === 0 || isPartner(d.contraparte))) {
+      // Sin importe en el aviso, o a tu pareja (puede ser el alquiler, que ya está en los compartidos): decide el usuario.
+      const motivo = d.monto === 0 ? 'El aviso no dice el importe: poné cuánto fue' : 'Transferencia a tu pareja: ¿es un gasto nuevo o ya está en los compartidos?';
+      out.review.push({ id: uid(), fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo });
       pending.push({ d });
-      log(d.cuenta, 'Para revisar (transferencia)');
+      log(d.cuenta, d.monto === 0 ? 'Para revisar (transferencia sin importe)' : 'Para revisar (transferencia a tu pareja)');
       continue;
     }
     out.expenses.push(expenseFromDetected(d, ctx.nowIso, ctx.deviceId));

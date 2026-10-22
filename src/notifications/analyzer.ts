@@ -110,7 +110,7 @@ export const propias = [
 ];
 const recibidas = ['te transfirio', 'te transfirieron', 'te envio', 'te enviaron', 'recibiste una transferencia', 'recibiste dinero', 'transferencia recibida', 'ingreso de dinero', 'ingreso dinero', 'te depositaron', 'recibiste $'];
 const ingresos = ['acreditamos', 'se acredito', 'acreditacion', 'recibiste un pago', 'cobraste', 'rendimiento', 'rendiste', 'devolucion', 'reintegro', 'cashback', 'te devolvimos'];
-const enviadas = ['transferiste', 'enviaste', 'transferencia enviada', 'transferencia realizada'];
+const enviadas = ['transferiste', 'enviaste', 'transferencia enviada', 'transferencia realizada', 'realizaste una transferencia', 'hiciste una transferencia'];
 const gastos = ['pagaste', 'compraste', 'compra ', 'compra de', 'consumo', 'pago ', 'pago de', 'debito', 'debitamos', 'abonaste', 'extrajiste', 'retiraste', 'realizaste un pago', 'usaste tu tarjeta', 'con tu tarjeta', 'cobro de'];
 
 const has = (n: string, list: string[]) => list.some((x) => n.includes(x));
@@ -141,7 +141,13 @@ function firstMatch(re: RegExp, texto: string): string | undefined {
   return undefined;
 }
 /** "Le transferiste $ 1.000 a Juan Pérez" → "Juan Pérez". */
-const destinatario = (t: string) => firstMatch(new RegExp(`\\sa\\s+${NOMBRE}(?=\\s+(?:por|desde|con|el|en)\\b|[.,!\\n]|$)`, 'g'), t);
+/** "Victorino Heredia recibió el dinero" (Ualá) → "Victorino Heredia". */
+const receptor = (t: string) => {
+  const m = t.match(new RegExp(`(?:^|[.!]\\s+)${NOMBRE}\\s+recibi[oó]\\s+(?:el\\s+dinero|tu\\s+transferencia|la\\s+transferencia)`, 'i'));
+  const v = m?.[1].trim().split(/[.!]\s+/).pop()?.trim();
+  return v && !generica(v) ? v : undefined;
+};
+const destinatario = (t: string) => receptor(t) ?? firstMatch(new RegExp(`\\sa\\s+${NOMBRE}(?=\\s+(?:por|desde|con|el|en)\\b|[.,!\\n]|$)`, 'g'), t);
 /** "Juan Pérez te transfirió $ 500" o "Recibiste $ 500 de Juan Pérez" → "Juan Pérez". */
 function remitente(t: string): string | undefined {
   const m = t.match(new RegExp(`${NOMBRE}\\s+te\\s+(?:transfiri|envi|deposit)`, 'i'));
@@ -169,7 +175,14 @@ export function analizar(paquete: string, titulo: string | null | undefined, tex
   }
   const m = original.match(montoRe)?.[1];
   const centavos = dolares !== undefined ? Math.round((dolares * cotizacionDolar) / 100) : m ? Math.abs(textoACentavos(m) ?? 0) : 0;
-  if (!centavos) return { ignorada: 'SIN_MONTO' };
+  if (!centavos) {
+    // Algunas apps (p. ej. Ualá) avisan la transferencia sin el importe: queda para que el usuario lo complete.
+    if (has(n, enviadas) && !has(n, fallidas)) {
+      const a = destinatario(original);
+      return { movimiento: { fecha: instante, monto: 0, tipo: 'GASTO', descripcion: a ? `Transferencia a ${a}` : 'Transferencia enviada', cuenta, contraparte: a, transferencia: 'ENVIADA', textoOriginal: original } };
+    }
+    return { ignorada: 'SIN_MONTO' };
+  }
   if (has(n, fallidas)) return { ignorada: 'OPERACION_FALLIDA' };
   const gpay = cuenta === CUENTAS.GOOGLE_PAY;
   let tipo: Tipo | null = null;

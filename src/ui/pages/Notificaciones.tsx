@@ -7,7 +7,8 @@ import { formatARS } from '../../domain/money';
 import { expenseFromDetected } from '../../notifications/ingest';
 import type { LogNotif, ReviewNotif } from '../../notifications/ingest';
 import { getNotifConfig, getNotifLog, getNotifReview, ingestNotifications, Notificaciones, setNotifConfig, setNotifReview } from '../../notifications/native';
-import { Card, Money } from '../components/ui';
+import { Card, Money, MoneyInput } from '../components/ui';
+import type { Cents } from '../../domain/money';
 
 /** Configuración: activar la lectura de notificaciones (solo en el celular). */
 export function NotificationsSettingsCard() {
@@ -79,6 +80,7 @@ export function NotificationsSettingsCard() {
 export function NotifReviewCard() {
   const { toast } = useApp();
   const [items, setItems] = useState<ReviewNotif[]>([]);
+  const [amounts, setAmounts] = useState<Record<string, Cents | undefined>>({});
   useEffect(() => {
     if (!isNative()) return;
     const load = () => getNotifReview().then(setItems);
@@ -95,11 +97,14 @@ export function NotifReviewCard() {
     setItems(next);
   };
   const asExpense = async (r: ReviewNotif) => {
+    const monto = r.monto || amounts[r.id];
+    if (!monto) return toast('Poné cuánto fue la transferencia.', 'error');
     const db = getDb();
-    await db.expenses.put(expenseFromDetected({ fecha: r.fecha, monto: r.monto, tipo: 'GASTO', descripcion: r.descripcion, cuenta: r.cuenta, textoOriginal: r.texto }, nowIso(), await getDeviceId(db)));
+    const transfer = /^Transferencia/.test(r.descripcion);
+    await db.expenses.put(expenseFromDetected({ fecha: r.fecha, monto, tipo: 'GASTO', descripcion: r.descripcion, cuenta: r.cuenta, textoOriginal: r.texto, transferencia: transfer ? 'ENVIADA' : undefined }, nowIso(), await getDeviceId(db)));
     await drop(r.id);
     notify();
-    toast(`Gasto anotado: ${r.descripcion} (${formatARS(r.monto)}).`);
+    toast(`Gasto anotado: ${r.descripcion} (${formatARS(monto)}).`);
   };
   return (
     <Card title={`Detectados para revisar (${items.length})`} help="Movimientos que la app vio en las notificaciones pero no sabe si son un gasto. Por ejemplo, una transferencia a Antonella por el alquiler ya está en los gastos compartidos: en ese caso tocá 'No es gasto'.">
@@ -108,8 +113,13 @@ export function NotifReviewCard() {
           <li key={r.id} className="exp-item">
             <div className="exp-top">
               <span className="exp-concept">{r.descripcion}</span>
-              <Money value={r.monto} className="exp-amount" />
+              {r.monto ? <Money value={r.monto} className="exp-amount" /> : <span className="exp-amount warn">¿Cuánto?</span>}
             </div>
+            {!r.monto && (
+              <div style={{ maxWidth: 220 }}>
+                <MoneyInput value={amounts[r.id]} onChange={(v) => setAmounts({ ...amounts, [r.id]: v })} placeholder="Importe" />
+              </div>
+            )}
             <div className="exp-sub">{new Date(r.fecha).toLocaleString('es-AR')} · {r.cuenta} · {r.motivo}</div>
             <div className="exp-foot">
               <span />
