@@ -72,6 +72,8 @@ export interface Expense extends BaseRecord {
   source: 'manual' | 'importado';
   /** Consumo del período abierto (visto en la app de la tarjeta): se confirma al subir el resumen. */
   provisional?: boolean;
+  /** Gasto traído del historial de otra app (Mis Finanzas). */
+  importedFrom?: 'mis-finanzas';
   notes?: string;
 }
 

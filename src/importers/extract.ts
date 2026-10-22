@@ -4,6 +4,8 @@ import { parseStatementText, type ParsedDocument, type SourceLine } from './stat
 import { parseAccountMovements } from './accountMovements';
 import { parseBankExtract } from './bankExtract';
 import { parseCardActivity } from './cardActivity';
+import { misFinanzasToParsed, readMisFinanzasJson, readMisFinanzasRows } from './misFinanzas';
+import type { ParsedDocument as PD } from './statementParser';
 import { decodeText, parseCsv, parseSpreadsheet, rowsToLines } from './tabular';
 import { validateFile, type ValidatedFile } from './fileValidation';
 
@@ -33,6 +35,7 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
   const notes: string[] = [];
   let lines: SourceLine[] = [];
   let ocrUsed = false;
+  let history: PD | null = null;
   const p = opts.onProgress ?? (() => {});
 
   if (validated.kind === 'pdf') {
@@ -79,15 +82,25 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     lines = await ocrImages(frames, (x) => p(`Leyendo ${frames.length} pantalla(s) del video: ${x.status}`, x.progress));
     ocrUsed = true;
     notes.push(`Se leyeron ${frames.length} pantalla(s) del video.`);
+  } else if (validated.ext === 'json') {
+    const movs = readMisFinanzasJson(decodeText(bytes));
+    if (!movs) throw new Error('El archivo JSON no es una copia de Mis Finanzas. (Las copias de esta app se restauran en Más → Copias.)');
+    history = misFinanzasToParsed(movs);
   } else if (validated.kind === 'csv') {
     p('Leyendo CSV…');
-    const r = rowsToLines(parseCsv(decodeText(bytes)));
+    const rows = parseCsv(decodeText(bytes));
+    const mf = readMisFinanzasRows(rows);
+    if (mf) history = misFinanzasToParsed(mf);
+    const r = rowsToLines(rows);
     lines = r.lines;
     if (!r.mapped) notes.push('No se identificaron las columnas; se interpretó cada fila como texto.');
   } else {
     p('Leyendo planilla…');
     try {
-      const r = rowsToLines(await parseSpreadsheet(bytes));
+      const rows = await parseSpreadsheet(bytes);
+      const mf = readMisFinanzasRows(rows);
+      if (mf) history = misFinanzasToParsed(mf);
+      const r = rowsToLines(rows);
       lines = r.lines;
       if (!r.mapped) notes.push('No se identificaron las columnas; se interpretó cada fila como texto.');
     } catch {
@@ -95,7 +108,7 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     }
   }
   // Primero se prueba el formato de movimientos de cuenta (capturas de home banking).
-  const parsed = parseCardActivity(lines) ?? parseBankExtract(lines) ?? parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
+  const parsed = history ?? parseCardActivity(lines) ?? parseBankExtract(lines) ?? parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
   parsed.warnings.unshift(...notes);
   return { validated, hash, lines, parsed, ocrUsed, notes };
 }

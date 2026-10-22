@@ -29,6 +29,7 @@ const EXT_KIND: Record<string, FileKind> = {
   txt: 'csv',
   xls: 'excel',
   xlsx: 'excel',
+  json: 'csv',
   mp4: 'video',
   m4v: 'video',
   mov: 'video',

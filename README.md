@@ -267,6 +267,8 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Video o capturas de "Tus consumos"** (app de la tarjeta, p. ej. Naranja X; probado con una grabación real que no se guarda en el repositorio): se puede subir la **grabación de pantalla (MP4)** tal cual. En el dispositivo se toman los cuadros donde la pantalla está quieta, se leen con OCR y se arman los consumos del período que todavía no cerró, sin repetir los que aparecen en varios cuadros. Se verifica que la suma coincida con "*Mes* hasta ahora". Se cargan como **provisorios** en el mes en que se pagan (las compras en cuotas, como deuda); cuando se sube el resumen, cada consumo se **confirma** con su línea en lugar de duplicarse, y si alguno no aparece (p. ej. un Plan Z pasado a cuotas) se avisa. El video no se guarda.
 
+**Historial de Mis Finanzas** (la app de gastos diarios por notificaciones): se sube la copia `mis_finanzas_AAAA-MM-DD.json` o la exportación CSV/Excel (*Fecha;Tipo;Categoría;Descripción;Cuenta;Monto*). Cada gasto va al mes de su fecha como gasto del día a día; los que ya están cargados por cualquier vía (resúmenes, extractos, a mano) quedan desmarcados; los movimientos entre cuentas propias, los ingresos y las cuotas no se cargan por defecto. Si un gasto se pagó con tarjeta, el resumen lo reconoce después en lugar de duplicarlo. Volver a subir una copia más nueva solo agrega lo que falta.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites

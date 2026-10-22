@@ -61,6 +61,8 @@ export interface ParsedItem {
   warnings: string[];
   sourceLine: string;
   page?: number;
+  /** Historial de otra app: cuenta o billetera del movimiento (Efectivo, Mercado Pago…). */
+  account?: string;
 }
 
 export interface UpcomingInstallments {
@@ -71,7 +73,7 @@ export interface UpcomingInstallments {
 
 export interface ParsedDocument {
   /** resumen: resumen de tarjeta · cuenta: movimientos de cuenta bancaria · consumos: consumos del período abierto (app de la tarjeta). */
-  docType?: 'resumen' | 'cuenta' | 'consumos';
+  docType?: 'resumen' | 'cuenta' | 'consumos' | 'historial';
   entity: Field<string>;
   currency: 'ARS' | 'USD' | 'mixta';
   decimalFormat: DecimalFormat;

@@ -56,6 +56,7 @@ export interface ReviewItem {
   duplicate?: DuplicateInfo;
   sourceLine: string;
   obligationType: ObligationType;
+  account?: string;
 }
 
 export interface ReviewSummary {
@@ -135,7 +136,9 @@ export async function buildReview(
   const month = parsed.month ?? today;
   const fps = new Set((await db.fingerprints.toArray()).filter((f) => !f.deleted && (!f.provisional || parsed.docType === 'consumos')).map((f) => f.fingerprint));
   // Gastos con los que puede coincidir una línea: los anotados a mano y los consumos provisorios (vistos antes en la app de la tarjeta).
-  const expenses = (await db.expenses.toArray()).filter((e) => !e.deleted && (e.source === 'manual' || e.provisional));
+  const allExpenses = (await db.expenses.toArray()).filter((e) => !e.deleted);
+  const expenses = allExpenses.filter((e) => e.source === 'manual' || e.provisional || e.importedFrom === 'mis-finanzas');
+  const isHistory = parsed.docType === 'historial';
   const obligations = (await db.obligations.toArray()).filter((o) => !o.deleted);
   const sancor = (await db.sancor.toArray()).filter((s) => !s.deleted);
   const statements = (await db.statements.toArray()).filter((s) => !s.deleted);
@@ -163,15 +166,24 @@ export async function buildReview(
     let include = action !== 'ignorar';
     let duplicate: DuplicateInfo | undefined;
     // En movimientos de cuenta cada línea va al mes de su fecha.
-    const itemMonth = isAccount && p.date ? monthOf(p.date) : month;
+    const itemMonth = (isAccount || isHistory) && p.date ? monthOf(p.date) : month;
 
     if (fps.has(fingerprint)) {
       duplicate = { type: 'linea', label: 'Esta línea ya fue importada anteriormente.' };
       include = false;
       action = 'ignorar';
+    } else if (isHistory && action === 'gasto' && p.amount !== undefined && p.date) {
+      // Historial de otra app: si ya está cargado por cualquier vía (resumen, extracto, a mano), no se repite.
+      const m = allExpenses.find((e) => !usedManual.has(e.id) && Math.abs(e.totalAmount) === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 3);
+      if (m) {
+        usedManual.add(m.id);
+        duplicate = { type: 'linea', label: `Ya está cargado: "${m.concept}" del ${m.date.split('-').reverse().join('/')}.` };
+        action = 'ignorar';
+        include = false;
+      }
     } else if (action === 'gasto' && p.amount !== undefined && p.date) {
       const m = expenses.find(
-        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && (!(e.linkedLineFingerprints?.length) || e.provisional) && (e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
+        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && (!(e.linkedLineFingerprints?.length) || e.provisional || e.importedFrom === 'mis-finanzas') && (e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
       );
       if (m) {
         usedManual.add(m.id);
@@ -221,6 +233,8 @@ export async function buildReview(
       } else {
         warnings.push('Pago de tarjeta: no es un gasto (cancela consumos del resumen). No se encontró un resumen cargado con ese total.');
       }
+    } else if (isHistory && action === 'ingreso') {
+      include = false;
     } else if (!duplicate && action === 'ingreso' && p.amount !== undefined) {
       const inc = incomes.find((x) => x.month === itemMonth && x.status === 'confirmado' && (x.amountReceived === p.amount || x.extras.some((e) => e.amount === p.amount)));
       if (inc) {
@@ -266,6 +280,7 @@ export async function buildReview(
       duplicate,
       sourceLine: p.sourceLine,
       obligationType: guessObligationType(p.concept),
+      account: p.account,
     });
   }
   const warnings = [...parsed.warnings];
@@ -298,7 +313,7 @@ export async function buildReview(
       docType: parsed.docType,
       currency: parsed.currency,
       // Los consumos del período abierto todavía no son un resumen: no se registra uno.
-      registerStatement: !isAccount && parsed.docType !== 'consumos' && (parsed.total.value !== undefined || !!parsed.dueDate.value),
+      registerStatement: !isAccount && !isHistory && parsed.docType !== 'consumos' && (parsed.total.value !== undefined || !!parsed.dueDate.value),
     },
     items,
     warnings,
@@ -401,14 +416,16 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           totalAmount: it.amount,
           userPct: it.expenseKind === 'hogar' ? it.userPct : 100,
           // En una cuenta el dinero ya salió (débito); en una tarjeta queda pendiente hasta pagar el resumen.
-          paid: s.docType === 'cuenta',
+          paid: s.docType === 'cuenta' || s.docType === 'historial',
           frequency: 'unica',
-          paymentMethod: s.docType === 'cuenta' ? 'debito' : 'tarjeta',
+          // Mis Finanzas no distingue débito de crédito: "otro" deja que un resumen posterior lo reconozca.
+          paymentMethod: s.docType === 'cuenta' ? 'debito' : s.docType === 'historial' ? (/efectivo/i.test(it.account ?? '') ? 'efectivo' : 'otro') : 'tarjeta',
+          ...(s.docType === 'historial' ? { importedFrom: 'mis-finanzas' as const } : {}),
           documentId,
           linkedLineFingerprints: [it.fingerprint],
           source: 'importado',
           ...(s.docType === 'consumos' ? { provisional: true } : {}),
-          notes: s.docType === 'consumos' ? `Consumo de ${s.entity || 'la tarjeta'} visto en su app (provisorio hasta el resumen)` : s.entity ? `Importado de ${s.entity}` : undefined,
+          notes: s.docType === 'historial' ? `De Mis Finanzas${it.account ? ` (${it.account})` : ''}` : s.docType === 'consumos' ? `Consumo de ${s.entity || 'la tarjeta'} visto en su app (provisorio hasta el resumen)` : s.entity ? `Importado de ${s.entity}` : undefined,
         };
         await db.expenses.put(e);
         await fp(it, 'gasto', e.id);
@@ -503,7 +520,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         if (it.duplicate.type === 'gasto_manual') {
           const e = await db.expenses.get(id);
           // Un consumo provisorio pasa a ser el del resumen (con su mes de pago).
-          const confirm = e?.provisional && s.docType !== 'consumos' ? { provisional: false, month: it.month } : {};
+          const confirm = (e?.provisional || e?.importedFrom === 'mis-finanzas') && s.docType !== 'consumos' && s.docType !== 'historial' ? { provisional: false, month: it.month } : {};
           if (e) await db.expenses.put({ ...e, ...confirm, linkedLineFingerprints: [...(e.linkedLineFingerprints ?? []), it.fingerprint], documentId: e.documentId ?? documentId, updatedAt: now, deviceId });
           await fp(it, 'gasto', id);
         } else if (it.duplicate.type === 'obligacion') {
