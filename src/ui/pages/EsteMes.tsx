@@ -13,6 +13,8 @@ import { Card, confirmDialog, Help, Money, MonthNav, Progress } from '../compone
 import { startTour } from '../components/Tour';
 import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 import type { Obligation } from '../../domain/types';
+import { NotifReviewCard } from './Notificaciones';
+import { CashCard } from './CashCard';
 
 function Pendientes({ items }: { items: CheckItem[] }) {
   const { data, toast } = useApp();
@@ -89,12 +91,14 @@ export function EsteMesPage() {
           </ol>
           <p className="muted small">Todo se guarda solo en este dispositivo. ¿Dudas? Mirá <a href="#/ayuda">Cómo usar</a> o <button type="button" className="linklike" onClick={startTour}>la guía paso a paso</button>.</p>
         </Card>
+        <CashCard />
       </div>
     );
 
   return (
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
+      {isCurrent && <CashCard />}
       <Card className="hero">
         <span className="hero-label inline-help">
           {isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`}
@@ -131,6 +135,7 @@ export function EsteMesPage() {
       </Card>
 
       {isCurrent && <Pendientes items={checklist} />}
+      {isCurrent && <NotifReviewCard />}
 
       <div className="grid2">
         <a className="card link-card" href="#/entidades">

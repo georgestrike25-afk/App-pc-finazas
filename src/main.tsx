@@ -5,6 +5,7 @@ import { ensureInitialized } from './db/repo';
 import { registerPwa } from './ui/pwa';
 import { startAutoSync } from './sync/autoSync';
 import './ui/styles.css';
+import { startNotificationIngest } from './notifications/native';
 
 // Los errores no controlados se muestran sin exponer datos financieros en la consola.
 window.addEventListener('unhandledrejection', (e) => {
@@ -32,5 +33,6 @@ async function start() {
   );
   registerPwa();
   startAutoSync();
+  startNotificationIngest();
 }
 start();

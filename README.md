@@ -269,6 +269,10 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Historial de Mis Finanzas** (la app de gastos diarios por notificaciones): se sube la copia `mis_finanzas_AAAA-MM-DD.json` o la exportación CSV/Excel (*Fecha;Tipo;Categoría;Descripción;Cuenta;Monto*). Cada gasto va al mes de su fecha como gasto del día a día; los que ya están cargados por cualquier vía (resúmenes, extractos, a mano) quedan desmarcados; los movimientos entre cuentas propias, los ingresos y las cuotas no se cargan por defecto. Si un gasto se pagó con tarjeta, el resumen lo reconoce después en lugar de duplicarlo. Volver a subir una copia más nueva solo agrega lo que falta.
 
+**Gastos automáticos por notificaciones (APK)**: como hacía la app *Mis Finanzas*, el APK puede leer las notificaciones de Ualá, Mercado Pago, Naranja X, Banco Patagonia, BNA+ y Google Pay (*Más → Configuración → Gastos automáticos*: dar permiso y activar). Las compras y pagos se anotan solos como gastos del día a día (una sola vez aunque avisen dos apps); las transferencias enviadas quedan *para revisar*; ingresos, movimientos entre cuentas propias, compras en cuotas (llegan con el resumen), promociones y avisos sin importe no se cargan. Si una compra fue con tarjeta de crédito, el resumen la reconoce después en vez de duplicarla. Solo se leen esas apps y nada sale del teléfono.
+
+**Plata hasta cobrar** (*Este mes*): se anota cuánta plata hay hoy y, opcionalmente, hasta qué día tiene que alcanzar. Desde ese momento se descuentan los gastos que se anotan o detectan (efectivo, débito, transferencias, billeteras, tu parte de los compartidos) y los pagos de resumen; las compras con tarjeta de crédito no, porque se pagan con el resumen. Muestra cuánto queda y cuánto se puede gastar por día. *Corregir* vuelve a fijar el monto.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites

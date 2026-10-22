@@ -137,7 +137,7 @@ export async function buildReview(
   const fps = new Set((await db.fingerprints.toArray()).filter((f) => !f.deleted && (!f.provisional || parsed.docType === 'consumos')).map((f) => f.fingerprint));
   // Gastos con los que puede coincidir una línea: los anotados a mano y los consumos provisorios (vistos antes en la app de la tarjeta).
   const allExpenses = (await db.expenses.toArray()).filter((e) => !e.deleted);
-  const expenses = allExpenses.filter((e) => e.source === 'manual' || e.provisional || e.importedFrom === 'mis-finanzas');
+  const expenses = allExpenses.filter((e) => e.source === 'manual' || e.provisional || !!e.importedFrom);
   const isHistory = parsed.docType === 'historial';
   const obligations = (await db.obligations.toArray()).filter((o) => !o.deleted);
   const sancor = (await db.sancor.toArray()).filter((s) => !s.deleted);
@@ -183,7 +183,7 @@ export async function buildReview(
       }
     } else if (action === 'gasto' && p.amount !== undefined && p.date) {
       const m = expenses.find(
-        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && (!(e.linkedLineFingerprints?.length) || e.provisional || e.importedFrom === 'mis-finanzas') && (e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
+        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && (!(e.linkedLineFingerprints?.length) || e.provisional || !!e.importedFrom) && (e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
       );
       if (m) {
         usedManual.add(m.id);
@@ -520,7 +520,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         if (it.duplicate.type === 'gasto_manual') {
           const e = await db.expenses.get(id);
           // Un consumo provisorio pasa a ser el del resumen (con su mes de pago).
-          const confirm = (e?.provisional || e?.importedFrom === 'mis-finanzas') && s.docType !== 'consumos' && s.docType !== 'historial' ? { provisional: false, month: it.month } : {};
+          const confirm = (e?.provisional || !!e?.importedFrom) && s.docType !== 'consumos' && s.docType !== 'historial' ? { provisional: false, month: it.month } : {};
           if (e) await db.expenses.put({ ...e, ...confirm, linkedLineFingerprints: [...(e.linkedLineFingerprints ?? []), it.fingerprint], documentId: e.documentId ?? documentId, updatedAt: now, deviceId });
           await fp(it, 'gasto', id);
         } else if (it.duplicate.type === 'obligacion') {

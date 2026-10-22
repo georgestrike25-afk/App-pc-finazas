@@ -7,6 +7,7 @@ import { sum } from '../../domain/money';
 import type { Expense, ExpenseKind } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Money, MonthNav, useNarrow } from '../components/ui';
 import { ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
+import { NotifReviewCard } from './Notificaciones';
 
 export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; emptyText: string }) {
   const { data, month } = useApp();
@@ -124,6 +125,7 @@ export function GastosPage() {
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   return (
     <div className="page">
+      <NotifReviewCard />
       <MonthNav month={month} setMonth={setMonth} />
       <div className="page-actions">
         <button className="btn primary" data-tour="anotar-gasto" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>

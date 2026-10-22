@@ -5,6 +5,7 @@ import type { Settings } from '../../domain/types';
 import { clearLock, getLock, setLock } from '../lock';
 import { prefetchOcrAssets } from '../../importers/ocr';
 import { Card, confirmDialog, Field, MoneyInput } from '../components/ui';
+import { NotificationsSettingsCard } from './Notificaciones';
 
 export function ConfiguracionPage() {
   const { data, toast } = useApp();
@@ -31,6 +32,7 @@ export function ConfiguracionPage() {
   };
   return (
     <div className="page">
+      <NotificationsSettingsCard />
       <Card title="Preferencias">
         <div className="form-grid">
           <Field label="Nombre de la pareja (para los repartos)">{(id) => <input id={id} value={s.partnerName} onChange={(e) => setS({ ...s, partnerName: e.target.value })} />}</Field>

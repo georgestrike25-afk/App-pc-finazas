@@ -47,7 +47,7 @@ describe('historial de Mis Finanzas', () => {
     expect(inc).toEqual(['Café del centro', 'Verdulería']);
     expect(rv.items.find((i) => i.concept === 'Farmacia prueba')?.duplicate?.label).toMatch(/Ya está cargado/);
     await commitReview(rv, null, db);
-    const mf = (await db.expenses.toArray()).filter((e) => e.importedFrom === 'mis-finanzas');
+    const mf = (await db.expenses.toArray()).filter((e) => e.importedFrom === 'mis-finanzas').sort((a, b) => a.date.localeCompare(b.date));
     expect(mf.map((e) => [e.concept, e.paymentMethod, e.paid, e.kind])).toEqual([
       ['Café del centro', 'otro', true, 'cotidiano'],
       ['Verdulería', 'efectivo', true, 'cotidiano'],

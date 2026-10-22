@@ -73,7 +73,7 @@ export interface Expense extends BaseRecord {
   /** Consumo del período abierto (visto en la app de la tarjeta): se confirma al subir el resumen. */
   provisional?: boolean;
   /** Gasto traído del historial de otra app (Mis Finanzas). */
-  importedFrom?: 'mis-finanzas';
+  importedFrom?: 'mis-finanzas' | 'notificacion';
   notes?: string;
 }
 
@@ -256,6 +256,8 @@ export interface Settings extends BaseRecord {
   partnerName: string;
   storeDocumentBlobs: boolean;
   categories: string[];
+  /** "Plata hasta cobrar": lo que el usuario dijo que tenía, cuándo, y hasta qué día le tiene que alcanzar. */
+  cash?: { amount: Cents; setAt: string; until?: string };
 }
 
 export const SYNC_TABLES = [

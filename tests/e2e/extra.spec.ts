@@ -298,3 +298,31 @@ test('planilla de gastos compartidos (CSV de Google Sheets): elegir quién sos y
   await expect(page.getByRole('button', { name: 'Incorporar gastos' })).toBeDisabled();
   await expect(page.locator('.content')).toContainText('Ya cargado');
 });
+
+test('plata hasta cobrar: se descuenta lo que gastás', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-22T12:00:00'));
+  await go(page, 'inicio');
+  const card = page.locator('.cash-card');
+  await card.getByLabel('¿Cuánta plata tenés hoy?').fill('100.000');
+  await card.getByLabel(/Hasta cuándo/).fill('2026-10-31');
+  await card.getByRole('button', { name: 'Guardar' }).click();
+  await expect(card).toContainText('100.000,00');
+  await expect(card).toContainText('10 días');
+  await expect(card).toContainText('10.000,00 por día');
+  await page.clock.setFixedTime(new Date('2026-10-22T12:05:00'));
+  await go(page, 'gastos');
+  await page.getByRole('button', { name: '+ Anotar gasto' }).click();
+  await page.getByLabel('Cuánto').fill('25.000');
+  await page.getByLabel('En qué').fill('Súper');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await go(page, 'inicio');
+  await expect(card).toContainText('75.000,00');
+  await expect(card).toContainText('7.500,00 por día');
+  await card.getByRole('button', { name: /Gastaste/ }).click();
+  await expect(card.getByTestId('cash-items')).toContainText('Súper');
+  // Corregir
+  await card.getByRole('button', { name: 'Corregir' }).click();
+  await card.getByLabel('¿Cuánta plata tenés hoy?').fill('80.000');
+  await card.getByRole('button', { name: 'Guardar' }).click();
+  await expect(card).toContainText('80.000,00');
+});
