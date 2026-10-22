@@ -156,11 +156,19 @@ function ImportSummary({ review }: { review: ImportReview }) {
 function VerificationCard({ review }: { review: ImportReview }) {
   const v = verifyReview(review);
   const ac = review.summary.accountCheck;
-  if (!v.balance && !v.upcoming.length && !ac) return null;
+  const act = review.summary.activityCheck;
+  if (!v.balance && !v.upcoming.length && !ac && !act) return null;
   const okD = ac?.debits === undefined || Math.abs(ac.debits - ac.parsedDebits) <= 1;
   const okC = ac?.credits === undefined || Math.abs(ac.credits - ac.parsedCredits) <= 1;
   return (
     <Card title="Verificación de la lectura" help="La app hace la cuenta con lo que leyó y la compara con el total que dice el documento. Si aparece ✓ coincide, está todo bien leído. Si dice ⚠ no coincide, revisá las líneas marcadas antes de confirmar.">
+      {act && (
+        <p className={Math.floor(act.parsed / 100) === act.declaredWhole ? 'ok-text' : 'warn'} data-testid="verif-consumos">
+          {Math.floor(act.parsed / 100) === act.declaredWhole ? '✓ ' : '⚠ '}
+          Suma de los consumos leídos <Money value={act.parsed} /> · "{act.label}" en la app <Money value={act.declaredWhole * 100} />
+          {Math.floor(act.parsed / 100) === act.declaredWhole ? ' — coincide: no falta ningún consumo.' : ' — no coincide: puede faltar un consumo.'}
+        </p>
+      )}
       {ac && (ac.debits !== undefined || ac.credits !== undefined) && (
         <p className={okD && okC ? 'ok-text' : 'warn'} data-testid="verif-cuenta">
           {okD && okC ? '✓ ' : '⚠ '}
@@ -265,7 +273,8 @@ export function ImportarPage() {
   const commit = async () => {
     if (!review) return;
     try {
-      const res = await commitReview(review, file, undefined, { markPreviousPaid: markPrev });
+      // Los videos no se guardan (son pesados): solo quedan los datos leídos.
+      const res = await commitReview(review, review.file.kind === 'video' ? null : file, undefined, { markPreviousPaid: markPrev });
       const c = res.created;
       toast(`Importación completa: ${c.gastos} gasto(s), ${c.cuotas} obligación(es), ${c.pagos} pago(s), ${c.sancor} Sancor, ${c.ingresos} ingreso(s), ${c.vinculados} vinculado(s).`);
       setReview(null);
@@ -318,12 +327,12 @@ export function ImportarPage() {
       {plan && <PlanReviewView review={plan} setReview={setPlan} error={error} onCancel={() => { setPlan(null); setFile(null); }} onConfirm={commitPlan} />}
       {shared && <SharedReviewView review={shared} setReview={setShared} error={error} onCancel={() => { setShared(null); setFile(null); }} onConfirm={commitShared} />}
       {!review && !loan && !plan && !shared && (
-        <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>.</li><li><strong>Planilla de gastos compartidos</strong> con tu pareja (PDF o Excel de Google Sheets): una fila por mes y una columna por persona.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
-          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas de pantalla, CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta, planillas de gastos compartidos y otros.</p>
+        <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>.</li><li><strong>Video o capturas de "Tus consumos"</strong> de la app de la tarjeta (Naranja X…): carga los consumos del mes que todavía no cerró.</li><li><strong>Planilla de gastos compartidos</strong> con tu pareja (PDF o Excel de Google Sheets): una fila por mes y una columna por persona.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
+          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas y grabaciones de pantalla (MP4), CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta, planillas de gastos compartidos y otros.</p>
           <p className="muted small">🔒 El documento se procesa en este dispositivo. Nunca se envía a servicios externos. Su contenido se trata solo como datos.</p>
           <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Usar OCR local para imágenes y PDF escaneados (requiere ~10 MB de recursos, se descargan de esta misma app la primera vez)</label>
           <div className="drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}>
-            <input ref={input} id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.txt,.xls,.xlsx" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} disabled={!!busy} />
+            <input ref={input} id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.txt,.xls,.xlsx,.mp4,.m4v,.mov,.webm,video/*" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} disabled={!!busy} />
             <label htmlFor="file" className="btn primary">Elegir archivo</label>
             <span className="muted">o arrástrelo aquí</span>
           </div>
@@ -349,12 +358,16 @@ export function ImportarPage() {
             <div className="form-grid">
               <Field label="Entidad">{(id) => <input id={id} value={review.summary.entity} onChange={(e) => setReview({ ...review, summary: { ...review.summary, entity: e.target.value } })} placeholder="No detectada" />}</Field>
               <Field label="Fecha de cierre">{(id) => <input id={id} type="date" value={review.summary.closingDate ?? ''} onChange={(e) => setReview({ ...review, summary: { ...review.summary, closingDate: e.target.value || undefined } })} />}</Field>
-              <Field label="Fecha de vencimiento">{(id) => <input id={id} type="date" value={review.summary.dueDate ?? ''} onChange={(e) => setReview({ ...review, summary: { ...review.summary, dueDate: e.target.value || undefined } })} />}</Field>
+              {review.summary.docType !== 'consumos' && <Field label="Fecha de vencimiento">{(id) => <input id={id} type="date" value={review.summary.dueDate ?? ''} onChange={(e) => setReview({ ...review, summary: { ...review.summary, dueDate: e.target.value || undefined } })} />}</Field>}
               <Field label="Mes del resumen" help="El mes en que vence y se paga este resumen. Ahí se cuentan sus compras y cuotas.">{(id) => <MonthSelect id={id} value={review.summary.month ?? ''} onChange={(m) => setReview({ ...review, summary: { ...review.summary, month: m }, items: review.items.map((i) => ({ ...i, month: m })) })} />}</Field>
+              {review.summary.docType !== 'consumos' && (
+                <>
               <Field label="Total a pagar (informativo)" help="El total que dice el resumen. Sirve para comprobar la lectura y para saber cuánto pagar; no se suma como una deuda nueva porque ya está formado por las compras y cuotas de abajo." hint="No se registra como deuda nueva.">{(id) => <MoneyInput id={id} value={review.summary.total} onChange={(v) => setReview({ ...review, summary: { ...review.summary, total: v } })} />}</Field>
               <Field label="Pago mínimo">{(id) => <MoneyInput id={id} value={review.summary.minimumPayment} onChange={(v) => setReview({ ...review, summary: { ...review.summary, minimumPayment: v } })} />}</Field>
+                </>
+              )}
             </div>
-            <label className="check"><input type="checkbox" checked={review.summary.registerStatement} onChange={(e) => setReview({ ...review, summary: { ...review.summary, registerStatement: e.target.checked } })} /> Registrar los datos del resumen (total, mínimo, vencimiento)</label>
+            {review.summary.docType !== 'consumos' && (<label className="check"><input type="checkbox" checked={review.summary.registerStatement} onChange={(e) => setReview({ ...review, summary: { ...review.summary, registerStatement: e.target.checked } })} /> Registrar los datos del resumen (total, mínimo, vencimiento)</label>)}
             {review.items.some((i) => i.duplicate?.type === 'obligacion') && (
               <label className="check"><input type="checkbox" checked={markPrev} onChange={(e) => setMarkPrev(e.target.checked)} /> Considerar pagadas las cuotas anteriores a las que figuran en este resumen</label>
             )}

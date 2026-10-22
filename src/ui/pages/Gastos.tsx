@@ -40,7 +40,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                   </div>
                   <div className="exp-foot">
                     <span className="exp-badges">
-                      {o.paid ? <Badge tone="ok">Pagado</Badge> : e.paymentMethod === 'tarjeta' ? <Badge tone="neutral">{e.source === 'importado' ? 'Del resumen de la tarjeta' : 'Llega con el resumen'}</Badge> : <Badge tone="warn">Pendiente</Badge>}
+                      {o.paid ? <Badge tone="ok">Pagado</Badge> : e.paymentMethod === 'tarjeta' ? <Badge tone={e.provisional ? 'info' : 'neutral'}>{e.provisional ? 'Provisorio: se confirma con el resumen' : e.source === 'importado' ? 'Del resumen de la tarjeta' : 'Llega con el resumen'}</Badge> : <Badge tone="warn">Pendiente</Badge>}
                       {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
                       {o.estimated && <Badge tone="est">estimado</Badge>}
                     </span>
@@ -78,7 +78,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                     <td>
                       {o.concept}
                       {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
-                      {e.source === 'importado' && <Badge tone="neutral">importado</Badge>}
+                      {e.source === 'importado' && <Badge tone="neutral">{e.provisional ? 'provisorio' : 'importado'}</Badge>}
                       {!!e.linkedLineFingerprints?.length && e.source === 'manual' && <Badge tone="ok">vinculado a resumen</Badge>}
                       {!shared && <small className="muted d-block">{KIND_LABEL[o.kind].split(' (')[0]}</small>}
                     </td>

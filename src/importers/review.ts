@@ -2,7 +2,7 @@ import { getDb, type FinanzasDB } from '../db/db';
 import { applyStatementPayment } from '../db/cardPayments';
 import { addAudit, getDeviceId, getSettings, notify, nowIso } from '../db/repo';
 import { currentMonth, daysBetween, monthOf, type MonthKey } from '../domain/dates';
-import { applyStatementInstallment, findLoanInstallment, findMatchingObligation, impliedStartMonth, markPaidThrough, obligationFingerprintKey } from '../domain/obligations';
+import { applyStatementInstallment, entityGroup, findLoanInstallment, findMatchingObligation, impliedStartMonth, markPaidThrough, obligationFingerprintKey } from '../domain/obligations';
 import { monthLabel } from '../domain/dates';
 import { formatARS } from '../domain/money';
 import { incomeNet } from '../domain/income';
@@ -71,6 +71,7 @@ export interface ReviewSummary {
   nextDueDate?: string;
   upcoming: UpcomingInstallments[];
   accountCheck?: ParsedDocument['accountCheck'];
+  activityCheck?: ParsedDocument['activityCheck'];
   docType?: ParsedDocument['docType'];
   currency: ParsedDocument['currency'];
   registerStatement: boolean;
@@ -132,8 +133,9 @@ export async function buildReview(
   const docs = (await db.documents.where('hash').equals(file.hash).toArray()).filter((d) => !d.deleted);
   const entity = parsed.entity.value ?? '';
   const month = parsed.month ?? today;
-  const fps = new Set((await db.fingerprints.toArray()).filter((f) => !f.deleted).map((f) => f.fingerprint));
-  const expenses = (await db.expenses.toArray()).filter((e) => !e.deleted && e.source === 'manual');
+  const fps = new Set((await db.fingerprints.toArray()).filter((f) => !f.deleted && (!f.provisional || parsed.docType === 'consumos')).map((f) => f.fingerprint));
+  // Gastos con los que puede coincidir una línea: los anotados a mano y los consumos provisorios (vistos antes en la app de la tarjeta).
+  const expenses = (await db.expenses.toArray()).filter((e) => !e.deleted && (e.source === 'manual' || e.provisional));
   const obligations = (await db.obligations.toArray()).filter((o) => !o.deleted);
   const sancor = (await db.sancor.toArray()).filter((s) => !s.deleted);
   const statements = (await db.statements.toArray()).filter((s) => !s.deleted);
@@ -169,11 +171,15 @@ export async function buildReview(
       action = 'ignorar';
     } else if (action === 'gasto' && p.amount !== undefined && p.date) {
       const m = expenses.find(
-        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && !(e.linkedLineFingerprints?.length) && (e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
+        (e) => !usedManual.has(e.id) && e.totalAmount === p.amount && Math.abs(daysBetween(e.date, p.date!)) <= 5 && (!(e.linkedLineFingerprints?.length) || e.provisional) && (e.paymentMethod === 'tarjeta' || e.paymentMethod === 'otro'),
       );
       if (m) {
         usedManual.add(m.id);
-        duplicate = { type: 'gasto_manual', targetId: m.id, label: `Coincide con el gasto cargado manualmente "${m.concept}" (${m.date}).` };
+        duplicate = {
+          type: 'gasto_manual',
+          targetId: m.id,
+          label: m.provisional ? `Ya estaba cargado como consumo provisorio ("${m.concept}"): se confirma con este resumen.` : `Coincide con el gasto cargado manualmente "${m.concept}" (${m.date}).`,
+        };
         action = 'vincular';
       }
     } else if (action === 'cuota' && p.installment && p.amount !== undefined) {
@@ -263,6 +269,13 @@ export async function buildReview(
     });
   }
   const warnings = [...parsed.warnings];
+  if (parsed.docType !== 'consumos' && parsed.docType !== 'cuenta' && entity) {
+    // Consumos provisorios de esta tarjeta que no aparecen en el resumen (p. ej. pasados a cuotas).
+    const group = entityGroup(entity);
+    const left = expenses.filter((e) => e.provisional && !usedManual.has(e.id) && e.month === month && (e.notes ?? '').includes(group));
+    if (left.length)
+      warnings.push(`${left.length} consumo(s) provisorio(s) de ${group} no aparecen en este resumen: ${left.map((e) => `"${e.concept}" (${formatARS(e.totalAmount)})`).join(', ')}. Si se pasaron a cuotas o se anularon, eliminalos en Gastos.`);
+  }
   if (docs.length) warnings.unshift('Este documento ya fue importado. Puede cancelar, revisar o importarlo deliberadamente (las líneas ya registradas se omiten).');
   if (!parsed.month) warnings.push('No se pudo determinar el mes del resumen: verifique el mes de imputación.');
   return {
@@ -281,9 +294,11 @@ export async function buildReview(
       nextDueDate: parsed.nextDueDate.value,
       upcoming: parsed.upcoming,
       accountCheck: parsed.accountCheck,
+      activityCheck: parsed.activityCheck,
       docType: parsed.docType,
       currency: parsed.currency,
-      registerStatement: !isAccount && (parsed.total.value !== undefined || !!parsed.dueDate.value),
+      // Los consumos del período abierto todavía no son un resumen: no se registra uno.
+      registerStatement: !isAccount && parsed.docType !== 'consumos' && (parsed.total.value !== undefined || !!parsed.dueDate.value),
     },
     items,
     warnings,
@@ -368,7 +383,7 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
     }
 
     const fp = async (it: ReviewItem, targetType: LineFingerprint['targetType'], targetId?: string) => {
-      await db.fingerprints.put({ ...base(), fingerprint: it.fingerprint, documentId, targetType, targetId });
+      await db.fingerprints.put({ ...base(), fingerprint: it.fingerprint, documentId, targetType, targetId, ...(s.docType === 'consumos' ? { provisional: true } : {}) });
     };
 
     const sancorThisImport = new Map<string, SancorCharge>();
@@ -392,7 +407,8 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           documentId,
           linkedLineFingerprints: [it.fingerprint],
           source: 'importado',
-          notes: s.entity ? `Importado de ${s.entity}` : undefined,
+          ...(s.docType === 'consumos' ? { provisional: true } : {}),
+          notes: s.docType === 'consumos' ? `Consumo de ${s.entity || 'la tarjeta'} visto en su app (provisorio hasta el resumen)` : s.entity ? `Importado de ${s.entity}` : undefined,
         };
         await db.expenses.put(e);
         await fp(it, 'gasto', e.id);
@@ -486,7 +502,9 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         const id = it.duplicate.targetId;
         if (it.duplicate.type === 'gasto_manual') {
           const e = await db.expenses.get(id);
-          if (e) await db.expenses.put({ ...e, linkedLineFingerprints: [...(e.linkedLineFingerprints ?? []), it.fingerprint], documentId: e.documentId ?? documentId, updatedAt: now, deviceId });
+          // Un consumo provisorio pasa a ser el del resumen (con su mes de pago).
+          const confirm = e?.provisional && s.docType !== 'consumos' ? { provisional: false, month: it.month } : {};
+          if (e) await db.expenses.put({ ...e, ...confirm, linkedLineFingerprints: [...(e.linkedLineFingerprints ?? []), it.fingerprint], documentId: e.documentId ?? documentId, updatedAt: now, deviceId });
           await fp(it, 'gasto', id);
         } else if (it.duplicate.type === 'obligacion') {
           const ob = await db.obligations.get(id);

@@ -70,8 +70,8 @@ export interface UpcomingInstallments {
 }
 
 export interface ParsedDocument {
-  /** resumen: resumen de tarjeta o listado de consumos · cuenta: movimientos de cuenta bancaria. */
-  docType?: 'resumen' | 'cuenta';
+  /** resumen: resumen de tarjeta · cuenta: movimientos de cuenta bancaria · consumos: consumos del período abierto (app de la tarjeta). */
+  docType?: 'resumen' | 'cuenta' | 'consumos';
   entity: Field<string>;
   currency: 'ARS' | 'USD' | 'mixta';
   decimalFormat: DecimalFormat;
@@ -88,6 +88,8 @@ export interface ParsedDocument {
   month?: MonthKey;
   /** Extractos de cuenta: totales informados vs. leídos (para verificar que no falte ninguna línea). */
   accountCheck?: { opening?: Cents; closing?: Cents; credits?: Cents; debits?: Cents; parsedCredits: Cents; parsedDebits: Cents };
+  /** Consumos del período abierto: total que muestra la app (pesos enteros) vs. suma leída. */
+  activityCheck?: { declaredWhole: number; parsed: Cents; label: string };
   items: ParsedItem[];
   warnings: string[];
   undetermined: string[];

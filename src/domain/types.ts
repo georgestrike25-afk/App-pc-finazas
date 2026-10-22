@@ -70,6 +70,8 @@ export interface Expense extends BaseRecord {
   /** Huella de la línea de resumen vinculada (evita duplicar manual/importado). */
   linkedLineFingerprints?: string[];
   source: 'manual' | 'importado';
+  /** Consumo del período abierto (visto en la app de la tarjeta): se confirma al subir el resumen. */
+  provisional?: boolean;
   notes?: string;
 }
 
@@ -209,7 +211,7 @@ export interface DocumentMeta extends BaseRecord {
   size: number;
   /** SHA-256 del contenido: identificación estable del documento. */
   hash: string;
-  kind: 'pdf' | 'imagen' | 'csv' | 'excel';
+  kind: 'pdf' | 'imagen' | 'csv' | 'excel' | 'video';
   importedAt?: string;
   entity?: string;
   hasBlob: boolean;
@@ -222,6 +224,8 @@ export interface LineFingerprint extends BaseRecord {
   documentId?: string;
   targetType: 'gasto' | 'cuota' | 'pago' | 'sancor' | 'ingreso' | 'ignorado';
   targetId?: string;
+  /** Línea vista en la app de la tarjeta (período abierto): el resumen la confirma en vez de omitirla. */
+  provisional?: boolean;
 }
 
 export interface AuditEntry extends BaseRecord {

@@ -265,6 +265,8 @@ Los consumos y cuotas de un resumen se imputan al **mes de vencimiento** del res
 
 **Sancor con dos cupones**: cuando el resumen trae dos cupones de Sancor (el tuyo y el de tu pareja), se registran como **un solo cargo** con el total de la tarjeta y su detalle por cupón; la pareja devuelve su cupón entero (50 % del total si son iguales; si son distintos, se elige cuál es el suyo con un toque). Los cargos que se habían guardado por separado se unen solos al abrir la app o al sincronizar. Como cada resumen trae los importes del mes, los aumentos se reflejan solos.
 
+**Video o capturas de "Tus consumos"** (app de la tarjeta, p. ej. Naranja X; probado con una grabación real que no se guarda en el repositorio): se puede subir la **grabación de pantalla (MP4)** tal cual. En el dispositivo se toman los cuadros donde la pantalla está quieta, se leen con OCR y se arman los consumos del período que todavía no cerró, sin repetir los que aparecen en varios cuadros. Se verifica que la suma coincida con "*Mes* hasta ahora". Se cargan como **provisorios** en el mes en que se pagan (las compras en cuotas, como deuda); cuando se sube el resumen, cada consumo se **confirma** con su línea en lugar de duplicarse, y si alguno no aparece (p. ej. un Plan Z pasado a cuotas) se avisa. El video no se guarda.
+
 **Duplicados**: cada documento se identifica por SHA-256 y cada línea por una huella estable (entidad, fecha, concepto, importe, cuota). Al reimportar se advierte y se puede **cancelar**, **revisar** o **importar deliberadamente** (las líneas ya registradas quedan desmarcadas).
 
 ### OCR: requisitos y límites

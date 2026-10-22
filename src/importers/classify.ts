@@ -36,7 +36,7 @@ const CATEGORY_RULES: Array<{ category: string; kind: ExpenseKind; words: string
   { category: 'Suscripciones', kind: 'personal', words: ['netflix', 'spotify', 'disney', 'hbo', 'max ', 'youtube', 'prime video', 'amazon prime', 'apple com', 'google', 'paramount', 'star plus'] },
   { category: 'Compras en línea', kind: 'personal', words: ['mercadolibre', 'mercado libre', 'merpago', 'tiendanube', 'amazon'] },
   { category: 'Salud', kind: 'personal', words: ['osde', 'swiss medical', 'galeno', 'medife', 'clinica', 'sanatorio', 'odontolog'] },
-  { category: 'Ropa', kind: 'personal', words: ['zara', 'adidas', 'nike', 'indumentaria', 'calzado'] },
+  { category: 'Ropa', kind: 'personal', words: ['zara', 'adidas', 'nike', 'indumentaria', 'calzado', 'uniforme'] },
 ];
 
 export function suggestCategory(concept: string): { category: string; kind: ExpenseKind } {

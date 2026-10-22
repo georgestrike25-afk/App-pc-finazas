@@ -3,6 +3,7 @@ import { extractPdfText, type PdfLib } from './pdf';
 import { parseStatementText, type ParsedDocument, type SourceLine } from './statementParser';
 import { parseAccountMovements } from './accountMovements';
 import { parseBankExtract } from './bankExtract';
+import { parseCardActivity } from './cardActivity';
 import { decodeText, parseCsv, parseSpreadsheet, rowsToLines } from './tabular';
 import { validateFile, type ValidatedFile } from './fileValidation';
 
@@ -68,6 +69,16 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     p('Reconociendo texto (OCR local)…', 0);
     lines = await ocrImages([new Blob([bytes], { type: validated.mime })], (x) => p(`OCR: ${x.status}`, x.progress));
     ocrUsed = true;
+  } else if (validated.kind === 'video') {
+    if (!opts.allowOcr) throw new Error('Los videos requieren OCR. Actívelo para continuar.');
+    p('Buscando las pantallas del video…', 0);
+    const { videoFrames } = await import('./videoFrames');
+    const frames = await videoFrames(new Blob([bytes], { type: validated.mime }), { onProgress: (x) => p('Buscando las pantallas del video…', x) });
+    const { ocrImages } = await import('./ocr');
+    p(`Leyendo ${frames.length} pantalla(s) del video (OCR local)…`, 0);
+    lines = await ocrImages(frames, (x) => p(`Leyendo ${frames.length} pantalla(s) del video: ${x.status}`, x.progress));
+    ocrUsed = true;
+    notes.push(`Se leyeron ${frames.length} pantalla(s) del video.`);
   } else if (validated.kind === 'csv') {
     p('Leyendo CSV…');
     const r = rowsToLines(parseCsv(decodeText(bytes)));
@@ -84,7 +95,7 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     }
   }
   // Primero se prueba el formato de movimientos de cuenta (capturas de home banking).
-  const parsed = parseBankExtract(lines) ?? parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
+  const parsed = parseCardActivity(lines) ?? parseBankExtract(lines) ?? parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
   parsed.warnings.unshift(...notes);
   return { validated, hash, lines, parsed, ocrUsed, notes };
 }
