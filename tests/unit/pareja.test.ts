@@ -40,6 +40,9 @@ describe('modo pareja: cuentas', () => {
   });
 
   it('la planilla del mes: pendientes, monto del mes pasado y lo que no se comparte solo lo ve quien paga', () => {
+    const solo = doc();
+    solo.items = solo.items.map((i) => (i.id === 'fijo-7' ? { ...i, paga: 'a', pctPaga: 100 } : i));
+    expect(fijosDelMes(solo, '2026-11', 'b').map((f) => f.item.nombre)).not.toContain('Alquiler de consultorio');
     const d = doc([gasto({ id: 'g1', paga: 'b', total: 8_000, itemId: 'fijo-3', mes: '2026-10' }), gasto({ id: 'g2', paga: 'b', total: 40_000, itemId: 'fijo-1' })]);
     const jorge = fijosDelMes(d, '2026-11', 'a');
     expect(jorge.map((f) => f.item.nombre)).toContain('Alquiler de consultorio');
@@ -47,7 +50,7 @@ describe('modo pareja: cuentas', () => {
     const gas = jorge.find((f) => f.item.nombre === 'Gas')!;
     expect(gas.gasto).toBeUndefined();
     expect(gas.anterior).toBe(8_000);
-    expect(fijosDelMes(d, '2026-11', 'b').map((f) => f.item.nombre)).not.toContain('Alquiler de consultorio');
+    expect(fijosDelMes(d, '2026-11', 'b').map((f) => f.item.nombre)).toContain('Alquiler de consultorio');
   });
 
   it('une dos versiones: gana el último cambio de cada gasto', () => {
@@ -70,16 +73,19 @@ describe('modo pareja: gastos en la app de cada uno', () => {
     const p = planEspejo(d, 'a', [], ctx);
     const e = p.put.find((x) => x.id === 'pareja-g1')!;
     expect(e).toMatchObject({ kind: 'hogar', totalAmount: 100_000, userPct: 50, paidBy: 'pareja', month: '2026-11' });
-    // El consultorio (fijo, solo de Jorge) se carga solo este mes.
-    expect(p.put.find((x) => x.id === 'pareja-fijo-fijo-7-2026-11')).toMatchObject({ totalAmount: 2_000_000, kind: 'personal' });
-    // A Antonella no.
-    expect(planEspejo(d, 'b', [], ctx).put.some((x) => x.id.startsWith('pareja-fijo'))).toBe(false);
+    // El consultorio (fijo) se carga solo este mes: es todo de Jorge y se lo debe a Antonella.
+    expect(p.nuevos).toEqual([expect.objectContaining({ id: 'fijo-7-2026-11', paga: 'b', pctPaga: 0, total: 2_000_000 })]);
+    expect(p.put.find((x) => x.id === 'pareja-fijo-7-2026-11')).toMatchObject({ totalAmount: 2_000_000, userPct: 100, paidBy: 'pareja' });
+    expect(saldo({ ...d, gastos: [...d.gastos, ...p.nuevos] }, 'a').neto).toBe(-50_000 - 2_000_000);
+    // En la app de Antonella no es gasto suyo (0 %), pero suma a lo que Jorge le debe.
+    const pb = planEspejo(d, 'b', [], ctx);
+    expect(pb.put.find((x) => x.id === 'pareja-fijo-7-2026-11')).toMatchObject({ userPct: 0, paidBy: 'usuario' });
   });
 
   it('es estable: una segunda pasada no cambia nada', () => {
     const d = doc([gasto({ id: 'g1', paga: 'b', total: 100_001 })]);
     const p = planEspejo(d, 'a', [], ctx);
-    const again = planEspejo(d, 'a', p.put, { ...ctx, nowIso: '2026-11-02T13:00:00.000Z' });
+    const again = planEspejo({ ...d, gastos: [...d.gastos, ...p.nuevos] }, 'a', p.put, { ...ctx, nowIso: '2026-11-02T13:00:00.000Z' });
     expect(again).toEqual({ put: [], gastos: [], nuevos: [], categorias: [] });
   });
 
@@ -169,14 +175,14 @@ describe('modo pareja: dos celulares por la PC', () => {
     expect(nov.map((n) => n.titulo.replace(/\s/g, ' '))).toEqual(['Antonella anotó Supermercado $ 500']);
     const e = (await loadDataSet(jorge)).expenses.find((x) => x.id === 'pareja-super')!;
     expect(e).toMatchObject({ totalAmount: 50_000, userPct: 50, paidBy: 'pareja' });
-    expect(saldo((await loadPareja(jorge))!.doc, 'a').neto).toBe(-25_000);
+    expect(saldo((await loadPareja(jorge))!.doc, 'a', '2026-11').neto).toBe(-25_000);
 
     await cambiarPareja((d, yo) => ({ ...d, pagos: [...d.pagos, { id: 'pago1', createdAt: T, updatedAt: T, de: yo, a: 'b', monto: 25_000, fecha: '2026-11-03', mes: '2026-11', medio: 'transferencia' }] }), jorge);
     await syncPareja(fetch, jorge);
     setDb(anto);
     const nov2 = (await syncPareja(fetch, anto)).novedades;
     expect(nov2[0].titulo.replace(/\s/g, ' ')).toBe('Jorge marcó: te pasó $ 250');
-    expect(saldo((await loadPareja(anto))!.doc, 'b').neto).toBe(0);
+    expect(saldo((await loadPareja(anto))!.doc, 'b', '2026-11').neto).toBe(0);
     expect((await loadDataSet(anto)).pareja?.pagos.length).toBe(1);
 
     // Jorge borra el gasto desde Gastos ("no era compartido"): a Antonella se le saca también.
@@ -194,11 +200,20 @@ describe('modo pareja: dos celulares por la PC', () => {
     await crearPareja({ yo: 'Jorge', otro: 'Antonella' }, db);
     await aplicarEspejo(db);
     await aplicarEspejo(db);
-    const fijos = (await db.expenses.toArray()).filter((e) => e.id.startsWith('pareja-fijo'));
+    const fijos = (await db.expenses.toArray()).filter((e) => e.id.startsWith('pareja-fijo-7'));
     expect(fijos).toHaveLength(1);
-    await saveRecord<Expense>('expenses', { ...fijos[0], deleted: true }, 't', db);
-    await aplicarEspejo(db);
-    expect((await db.expenses.toArray()).filter((e) => e.id.startsWith('pareja-fijo') && !e.deleted)).toHaveLength(0);
+    expect((await loadPareja(db))!.doc.gastos.filter((g) => g.itemId === 'fijo-7')).toHaveLength(1);
+    expect(saldo((await loadPareja(db))!.doc, 'a').neto).toBe(-2_000_000);
+  });
+
+  it('pasa el consultorio de la primera versión (solo de Jorge, fuera del saldo) a "se lo debe a Antonella"', async () => {
+    const db = await freshDb();
+    await crearPareja({ yo: 'Jorge', otro: 'Antonella' }, db);
+    await saveRecord<Expense>('expenses', { id: 'pareja-fijo-fijo-7-2026-10', kind: 'personal', category: 'Consultorio', concept: 'Alquiler de consultorio', date: '2026-10-01', month: '2026-10', totalAmount: 2_000_000, userPct: 100, paid: true, frequency: 'unica', paymentMethod: 'otro', source: 'manual' } as Expense, 't', db);
+    // Planilla como la dejaba la versión anterior: al aplicarse, se corrige sola.
+    await cambiarPareja((d) => ({ ...d, items: d.items.map((i) => (i.id === 'fijo-7' ? { ...i, paga: 'a', pctPaga: 100 } : i)) }), db);
+    expect((await loadPareja(db))!.doc.items.find((i) => i.id === 'fijo-7')).toMatchObject({ paga: 'b', pctPaga: 0 });
+    expect((await db.expenses.get('pareja-fijo-fijo-7-2026-10'))?.deleted).toBe(true);
   });
 });
 

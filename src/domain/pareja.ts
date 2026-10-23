@@ -23,7 +23,7 @@ export interface ParejaItem extends ParejaRegistro {
   categoria: string;
   /** Quién lo paga; "ambos" = lo puede cargar cualquiera (p. ej. fondo casa). */
   paga: Miembro | 'ambos';
-  /** Parte de quien paga (50 = mitad y mitad; 100 = es solo de quien paga, no se comparte). */
+  /** Parte de quien paga (50 = mitad y mitad; 100 = es solo de quien paga, no se comparte; 0 = es todo del otro, que se lo debe). */
   pctPaga: number;
   /** Monto fijo: se carga solo todos los meses. Sin monto = lo pone quien paga cada mes. */
   fijo?: Cents;
@@ -85,7 +85,8 @@ export function plantillaInicial(now: string): ParejaItem[] {
     { nombre: 'Internet', icono: 'Wifi', categoria: 'Servicios del hogar', paga: 'b', pctPaga: 50 },
     { nombre: 'Fondo casa', icono: 'PiggyBank', categoria: 'Hogar', paga: 'ambos', pctPaga: 50, opcional: true },
     { nombre: 'Obra social (Sancor)', icono: 'HeartPulse', categoria: 'Salud', paga: 'a', pctPaga: 50, sancor: true },
-    { nombre: 'Alquiler de consultorio', icono: 'Stethoscope', categoria: 'Consultorio', paga: 'a', pctPaga: 100, fijo: 2_000_000 },
+    // Es todo de Jorge, pero se lo paga a Antonella: suma a lo que le tiene que pasar.
+    { nombre: 'Alquiler de consultorio', icono: 'Stethoscope', categoria: 'Consultorio', paga: 'b', pctPaga: 0, fijo: 2_000_000 },
   ];
   return base.map((b, i) => ({ ...b, id: `fijo-${i + 1}`, updatedAt: now, orden: i + 1 }));
 }
@@ -198,7 +199,8 @@ export interface PlanEspejo {
  * y trae de vuelta lo que se editó o borró desde Gastos. Función pura: no toca la base.
  * - El gasto de la app tiene id fijo (pareja-<id>): el celular y la PC de la misma persona generan el mismo.
  * - La obra social que paga uno con la tarjeta no se copia en su propia app: llega con el resumen.
- * - Los fijos con monto (consultorio) se cargan solos el mes actual; si no se comparten, van solo a quien paga.
+ * - Los fijos con monto (consultorio) se cargan solos el mes actual (cualquiera de los dos dispositivos, con el mismo id);
+ *   si no se comparten (100 % de quien paga), van solo a quien paga.
  */
 export function planEspejo(doc: ParejaDoc, yo: Miembro, expenses: Expense[], ctx: { nowIso: string; mes: MonthKey; deviceId?: string; categories: string[] }): PlanEspejo {
   const plan: PlanEspejo = { put: [], gastos: [], nuevos: [], categorias: [] };
@@ -209,8 +211,9 @@ export function planEspejo(doc: ParejaDoc, yo: Miembro, expenses: Expense[], ctx
 
   // Fijos con monto que se cargan solos este mes.
   for (const item of doc.items) {
-    if (item.deleted || !item.fijo || item.paga !== yo) continue;
+    if (item.deleted || !item.fijo) continue;
     if (item.pctPaga >= 100) {
+      if (item.paga !== yo) continue;
       const id = idFijoSolo(item.id, ctx.mes);
       if (byId.has(id)) continue; // ya está (o se borró a propósito este mes)
       cat(item.categoria);
@@ -238,7 +241,7 @@ export function planEspejo(doc: ParejaDoc, yo: Miembro, expenses: Expense[], ctx
         createdAt: ctx.nowIso,
         updatedAt: ctx.nowIso,
         autor: yo,
-        paga: yo,
+        paga: item.paga === 'ambos' ? yo : item.paga,
         pctPaga: item.pctPaga,
         concepto: item.nombre,
         total: item.fijo,

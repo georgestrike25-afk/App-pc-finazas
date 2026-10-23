@@ -188,7 +188,7 @@ function FijoSheet({ fila, mes, st, onClose }: { fila: FilaFijo; mes: MonthKey; 
         </>
       }
     >
-      <p className="muted small" style={{ marginTop: 0 }}>{quien}{item.sancor && paga === yo ? ' con la tarjeta' : ''} · {item.pctPaga === 50 ? 'mitad y mitad' : `${pct(item.pctPaga)} % de quien paga`}</p>
+      <p className="muted small" style={{ marginTop: 0 }}>{quien}{item.sancor && paga === yo ? ' con la tarjeta' : ''} · {item.pctPaga === 50 ? 'mitad y mitad' : item.pctPaga === 0 ? `es todo de ${paga === yo ? st.doc.nombres[otro(yo)] : 'vos'}` : `${pct(item.pctPaga)} % de quien paga`}</p>
       <Field label="Monto total">{(id) => <MoneyInput id={id} value={total} onChange={setTotal} />}</Field>
       {!!total && <Mitades total={total} paga={paga} pctPaga={item.pctPaga} yo={yo} nombres={st.doc.nombres} />}
       {resumen && resumen !== total && paga === yo && (
@@ -308,13 +308,14 @@ function PlanillaSheet({ st, onClose }: { st: ParejaEstado; onClose: () => void 
                 </select>
               )}</Field>
               <Field label="Reparto">{(id) => (
-                <select id={id} value={i.pctPaga === 50 ? '50' : i.pctPaga >= 100 ? '100' : 'otro'} onChange={(e) => set(i.id, { pctPaga: e.target.value === 'otro' ? 60 : Number(e.target.value) })}>
+                <select id={id} value={i.pctPaga === 50 ? '50' : i.pctPaga >= 100 ? '100' : i.pctPaga <= 0 ? '0' : 'otro'} onChange={(e) => set(i.id, { pctPaga: e.target.value === 'otro' ? 60 : Number(e.target.value) })}>
                   <option value="50">Mitad y mitad</option>
                   <option value="100">Solo de quien paga</option>
+                  <option value="0">Todo del otro (se lo debe a quien paga)</option>
                   <option value="otro">Otro %</option>
                 </select>
               )}</Field>
-              {i.pctPaga !== 50 && i.pctPaga < 100 && <Field label="% de quien paga">{(id) => <input id={id} type="number" min={1} max={99} value={i.pctPaga} onChange={(e) => set(i.id, { pctPaga: Math.min(99, Math.max(1, Number(e.target.value))) })} />}</Field>}
+              {i.pctPaga !== 50 && i.pctPaga > 0 && i.pctPaga < 100 && <Field label="% de quien paga">{(id) => <input id={id} type="number" min={1} max={99} value={i.pctPaga} onChange={(e) => set(i.id, { pctPaga: Math.min(99, Math.max(1, Number(e.target.value))) })} />}</Field>}
               <Field label="Monto fijo (opcional)" hint="Se carga solo todos los meses">{(id) => <MoneyInput id={id} value={i.fijo} onChange={(fijo) => set(i.id, { fijo })} />}</Field>
             </div>
             <button className="btn ghost icon danger" aria-label={`Quitar ${i.nombre}`} onClick={() => setItems(items.filter((x) => x.id !== i.id))}><Trash2 aria-hidden /></button>
@@ -459,7 +460,7 @@ function Principal({ st }: { st: ParejaEstado }) {
                       <span className="t">{f.item.nombre}</span>
                       <span className="s">
                         {solo ? `solo tuyo · fijo, se carga solo` : f.item.paga === 'ambos' ? 'los dos · ' : `${quien === yo ? 'lo pagás vos' : `lo paga ${n[quien]}`} · `}
-                        {!solo && (f.gasto ? (f.item.pctPaga === 50 ? 'mitad y mitad' : `${pct(f.item.pctPaga)} / ${pct(100 - f.item.pctPaga)}`) : f.item.opcional ? 'opcional' : 'falta el monto')}
+                        {!solo && (f.item.pctPaga === 0 ? `todo ${quien === yo ? `de ${n[otro(yo)]}` : 'tuyo'}${f.item.fijo ? ' · fijo, se carga solo' : ''}` : f.gasto ? (f.item.pctPaga === 50 ? 'mitad y mitad' : `${pct(f.item.pctPaga)} / ${pct(100 - f.item.pctPaga)}`) : f.item.opcional ? 'opcional' : 'falta el monto')}
                       </span>
                     </span>
                     {solo ? (

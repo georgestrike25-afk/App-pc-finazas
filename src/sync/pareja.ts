@@ -115,6 +115,7 @@ export async function cambiarPareja(fn: (doc: ParejaDoc, yo: Miembro) => ParejaD
 
 /** Lleva los gastos compartidos a la lista de gastos de este dispositivo (y trae lo editado o borrado desde Gastos). */
 export async function aplicarEspejo(db: FinanzasDB = getDb()): Promise<boolean> {
+  await migrarConsultorio(db);
   const st = await loadPareja(db);
   if (!st?.yo) return false;
   const settings = await getSettings(db);
@@ -133,6 +134,21 @@ export async function aplicarEspejo(db: FinanzasDB = getDb()): Promise<boolean> 
     scheduleSync(1500);
   }
   return true;
+}
+
+/**
+ * La primera versión trataba el consultorio como gasto solo de Jorge, por fuera del saldo.
+ * Ahora es todo de Jorge pero se lo paga a Antonella (suma a lo que le debe).
+ */
+async function migrarConsultorio(db: FinanzasDB) {
+  const st = await loadPareja(db);
+  const it = st?.doc.items.find((i) => i.id === 'fijo-7' && !i.deleted && i.paga === 'a' && i.pctPaga === 100);
+  if (!st || st.yo !== 'a' || !it) return;
+  const now = nowIso();
+  const items = st.doc.items.map((i) => (i === it ? { ...i, paga: 'b' as const, pctPaga: 0, updatedAt: now } : i));
+  await savePareja({ ...st, doc: { ...st.doc, items } }, db);
+  const viejos = (await db.expenses.toArray()).filter((e) => e.id.startsWith(`pareja-fijo-${it.id}-`) && !e.deleted);
+  for (const e of viejos) await db.expenses.put({ ...e, deleted: true, updatedAt: now });
 }
 
 export interface Novedad {
