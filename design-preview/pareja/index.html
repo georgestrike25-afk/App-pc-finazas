@@ -152,6 +152,21 @@
   .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; counter-reset: p; }
   .steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 0.86rem; counter-increment: p; }
   .steps li::before { content: counter(p); width: 22px; height: 22px; border-radius: 50%; background: var(--lime); color: var(--forest); font-weight: 800; font-size: 0.76rem; display: grid; place-items: center; flex-shrink: 0; }
+  .fx-prog { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--muted); }
+  .fx-prog .bar2 { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .fx-prog .bar2 i { display: block; height: 100%; width: 57%; background: var(--primary); border-radius: 999px; }
+  .falta { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; font-weight: 700; font-size: 0.82rem; background: var(--primary); color: var(--primary-ink); }
+  .falta svg { width: 15px; height: 15px; }
+  .lst .ico.dash { background: transparent; border: 1.5px dashed var(--border-strong); color: var(--muted); }
+  .ed { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .ed:last-child { border-bottom: 0; }
+  .ed .grow { flex: 1; min-width: 0; }
+  .ed .t { font-weight: 600; font-size: 0.9rem; }
+  .ed .s { font-size: 0.74rem; color: var(--muted); }
+  .ed .h { color: var(--muted); }
+  .ed .h svg { width: 18px; height: 18px; }
+  .addrow { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 12px; border: 1.5px dashed var(--border-strong); font-weight: 650; font-size: 0.86rem; color: var(--muted); }
+  .addrow svg { width: 18px; height: 18px; }
 </style>
 </head>
 <body>
@@ -306,6 +321,57 @@
         <div class="w-btns"><b class="w-btn main">${I('Users')}Compartido</b><b class="w-btn">${I('Minus')}Gasto</b><b class="w-btn">${I('Plus')}Ingreso</b></div>
       </section>
       <div class="apps">${'<i></i>'.repeat(8)}</div></div>`,
+
+    fijos: () => `<div class="phone">${status}${de('Jorge')}
+      <div class="top"><div style="flex:1"><h1>Gastos fijos</h1><div class="sub">Noviembre de 2026 · con Antonella</div></div><span class="tag">${I('Settings2')}Planilla</span></div>
+      <div class="body">
+        <section class="card">
+          <div class="fx-prog"><span><b style="color:var(--text)">4 de 7</b> cargados</span><span class="bar2"><i></i></span></div>
+          <p class="small muted" style="margin:8px 0 0">Se arma sola cada mes. Antonella pone lo que pagó y a vos te aparece tu mitad.</p>
+        </section>
+        <section class="card"><h2>Noviembre<span class="r">tu parte</span></h2>
+          <ul class="lst">
+            ${row('House', 'Alquiler', 'mitad y mitad', '$ 449.758', '$ 224.879', 'A')}
+            ${row('Zap', 'Luz', 'mitad y mitad', '$ 70.110', '$ 35.055', 'A')}
+            <li><span class="ico dash">${I('Flame')}</span><div class="grow"><div class="t">Gas</div><div class="s">${av('A')} lo paga Antonella · falta el monto</div></div><span class="tag">Pendiente</span></li>
+            <li><span class="ico dash">${I('Wifi')}</span><div class="grow"><div class="t">Internet</div><div class="s">${av('A')} lo paga Antonella · falta el monto</div></div><span class="tag">Pendiente</span></li>
+            <li><span class="ico dash">${I('PiggyBank')}</span><div class="grow"><div class="t">Fondo casa</div><div class="s">${av('A')}${av('J')} los dos · opcional</div></div><b class="falta">${I('Plus')}Poner</b></li>
+            ${row('HeartPulse', 'Obra social (Sancor)', 'llega con tu Visa', '$ 286.456', '$ 143.228', 'J')}
+            <li><span class="ico">${I('Stethoscope')}</span><div class="grow"><div class="t">Alquiler de consultorio</div><div class="s">${av('J')} solo tuyo · fijo, se carga solo</div></div><div class="m num"><b>$ 20.000</b><span>${I('Repeat').replace('<svg ', '<svg style="width:11px;height:11px;vertical-align:-1px" ')} todos los meses</span></div></li>
+          </ul>
+        </section>
+      </div>${bottom('Gastos')}</div>`,
+
+    'fijo-cargar': () => `<div class="phone">${status}${de('Antonella')}
+      <div class="top"><div style="flex:1"><h1>Gastos fijos</h1><div class="sub">Noviembre de 2026 · con Jorge</div></div></div>
+      <div class="body"><section class="card"><ul class="lst">
+        <li><span class="ico dash">${I('Flame')}</span><div class="grow"><div class="t">Gas</div><div class="s">falta el monto</div></div></li>
+        <li><span class="ico dash">${I('Wifi')}</span><div class="grow"><div class="t">Internet</div><div class="s">falta el monto</div></div></li>
+      </ul></section></div>
+      <div class="scrim"></div>
+      <section class="sheet">
+        <div class="grab"></div>
+        <div class="s-head"><span class="lst"><span class="ico">${I('Flame')}</span></span><div><h2>Gas de noviembre</h2><p>Lo pagaste vos · se reparte mitad y mitad</p></div></div>
+        <div class="bigamt num">$ 9.240</div>
+        <div class="halves">
+          <div>${av('A')}<span>Tu mitad<b class="num">$ 4.620</b></span></div>
+          <div>${av('J')}<span>A Jorge le aparece<b class="num">$ 4.620</b></span></div>
+        </div>
+        <div class="note">${I('Info')}<span>El mes pasado fue <b>$ 8.310</b>. Si no cambia, tocá "Igual que octubre".</span></div>
+        <div class="keys">${['1','2','3','4','5','6','7','8','9',',','0'].map((k) => `<b>${k}</b>`).join('')}<b>${I('Delete')}</b></div>
+        <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:10px"><b class="btn">Igual que octubre</b><b class="btn primary">${I('Check')}Guardar</b></div>
+      </section></div>`,
+
+    'fijos-editar': () => `<div class="phone">${status}${de('Jorge')}
+      <div class="top">${I('ArrowLeft')}<div style="flex:1"><h1>Planilla de gastos fijos</h1><div class="sub">Se repite todos los meses</div></div></div>
+      <div class="body">
+        <section class="card" style="padding:4px 16px">
+          ${[['House', 'Alquiler', 'Paga Antonella · mitad y mitad · monto variable'], ['Zap', 'Luz', 'Paga Antonella · mitad y mitad · monto variable'], ['Flame', 'Gas', 'Paga Antonella · mitad y mitad · monto variable'], ['Wifi', 'Internet', 'Paga Antonella · mitad y mitad · monto variable'], ['PiggyBank', 'Fondo casa', 'Los dos · mitad y mitad · opcional'], ['HeartPulse', 'Obra social (Sancor)', 'Pagás vos con la Visa · Antonella te devuelve la mitad'], ['Stethoscope', 'Alquiler de consultorio', 'Pagás vos · solo tuyo · fijo $ 20.000']]
+            .map(([ic, t, s2]) => `<div class="ed"><span class="h">${I('GripVertical')}</span><span class="lst"><span class="ico">${I(ic)}</span></span><div class="grow"><div class="t">${t}</div><div class="s">${s2}</div></div><span class="h">${I('Pencil')}</span></div>`).join('')}
+        </section>
+        <div class="addrow">${I('Plus')}Agregar un gasto fijo</div>
+        <div class="note">${I('Info')}<span>Si cambiás la planilla, Antonella la ve igual en su celular. Los montos de cada mes los ponen ustedes; el consultorio se carga solo porque es fijo.</span></div>
+      </div>${bottom('Gastos')}</div>`,
   };
   document.getElementById('root').innerHTML = (S[q.get('pantalla')] || S.compartidos)();
 </script>

@@ -21,3 +21,8 @@ Solo celular (Android). No programar hasta que Jorge lo confirme; primero mostra
 **Diseño propuesto (23/10/2026):** `design-preview/pareja/` (capturas `pareja-*.png`, claro y oscuro).
 - Botón **Pagado**: en la app de quien paga sale de su plata hasta cobrar como "Pago a Antonella/Jorge" (no es gasto nuevo: su mitad ya estaba en Gastos); en la app de quien recibe entra como **ingreso** y el saldo queda en cero. Vale para los dos lados.
 - Cuando uno anota un gasto compartido, al otro le llega un aviso con su mitad, que ya se suma a sus gastos ("No es compartido" para corregir).
+
+**Planilla de gastos fijos dentro de la app (23/10/2026):** reemplaza subir el PDF/Excel cada mes. Pantallas `pareja-fijos-*`, `pareja-fijo-cargar-*`.
+- Se arma sola cada mes, sin montos: Alquiler, Luz, Gas e Internet (paga Antonella, mitad y mitad), Fondo casa (opcional, los dos), Obra social Sancor (paga Jorge con la Visa, llega con el resumen; Antonella devuelve la mitad).
+- Único fijo: **Alquiler de consultorio $ 20.000, solo de Jorge**, se carga solo todos los meses.
+- Quien paga pone el monto (con "Igual que el mes pasado"); al otro le aparece su mitad. La planilla se puede editar (agregar, quitar, quién paga, % y monto fijo) y se ve igual en los dos celulares.
