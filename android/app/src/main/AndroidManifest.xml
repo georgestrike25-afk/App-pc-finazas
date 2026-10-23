@@ -105,4 +105,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Avisos de Brote ("Se anotó…", "¿Cuánto fue?") en Android 13 o más nuevo -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Modo pareja: escanear el QR del otro celular (la imagen no sale del teléfono). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

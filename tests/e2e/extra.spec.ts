@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
-import { go, GUIA_VISTA } from './helpers';
+import { fillMoney, go, GUIA_VISTA } from './helpers';
 
 test('PDF escaneado (solo imagen) se lee con OCR local', async ({ page }) => {
   test.setTimeout(240_000);
@@ -350,4 +350,26 @@ test('tema: claro, oscuro o el del sistema, y se recuerda al volver a abrir', as
   await expect(html).toHaveAttribute('data-theme', 'light');
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(html).toHaveAttribute('data-theme', 'dark');
+});
+
+test('modo pareja: planilla del mes, gasto compartido y Pagado', async ({ page }) => {
+  await go(page, 'pareja');
+  await page.getByLabel('Tu nombre').fill('Jorge');
+  await page.getByLabel('Nombre de tu pareja').fill('Antonella');
+  await page.getByRole('button', { name: 'Activar modo pareja' }).click();
+  await expect(page.getByAltText('QR para conectar a Antonella')).toBeVisible();
+  await page.getByRole('button', { name: 'Anotar', exact: true }).click();
+  await page.getByLabel('Qué fue').fill('Supermercado');
+  await fillMoney(page, 'Monto total', '500');
+  await page.getByRole('radio', { name: 'Lo pagó Antonella' }).click();
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.locator('.pj-hero')).toContainText('Le tenés que pasar a Antonella');
+  await expect(page.locator('.pj-hero .hero-money')).toContainText('250');
+  await page.getByRole('button', { name: 'Pagado' }).click();
+  await page.getByRole('button', { name: 'Sí, ya se lo pasé' }).click();
+  await expect(page.locator('.pj-hero')).toContainText('Están a mano');
+  await go(page, 'gastos');
+  await expect(page.locator('.content')).toContainText('Supermercado');
+  // El consultorio (fijo, solo tuyo) se carga solo.
+  await expect(page.locator('.content')).toContainText('Alquiler de consultorio');
 });

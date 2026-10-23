@@ -10,6 +10,7 @@ import type { SancorCharge } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Field, Modal, Money, MoneyInput, MonthNav, MonthSelect } from '../components/ui';
 import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 import { ExpenseTable } from './Gastos';
+import { ParejaResumen, usePareja } from './Pareja';
 
 function SancorForm({ initial, onClose }: { initial: Partial<SancorCharge> & { month: MonthKey; partnerPct: number }; onClose: () => void }) {
   const { toast } = useApp();
@@ -66,6 +67,7 @@ export function CompartidosPage() {
   const charges = data.sancor.filter((c) => c.month === month);
   const allPending = sum(data.sancor.map((c) => sancorSummary(c).pending));
   const p = data.settings.partnerName;
+  const pareja = usePareja();
 
   return (
     <div className="page">
@@ -73,6 +75,7 @@ export function CompartidosPage() {
       <div className="page-actions">
         <button className="btn primary" onClick={() => setEditing(newExpenseDraft('hogar', month, data.settings.defaultUserPct))}>+ Gasto del hogar</button>
       </div>
+      <ParejaResumen />
       <div className="kpis">
         <div className="kpi"><span>Total gastos del hogar</span><Money value={sum(occ.map((o) => o.total))} /></div>
         <div className="kpi"><span>Mi parte</span><Money value={sum(occ.map((o) => o.userShare))} /></div>
@@ -88,6 +91,7 @@ export function CompartidosPage() {
         help="La tarjeta te cobra la cuota entera de Sancor, pero tu pareja te devuelve su parte. Acá ves cuánto te tienen que devolver y anotás cuando te lo dan."
         actions={<button className="btn small" onClick={() => setSancorEdit({ id: uid(), month, partnerPct: data.settings.sancorPartnerPct })}>+ Asociar cargo manualmente</button>}
       >
+        {pareja?.yo && <p className="small warn">Con el modo pareja activado, lo que te devuelve tu pareja se marca con <a href="#/pareja">Pagado</a>: no lo registres acá también como reintegro, para no contarlo dos veces.</p>}
         <p className="muted small">
           Al importar un resumen de Visa, el cargo de Sancor Salud se detecta automáticamente. Si no se detecta, asócielo manualmente. El total de la tarjeta nunca se reduce por un reintegro no recibido.
         </p>

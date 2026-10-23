@@ -90,6 +90,18 @@ final class Avisos {
         gestor(c).notify(id(clave), n);
     }
 
+    /** Modo pareja: "Antonella anotó Supermercado $ 50.000" (al tocarlo abre Brote). */
+    static void pareja(Context c, String id, String titulo, String texto) {
+        if (!permitido(c)) return;
+        Notification n = base(c)
+                .setContentTitle(titulo)
+                .setContentText(texto)
+                .setStyle(new Notification.BigTextStyle().bigText(texto))
+                .setContentIntent(Brote.abrirApp(c, id("pareja" + id)))
+                .build();
+        gestor(c).notify(id("pareja" + id), n);
+    }
+
     static void quitar(Context c, String clave) {
         if (clave != null) gestor(c).cancel(id(clave));
     }

@@ -28,13 +28,49 @@ let ALLOWED = ['*'];
 let SERVE_APP = false;
 let APP_DIR = '';
 let tokenHash = Buffer.alloc(0);
+/** Huellas de los tokens de los espacios de pareja ("pareja-…"): cada uno queda atado a su espacio. */
+const parejaTokens = new Map();
+let parejaLoaded = false;
 
-function authorized(req) {
-  const h = req.headers.authorization ?? '';
-  const m = h.match(/^Bearer (.+)$/);
-  if (!m) return false;
-  const got = createHash('sha256').update(m[1]).digest();
-  return timingSafeEqual(got, tokenHash);
+const hashOf = (t) => createHash('sha256').update(t).digest();
+const bearer = (req) => (req.headers.authorization ?? '').match(/^Bearer (.+)$/)?.[1] ?? null;
+
+/** Token de la PC (tu celular y tu PC): acceso a todo. */
+function isMain(req) {
+  const t = bearer(req);
+  return !!t && timingSafeEqual(hashOf(t), tokenHash);
+}
+
+async function loadPareja() {
+  if (parejaLoaded) return;
+  parejaLoaded = true;
+  try {
+    for (const f of await fs.readdir(DATA_DIR)) {
+      if (!/^pareja-[A-Za-z0-9_-]+\.json$/.test(f)) continue;
+      const s = await readSpace(f.slice(0, -5));
+      if (s?.tokenHash) parejaTokens.set(f.slice(0, -5), s.tokenHash);
+    }
+  } catch {
+    /* sin datos todavía */
+  }
+}
+
+/**
+ * Modo pareja: el espacio queda atado al token con el que se creó (lo trae el código de pareja).
+ * Así el celular de tu pareja solo puede leer y escribir ese espacio, nunca tus datos.
+ */
+function parejaOk(req, space) {
+  const t = bearer(req);
+  const h = parejaTokens.get(space);
+  if (!t || !h) return false;
+  return timingSafeEqual(hashOf(t), Buffer.from(h, 'hex'));
+}
+
+function knownPareja(req) {
+  const t = bearer(req);
+  if (!t) return false;
+  const h = hashOf(t).toString('hex');
+  return [...parejaTokens.values()].includes(h);
 }
 
 function cors(req, res) {
@@ -45,6 +81,8 @@ function cors(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, If-Match');
     res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
     res.setHeader('Access-Control-Max-Age', '600');
+    // Chrome pide permiso explícito para llamar a direcciones de la red local desde la app.
+    if (req.headers['access-control-request-private-network']) res.setHeader('Access-Control-Allow-Private-Network', 'true');
   }
 }
 
@@ -138,11 +176,17 @@ async function handler(req, res) {
     if (SERVE_APP && req.method === 'GET') return serveStatic(req, res);
     return send(res, 404, { error: 'not found' });
   }
-  if (!authorized(req)) return send(res, 401, { error: 'unauthorized' });
-  if (url.pathname === '/api/health') return send(res, 200, { ok: true });
+  await loadPareja();
+  const main = isMain(req);
+  if (url.pathname === '/api/health') return main || knownPareja(req) ? send(res, 200, { ok: true }) : send(res, 401, { error: 'unauthorized' });
   const m = url.pathname.match(/^\/api\/spaces\/([A-Za-z0-9_-]{3,64})$/);
-  if (!m) return send(res, 404, { error: 'not found' });
+  if (!m) return send(res, main ? 404 : 401, { error: main ? 'not found' : 'unauthorized' });
   const space = m[1];
+  const pareja = /^pareja-/.test(space);
+  // Un espacio de pareja nuevo lo crea el primero que sube datos con su token.
+  const nuevoPareja = pareja && !parejaTokens.has(space) && !!bearer(req) && bearer(req).length >= 16;
+  if (!main && !(pareja && (parejaOk(req, space) || nuevoPareja))) return send(res, 401, { error: 'unauthorized' });
+  if (nuevoPareja && req.method === 'PUT' && parejaTokens.size >= 20) return send(res, 403, { error: 'too many spaces' });
   if (req.method === 'GET') {
     const s = await readSpace(space);
     if (!s) return send(res, 404, { error: 'empty' });
@@ -174,6 +218,11 @@ async function handler(req, res) {
       const curVersion = cur?.version ?? 0;
       if (ifMatch !== curVersion) return send(res, 409, { error: 'conflict', version: curVersion });
       const next = { version: curVersion + 1, blob: body.blob, updatedAt: new Date().toISOString() };
+      if (pareja) {
+        // Si ya tenía dueño, lo conserva; si es nuevo, queda atado al token de quien lo creó.
+        next.tokenHash = cur?.tokenHash ?? parejaTokens.get(space) ?? hashOf(bearer(req)).toString('hex');
+        if (!parejaTokens.has(space)) parejaTokens.set(space, next.tokenHash);
+      }
       await writeSpace(space, next);
       return send(res, 200, { version: next.version });
     });
@@ -194,6 +243,8 @@ export function startSyncServer(opts) {
   TOKEN = opts.token ?? '';
   if (TOKEN.length < 16) throw new Error('El token debe tener al menos 16 caracteres.');
   tokenHash = createHash('sha256').update(TOKEN).digest();
+  parejaTokens.clear();
+  parejaLoaded = false;
   DATA_DIR = resolve(opts.dataDir ?? join(here, 'data'));
   APP_DIR = resolve(opts.appDir ?? join(here, '..', 'dist'));
   SERVE_APP = !!opts.serveApp;

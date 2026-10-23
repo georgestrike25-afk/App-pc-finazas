@@ -350,6 +350,16 @@ Desde el celular use la dirección de la PC en la red local, por ejemplo `http:/
 
 ---
 
+## Modo pareja (gastos compartidos entre dos celulares)
+
+En **Gastos → Pareja**. Uno lo activa y el otro escanea el QR (o pega el código `BROTE2-…`).
+
+- **Sin depender de la PC:** cada celular recibe la sincronización del otro por el Wi-Fi (o el hotspot de uno), con un servidor chico dentro de la app de Android (puerto 8797). Sigue respondiendo con Brote cerrado mientras esté activada la lectura de notificaciones. Lo anotado sin conexión queda guardado y se manda al volver a estar en la misma red. La PC es opcional: si está prendida con Brote abierto también guarda los compartidos (y se ven en Windows).
+- **Qué viaja:** solo la planilla de gastos fijos, los gastos marcados como compartidos y los pagos entre los dos; cifrado (AES-GCM) con una frase aleatoria que va en el código. El espacio queda atado a su token: con el código de pareja no se pueden leer ni tocar los datos personales de la PC.
+- **Cuentas:** a cada uno le aparece en Gastos su parte (id `pareja-…`). Lo que pagó el otro no sale de tu plata hasta cobrar; lo que pagaste vos sale entero. **Pagado** salda: sale de la plata de quien paga y entra en la de quien recibe (no se suma al sueldo). La obra social que paga uno con la tarjeta no se duplica en su app: llega con el resumen.
+- **Planilla de gastos fijos:** se arma sola cada mes (alquiler, luz, gas, internet, fondo casa, obra social). Lo que todavía no se cargó queda "Pendiente". Los fijos con monto (alquiler de consultorio, $ 20.000, solo de quien lo paga) se cargan solos.
+- **Widget y anotación rápida:** el widget muestra el saldo ("Le debés a…") y el botón "Con …"; al anotar un compartido se elige "Lo pagué yo / Lo pagó …". Cuando el otro anota algo llega un aviso.
+
 ## Seguridad y privacidad
 
 - **Datos locales**: IndexedDB del navegador; se solicita almacenamiento persistente. Sin cuentas, sin servidores de terceros, sin telemetría, sin claves en el código.

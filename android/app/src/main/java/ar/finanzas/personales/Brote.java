@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import org.json.JSONArray;
@@ -156,6 +157,12 @@ final class Brote {
             v.setTextViewText(R.id.w_ultimo_s, p.getString("ultimoS", ""));
             v.setTextViewText(R.id.w_ultimo_m, p.getString("ultimoM", ""));
         }
+        // Modo pareja: el saldo con la pareja ("Le debés a Antonella $ 116.706").
+        String saldo = p.getString("parejaSaldo", "");
+        v.setViewVisibility(R.id.w_pareja, saldo.isEmpty() ? View.GONE : View.VISIBLE);
+        v.setTextViewText(R.id.w_pareja, saldo);
+        v.setOnClickPendingIntent(R.id.w_pareja, abrirApp(c, 15));
+        v.setTextViewText(R.id.w_compartido_t, saldo.isEmpty() ? "Compartido" : "Con " + p.getString("parejaNombre", ""));
         v.setOnClickPendingIntent(R.id.w_cabecera, abrirApp(c, 10));
         v.setOnClickPendingIntent(R.id.w_ultimo, abrirApp(c, 11));
         v.setOnClickPendingIntent(R.id.w_gasto, abrirAnotar(c, "gasto", 12));

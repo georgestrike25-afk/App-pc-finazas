@@ -128,6 +128,7 @@ public class NotificacionesPlugin extends Plugin {
         if (t != null) e.putString("ultimoT", t).putString("ultimoS", call.getString("ultimoS", "")).putString("ultimoM", call.getString("ultimoM", ""));
         String plata = call.getString("plata");
         if (plata != null) e.putString("plata", plata);
+        e.putString("parejaNombre", call.getString("parejaNombre", "")).putString("parejaSaldo", call.getString("parejaSaldo", ""));
         e.apply();
         Brote.actualizarWidgets(getContext());
         call.resolve();
@@ -162,6 +163,41 @@ public class NotificacionesPlugin extends Plugin {
         String clave = call.getString("clave");
         Avisos.quitar(getContext(), clave);
         Brote.resolverPendiente(getContext(), clave);
+        call.resolve();
+    }
+
+    /** Modo pareja: aviso cuando el otro anota un gasto compartido o marca un pago. */
+    @PluginMethod
+    public void avisoPareja(PluginCall call) {
+        Avisos.pareja(getContext(), call.getString("id", ""), call.getString("titulo", "Brote"), call.getString("texto", ""));
+        call.resolve();
+    }
+
+    /** Modo pareja: este celular recibe la sincronización del otro (también con la app cerrada). */
+    @PluginMethod
+    public void servidorPareja(PluginCall call) {
+        String token = call.getString("token");
+        String espacio = call.getString("space");
+        if (token == null || espacio == null) {
+            call.reject("faltan datos");
+            return;
+        }
+        ServidorPareja.configurar(getContext(), token, espacio);
+        JSObject r = new JSObject();
+        JSArray urls = new JSArray();
+        if (ServidorPareja.andando()) for (String u : ServidorPareja.direcciones()) urls.put(u);
+        r.put("urls", urls);
+        r.put("puerto", ServidorPareja.PUERTO);
+        if (!ServidorPareja.andando()) {
+            call.reject("no se pudo abrir el puerto");
+            return;
+        }
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void detenerPareja(PluginCall call) {
+        ServidorPareja.olvidar(getContext());
         call.resolve();
     }
 }

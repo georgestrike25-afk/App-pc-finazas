@@ -43,6 +43,8 @@ public class LectorNotificaciones extends NotificationListenerService {
     /** Al conectarse revisa las que ya estaban (la app descarta las repetidas). */
     @Override
     public void onListenerConnected() {
+        // Mientras la lectura de notificaciones esté activa, el celular recibe al otro del modo pareja.
+        ServidorPareja.iniciar(getApplicationContext());
         try {
             StatusBarNotification[] activas = getActiveNotifications();
             if (activas != null) for (StatusBarNotification s : activas) procesar(s);

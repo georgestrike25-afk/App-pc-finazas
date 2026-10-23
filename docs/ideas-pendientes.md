@@ -1,6 +1,6 @@
 # Ideas pendientes
 
-## Modo pareja: Jorge y Antonella comparten gastos (pedido el 23/10/2026, para hacer más adelante)
+## Modo pareja: Jorge y Antonella comparten gastos (pedido el 23/10/2026 — HECHO el 24/10/2026, ver README → Modo pareja)
 
 Solo celular (Android). No programar hasta que Jorge lo confirme; primero mostrar el diseño en capturas para aprobar.
 
@@ -29,3 +29,5 @@ Solo celular (Android). No programar hasta que Jorge lo confirme; primero mostra
 - Confirmado por Jorge: todos los gastos fijos cambian un poco cada mes (se cargan a mano, la app muestra el monto del mes anterior como referencia); el único fijo es el consultorio, $ 20.000, que paga y es solo de Jorge.
 - Regla: en la app de Jorge, cada gasto fijo que paga Antonella queda "Pendiente" (sin sumar nada) hasta que ella lo carga como pagado; en ese momento se suma solo la mitad de Jorge a sus gastos y al saldo "le tenés que pasar". Al revés con Sancor (lo paga Jorge: al cargarse, a Antonella le aparece su mitad). El consultorio no se comparte.
 - Sancor: el monto cambia cada mes. Jorge carga el total a mano (o se toma del resumen de la Visa si ya lo subió, sin duplicar); a Antonella le aparece su mitad como gasto y suma al saldo "le tenés que pasar a Jorge". Cuando ella paga, a Jorge le entra como ingreso (o como "lo que te devolvió", según cómo se cuente hoy Sancor en Brote: que no se cuente dos veces).
+
+**Implementado (24/10/2026):** sincroniza celular con celular por el Wi-Fi o el hotspot, sin depender de la PC (la PC es opcional). Para conectarse se usa el QR o el código `BROTE2-…`. Pendiente de probar en los dos celulares reales: si el otro celular sigue recibiendo con Brote cerrado (depende de que Android mantenga viva la lectura de notificaciones). Queda para más adelante: un .exe para Antonella, si lo quiere.

@@ -4,9 +4,10 @@ import { App } from './ui/App';
 import { ensureInitialized } from './db/repo';
 import { registerPwa } from './ui/pwa';
 import { startAutoSync } from './sync/autoSync';
+import { startParejaSync } from './sync/pareja';
 import '@fontsource-variable/inter/wght.css';
 import './ui/styles.css';
-import { startNotificationIngest } from './notifications/native';
+import { startNotificationIngest, startParejaAvisos } from './notifications/native';
 
 // Los errores no controlados se muestran sin exponer datos financieros en la consola.
 window.addEventListener('unhandledrejection', (e) => {
@@ -34,6 +35,8 @@ async function start() {
   );
   registerPwa();
   startAutoSync();
+  startParejaSync();
   startNotificationIngest();
+  startParejaAvisos();
 }
 start();

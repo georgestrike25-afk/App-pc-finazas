@@ -3,7 +3,10 @@ import { getDb } from '../db/db';
 import { addAudit, getDeviceId, getSettings, loadDataSet, notify, nowIso } from '../db/repo';
 import { cashStatus } from '../domain/cash';
 import { formatARS } from '../domain/money';
-import { planQuick, type QuickEntry } from './quick';
+import { planQuick, QUICK_CATEGORIES, type QuickEntry } from './quick';
+import { cambiarPareja, loadPareja, onNovedades } from '../sync/pareja';
+import { otro, saldo, type ParejaGasto } from '../domain/pareja';
+import { uid } from '../domain/text';
 import { isNative } from '../platform';
 import { decide, type LogNotif, type RawNotification, type ReviewNotif } from './ingest';
 
@@ -16,7 +19,8 @@ interface NotificacionesPlugin {
   configurar(o: { activo: boolean; pareja: string }): Promise<void>;
   rapidas(): Promise<{ items: QuickEntry[] }>;
   borrarRapidas(o: { cantidad: number }): Promise<void>;
-  widget(o: { pendientes: number; ultimoT?: string; ultimoS?: string; ultimoM?: string; plata?: string }): Promise<void>;
+  widget(o: { pendientes: number; ultimoT?: string; ultimoS?: string; ultimoM?: string; plata?: string; parejaNombre?: string; parejaSaldo?: string }): Promise<void>;
+  avisoPareja(o: { id: string; titulo: string; texto: string }): Promise<void>;
   permisoAvisos(): Promise<{ permitido: boolean }>;
   pedirPermisoAvisos(): Promise<void>;
   compartidos(): Promise<{ items: Array<{ ruta: string; nombre: string; tipo: string }> }>;
@@ -47,8 +51,9 @@ export async function ingestQuick(): Promise<number> {
   if (!isNative() || quickRunning) return 0;
   quickRunning = true;
   try {
-    const { items } = await Notificaciones.rapidas();
-    if (!items.length) return 0;
+    const { items: todas } = await Notificaciones.rapidas();
+    if (!todas.length) return 0;
+    const items = await compartidosAPareja(todas);
     const db = getDb();
     const settings = await getSettings(db);
     const deviceId = await getDeviceId(db);
@@ -68,12 +73,59 @@ export async function ingestQuick(): Promise<number> {
       const n = plan.put.length + plan.incomes.length;
       if (n || plan.remove.length) await addAudit(db, 'crear', 'gastos', undefined, `Anotación rápida: ${n} registro(s)${plan.remove.length ? `, ${plan.remove.length} deshecho(s)` : ''}`, deviceId);
     });
-    await Notificaciones.borrarRapidas({ cantidad: items.length });
+    await Notificaciones.borrarRapidas({ cantidad: todas.length });
     notify();
     return plan.put.length + plan.incomes.length;
   } finally {
     quickRunning = false;
   }
+}
+
+/**
+ * Modo pareja: lo anotado como "Compartido" en el widget o en un aviso va a la pareja (y vuelve a tu
+ * lista con tu parte). Si venía de un aviso que ya se había anotado solo, ese gasto se saca.
+ */
+async function compartidosAPareja(items: QuickEntry[]): Promise<QuickEntry[]> {
+  const st = await loadPareja();
+  if (!st?.yo) return items;
+  const yo = st.yo;
+  const nuevos: ParejaGasto[] = [];
+  const resto: QuickEntry[] = [];
+  for (const q of items) {
+    const monto = Math.abs(Math.round(q.monto ?? 0));
+    if (q.accion !== 'guardar' || q.tipo !== 'compartido' || !monto) {
+      resto.push(q);
+      continue;
+    }
+    const t = nowIso();
+    const d = new Date(q.fecha ?? Date.now());
+    const fecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    nuevos.push({
+      id: q.id ?? uid(),
+      createdAt: t,
+      updatedAt: t,
+      autor: yo,
+      paga: q.pagoPareja ? otro(yo) : yo,
+      pctPaga: 50,
+      concepto: (q.descripcion ?? '').trim() || 'Compartido',
+      total: monto,
+      fecha,
+      mes: fecha.slice(0, 7),
+      categoria: QUICK_CATEGORIES[q.categoria ?? 'dia']?.category ?? 'Gasto diario',
+    });
+    if (q.clave) resto.push({ accion: 'deshacer', clave: q.clave });
+  }
+  if (nuevos.length) await cambiarPareja((doc) => ({ ...doc, gastos: [...doc.gastos.filter((g) => !nuevos.some((n) => n.id === g.id)), ...nuevos] }));
+  return resto;
+}
+
+/** Notificación en el celular cuando tu pareja anota un gasto compartido o marca un pago. */
+export function startParejaAvisos() {
+  if (!isNative()) return;
+  onNovedades((ns) => {
+    for (const n of ns.slice(-5)) Notificaciones.avisoPareja({ id: n.id, titulo: n.titulo, texto: n.texto }).catch(() => {});
+    syncWidget();
+  });
 }
 
 /** Le pasa al widget el estado real: lo que falta registrar, lo último anotado y la plata hasta cobrar. */
@@ -94,10 +146,20 @@ export async function syncWidget(): Promise<void> {
       pendientes: review.length,
       ...(last ? { ultimoT: `Se sumó: ${last.concept}`, ultimoS: `${hace} · ${last.category}`, ultimoM: formatARS(last.kind === 'hogar' ? Math.round((last.totalAmount * last.userPct) / 100) : last.totalAmount).replace(/,00$/, '') } : {}),
       plata: cash ? formatARS(cash.left).replace(/,\d\d$/, '') : '—',
+      ...(await widgetPareja()),
     });
   } catch {
     // sin widget: no pasa nada
   }
+}
+
+async function widgetPareja(): Promise<{ parejaNombre: string; parejaSaldo: string }> {
+  const st = await loadPareja();
+  if (!st?.yo) return { parejaNombre: '', parejaSaldo: '' };
+  const el = st.doc.nombres[otro(st.yo)];
+  const n = saldo(st.doc, st.yo).neto;
+  const m = formatARS(Math.abs(n)).replace(/,00$/, '');
+  return { parejaNombre: el, parejaSaldo: n === 0 ? `Con ${el}: están a mano` : n < 0 ? `Le debés a ${el} ${m}` : `${el} te debe ${m}` };
 }
 
 /** Archivos que llegan con "Compartir → Importar en Brote": se abren en "Subir documento". */

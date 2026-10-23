@@ -24,6 +24,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NotificacionesPlugin.class);
         super.onCreate(savedInstanceState);
+        ServidorPareja.iniciar(getApplicationContext());
         recibir(getIntent());
     }
 
