@@ -27,3 +27,4 @@ Solo celular (Android). No programar hasta que Jorge lo confirme; primero mostra
 - Único fijo: **Alquiler de consultorio $ 20.000, solo de Jorge**, se carga solo todos los meses.
 - Quien paga pone el monto (con "Igual que el mes pasado"); al otro le aparece su mitad. La planilla se puede editar (agregar, quitar, quién paga, % y monto fijo) y se ve igual en los dos celulares.
 - Confirmado por Jorge: todos los gastos fijos cambian un poco cada mes (se cargan a mano, la app muestra el monto del mes anterior como referencia); el único fijo es el consultorio, $ 20.000, que paga y es solo de Jorge.
+- Regla: en la app de Jorge, cada gasto fijo que paga Antonella queda "Pendiente" (sin sumar nada) hasta que ella lo carga como pagado; en ese momento se suma solo la mitad de Jorge a sus gastos y al saldo "le tenés que pasar". Al revés con Sancor (lo paga Jorge: al cargarse, a Antonella le aparece su mitad). El consultorio no se comparte.
