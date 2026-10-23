@@ -372,6 +372,77 @@
         <div class="addrow">${I('Plus')}Agregar un gasto fijo</div>
         <div class="note">${I('Info')}<span>Si cambiás la planilla, Antonella la ve igual en su celular. Los montos de cada mes los ponen ustedes; el consultorio se carga solo porque es fijo.</span></div>
       </div>${bottom('Gastos')}</div>`,
+
+    'widget-jorge': () => `<div class="phone home">${status}${de('Jorge')}
+      <div class="clock"><b>19:42</b><span class="small">jueves, 23 de octubre</span></div>
+      <section class="widget">
+        <div class="w-head"><img src="brote-mark.png" alt=""><strong>Brote</strong><span class="tag lime">${I('Users')}Con Antonella</span></div>
+        <div class="w-bal">${av('A')}<div style="flex:1"><div style="font-weight:700;font-size:.9rem">Le debés a Antonella $ 116.706</div><div class="small muted">Faltan cargar: gas e internet (Antonella)</div></div></div>
+        <div class="w-btns"><b class="w-btn main">${I('Users')}Compartido</b><b class="w-btn">${I('Minus')}Gasto</b><b class="w-btn">${I('Plus')}Ingreso</b></div>
+      </section>
+      <section class="widget" style="margin-top:0;width:calc(50% - 22px)">
+        <div class="w-head"><img src="brote-mark.png" alt=""><span class="tag ok">${I('Check')}Al día</span></div>
+        <div><div class="small muted">Plata hasta cobrar</div><div style="font-size:1.6rem;font-weight:750;letter-spacing:-.03em" class="num">$ 433 mil</div></div>
+        <b class="w-btn main" style="min-height:40px">${I('Plus')}Anotar</b>
+      </section>
+      <div class="apps">${'<i></i>'.repeat(4)}</div></div>`,
+
+    'sancor-cargar': () => `<div class="phone">${status}${de('Jorge')}
+      <div class="top"><div style="flex:1"><h1>Gastos fijos</h1><div class="sub">Noviembre de 2026 · con Antonella</div></div></div>
+      <div class="body"><section class="card"><ul class="lst">
+        ${row('House', 'Alquiler', 'mitad y mitad', '$ 449.758', '$ 224.879', 'A')}
+        <li><span class="ico dash">${I('HeartPulse')}</span><div class="grow"><div class="t">Obra social (Sancor)</div><div class="s">${av('J')} la pagás vos · falta el monto</div></div><span class="tag">Pendiente</span></li>
+      </ul></section></div>
+      <div class="scrim"></div>
+      <section class="sheet">
+        <div class="grab"></div>
+        <div class="s-head"><span class="lst"><span class="ico">${I('HeartPulse')}</span></span><div><h2>Obra social (Sancor) de noviembre</h2><p>La pagás vos con la Visa · Antonella paga la mitad</p></div></div>
+        <div class="seg"><b class="on">${I('Pencil')}A mano</b><b>${I('CreditCard')}Del resumen de la Visa</b></div>
+        <div class="bigamt num">$ 286.456</div>
+        <div class="halves">
+          <div>${av('J')}<span>Tu mitad<b class="num">$ 143.228</b></span></div>
+          <div>${av('A')}<span>A Antonella le aparece<b class="num">$ 143.228</b></span></div>
+        </div>
+        <div class="note">${I('Info')}<span>Si después subís el resumen de la Visa, Brote lo reconoce y <b>no lo cuenta dos veces</b>. El mes pasado fue $ 279.400.</span></div>
+        <div class="keys">${['1','2','3','4','5','6','7','8','9',',','0'].map((k) => `<b>${k}</b>`).join('')}<b>${I('Delete')}</b></div>
+        <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:10px"><b class="btn">Cancelar</b><b class="btn primary">${I('Check')}Guardar</b></div>
+      </section></div>`,
+
+    'sancor-resumen': () => `<div class="phone">${status}${de('Jorge')}
+      <div class="top">${I('ArrowLeft')}<div style="flex:1"><h1>Subir documento</h1><div class="sub">Resumen Visa Banco Patagonia · noviembre</div></div></div>
+      <div class="body"><section class="card"><h2>Qué se va a cargar</h2><ul class="lst">
+        <li><span class="ico">${I('HeartPulse')}</span><div class="grow"><div class="t">SANCOR SALUD</div><div class="s">05/11 · obra social</div></div><div class="m num"><b>$ 288.910</b></div></li>
+        <li><span class="ico">${I('ShoppingCart')}</span><div class="grow"><div class="t">MERPAGO*MERCADOLIBRE</div><div class="s">09/11</div></div><div class="m num"><b>$ 29.654</b></div></li>
+      </ul></section></div>
+      <div class="scrim"></div>
+      <section class="sheet">
+        <div class="grab"></div>
+        <div class="s-head"><span class="lst"><span class="ico">${I('HeartPulse')}</span></span><div><h2>Sancor ya estaba cargado</h2><p>Lo pusiste a mano el 02/11 · no se va a contar dos veces</p></div></div>
+        <div class="halves">
+          <div style="flex-direction:column;align-items:flex-start">${I('Pencil')}<span>A mano<b class="num">$ 286.456</b></span></div>
+          <div style="flex-direction:column;align-items:flex-start;border-color:var(--primary);background:color-mix(in srgb,var(--lime) 14%,transparent)">${I('CreditCard')}<span>En el resumen<b class="num">$ 288.910</b></span></div>
+        </div>
+        <div class="note">${I('Info')}<span>¿Cuál vale? Si elegís el del resumen, a Antonella se le actualiza su mitad a <b>$ 144.455</b> y le llega un aviso.</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><b class="btn">Dejar $ 286.456</b><b class="btn primary">${I('Check')}Usar el resumen</b></div>
+      </section></div>`,
+
+    'fijos-anto': () => `<div class="phone">${status}${de('Antonella')}
+      <div class="top"><div style="flex:1"><h1>Gastos fijos</h1><div class="sub">Noviembre de 2026 · con Jorge</div></div></div>
+      <div class="body">
+        <section class="hero"><div class="bar"></div><span class="pair">${av('A')}${I('ArrowRightLeft')}${av('J')} Saldo del mes</span>
+          <span class="lbl" style="margin-top:6px">Jorge te tiene que pasar</span><div class="amt num">$ 116.706</div>
+          <span class="lbl">Tus pagos: alquiler y luz ($ 259.934 de Jorge) · su pago: Sancor ($ 143.228 tuyos)</span></section>
+        <section class="card"><h2>Noviembre<span class="r">tu parte</span></h2>
+          <ul class="lst">
+            ${row('House', 'Alquiler', 'mitad y mitad', '$ 449.758', '$ 224.879', 'A')}
+            ${row('Zap', 'Luz', 'mitad y mitad', '$ 70.110', '$ 35.055', 'A')}
+            <li><span class="ico dash">${I('Flame')}</span><div class="grow"><div class="t">Gas</div><div class="s">${av('A')} lo pagás vos · falta el monto</div></div><b class="falta">${I('Plus')}Poner</b></li>
+            <li><span class="ico dash">${I('Wifi')}</span><div class="grow"><div class="t">Internet</div><div class="s">${av('A')} lo pagás vos · falta el monto</div></div><b class="falta">${I('Plus')}Poner</b></li>
+            ${row('HeartPulse', 'Obra social (Sancor)', 'cargado por Jorge', '$ 286.456', '$ 143.228', 'J')}
+          </ul>
+          <p class="small muted" style="margin:10px 0 0">El alquiler del consultorio es solo de Jorge: no aparece acá.</p>
+        </section>
+      </div>${bottom('Gastos')}</div>`,
   };
   document.getElementById('root').innerHTML = (S[q.get('pantalla')] || S.compartidos)();
 </script>
