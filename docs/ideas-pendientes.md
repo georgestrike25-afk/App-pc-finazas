@@ -17,3 +17,7 @@ Solo celular (Android). No programar hasta que Jorge lo confirme; primero mostra
 - Qué pasa si uno edita o borra un gasto compartido; confirmación del otro o no.
 - Reparto distinto de 50 % en algunos gastos (hoy la configuración permite otro %).
 - Marcar "ya te pasé la plata" para saldar el mes.
+
+**Diseño propuesto (23/10/2026):** `design-preview/pareja/` (capturas `pareja-*.png`, claro y oscuro).
+- Botón **Pagado**: en la app de quien paga sale de su plata hasta cobrar como "Pago a Antonella/Jorge" (no es gasto nuevo: su mitad ya estaba en Gastos); en la app de quien recibe entra como **ingreso** y el saldo queda en cero. Vale para los dos lados.
+- Cuando uno anota un gasto compartido, al otro le llega un aviso con su mitad, que ya se suma a sus gastos ("No es compartido" para corregir).
