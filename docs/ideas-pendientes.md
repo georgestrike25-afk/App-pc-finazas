@@ -26,3 +26,4 @@ Solo celular (Android). No programar hasta que Jorge lo confirme; primero mostra
 - Se arma sola cada mes, sin montos: Alquiler, Luz, Gas e Internet (paga Antonella, mitad y mitad), Fondo casa (opcional, los dos), Obra social Sancor (paga Jorge con la Visa, llega con el resumen; Antonella devuelve la mitad).
 - Único fijo: **Alquiler de consultorio $ 20.000, solo de Jorge**, se carga solo todos los meses.
 - Quien paga pone el monto (con "Igual que el mes pasado"); al otro le aparece su mitad. La planilla se puede editar (agregar, quitar, quién paga, % y monto fijo) y se ve igual en los dos celulares.
+- Confirmado por Jorge: todos los gastos fijos cambian un poco cada mes (se cargan a mano, la app muestra el monto del mes anterior como referencia); el único fijo es el consultorio, $ 20.000, que paga y es solo de Jorge.
