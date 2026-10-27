@@ -180,6 +180,7 @@ jobs:
       # Diagnóstico: capturas e informe de cada ejecución, aunque las pruebas fallen (no es un APK).
       - name: Publicar diagnóstico de interfaz
         if: always() && github.event_name != 'pull_request'
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: afinador-diagnostico-ui
