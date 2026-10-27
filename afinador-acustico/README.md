@@ -18,6 +18,14 @@ sin conexión, no tiene publicidad ni cuentas y no pide permiso de Internet.
 
 Requisitos: Android 8.0 (API 26) o superior, con micrófono.
 
+<p>
+  <img src="docs/captura-afinador-oscuro.png" width="260" alt="Pantalla principal, tema oscuro">
+  <img src="docs/captura-afinador-claro-pantalla-chica.png" width="260" alt="Pantalla principal, tema claro">
+  <img src="docs/captura-cromatico-oscuro.png" width="260" alt="Modo cromático">
+</p>
+
+Capturas reales tomadas en el emulador durante las pruebas de CI.
+
 ## Funciones
 
 | Función | Detalle |

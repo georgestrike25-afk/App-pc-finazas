@@ -68,25 +68,29 @@ fun ChromaticScreen(
                 Spacer(Modifier.weight(1f))
             }
             else -> {
-                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     val badge = min(min(maxWidth * 0.46f, maxHeight * 0.5f), 176.dp)
-                    TuningMeter(
-                        cents = reading.cents,
-                        hasPitch = reading.hasPitch,
-                        toleranceCents = settings.toleranceCents,
-                        status = reading.status,
-                        hubRadius = badge / 2,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    NoteBadge(
-                        reading = reading,
-                        waitingName = null,
-                        waitingOctave = null,
-                        waitingHz = null,
-                        size = badge,
-                        showCents = settings.showCents,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                    )
+                    // El arco está limitado por el ancho: en pantallas altas se centra en vez de dejar un hueco arriba.
+                    val needed = badge / 2 + maxWidth / 2 + 8.dp
+                    Box(Modifier.fillMaxWidth().height(min(maxHeight, needed))) {
+                        TuningMeter(
+                            cents = reading.cents,
+                            hasPitch = reading.hasPitch,
+                            toleranceCents = settings.toleranceCents,
+                            status = reading.status,
+                            hubRadius = badge / 2,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        NoteBadge(
+                            reading = reading,
+                            waitingName = null,
+                            waitingOctave = null,
+                            waitingHz = null,
+                            size = badge,
+                            showCents = settings.showCents,
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                        )
+                    }
                 }
                 Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
                     StatusPill(reading.status, reading.hasPitch)

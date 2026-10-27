@@ -4,10 +4,14 @@ on:
   push:
     paths:
       - "afinador-acustico/**"
+      - "!afinador-acustico/docs/**"
+      - "!afinador-acustico/**/*.md"
       - ".github/workflows/afinador-android.yml"
   pull_request:
     paths:
       - "afinador-acustico/**"
+      - "!afinador-acustico/docs/**"
+      - "!afinador-acustico/**/*.md"
       - ".github/workflows/afinador-android.yml"
   workflow_dispatch:
 
