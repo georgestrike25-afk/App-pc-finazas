@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <title>Cámara Pro</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="visor">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="grid" class="overlay"></canvas>
+    <div id="focusRing" class="hidden"></div>
+    <div id="level" class="hidden"><span></span></div>
+    <canvas id="histogram" class="hidden" width="256" height="80"></canvas>
+    <div id="countdown" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+    <div id="recDot" class="hidden">● REC <span id="recTime">00:00</span></div>
+    <div id="flashOverlay"></div>
+
+    <header id="topBar">
+      <button id="btnTorch" title="Linterna">⚡</button>
+      <button id="btnGrid" title="Cuadrícula">#</button>
+      <button id="btnLevel" title="Nivel">⦵</button>
+      <button id="btnHisto" title="Histograma">▥</button>
+      <button id="btnTimer" title="Temporizador">⏱ <small id="timerLabel">off</small></button>
+      <button id="btnRatio" title="Formato"><small id="ratioLabel">4:3</small></button>
+      <button id="btnPro" title="Modo Pro">PRO</button>
+    </header>
+
+    <section id="proPanel" class="hidden">
+      <div id="proControls"></div>
+      <p id="proEmpty" class="hidden">Este navegador no expone controles manuales para esta lente.</p>
+    </section>
+
+    <section id="filters">
+      <button data-filter="none" class="active">Normal</button>
+      <button data-filter="vivid">Vívido</button>
+      <button data-filter="bw">B/N</button>
+      <button data-filter="warm">Cálido</button>
+      <button data-filter="cool">Frío</button>
+      <button data-filter="vintage">Vintage</button>
+      <button data-filter="noir">Noir</button>
+    </section>
+
+    <section id="zoomBar"></section>
+
+    <nav id="modes">
+      <button data-mode="night">Noche</button>
+      <button data-mode="photo" class="active">Foto</button>
+      <button data-mode="burst">Ráfaga</button>
+      <button data-mode="video">Vídeo</button>
+    </nav>
+
+    <footer id="bottomBar">
+      <button id="btnGallery" title="Galería"><img id="thumb" alt=""></button>
+      <button id="btnShutter" title="Disparar"><span></span></button>
+      <button id="btnSwitch" title="Cambiar cámara">⟲</button>
+    </footer>
+  </main>
+
+  <section id="gallery" class="hidden">
+    <header>
+      <button id="btnCloseGallery">‹ Volver</button>
+      <span id="galleryCount"></span>
+    </header>
+    <div id="galleryGrid"></div>
+  </section>
+
+  <section id="viewer" class="hidden">
+    <div id="viewerMedia"></div>
+    <footer>
+      <button id="btnShare">Compartir</button>
+      <button id="btnDownload">Guardar</button>
+      <button id="btnDelete">Borrar</button>
+      <button id="btnCloseViewer">Cerrar</button>
+    </footer>
+  </section>
+
+  <div id="startScreen">
+    <h1>Cámara Pro</h1>
+    <p>Controles manuales, modo noche por apilado, histograma, nivel y más.</p>
+    <button id="btnStart">Abrir cámara</button>
+    <p id="startError" class="error"></p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
