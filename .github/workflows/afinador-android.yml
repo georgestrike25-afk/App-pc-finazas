@@ -153,7 +153,9 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none -camera-front none
           working-directory: afinador-acustico
-          script: ./gradlew :app:connectedDebugAndroidTest --stacktrace
+          script: |
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --stacktrace
+            mkdir -p capturas && adb pull /sdcard/Android/data/com.afinador.acustico/files/capturas capturas/ || true
 
       - name: Guardar informes
         if: always()
@@ -161,6 +163,20 @@ jobs:
         with:
           name: informes-ui-api${{ matrix.api }}
           path: afinador-acustico/app/build/reports/androidTests/
+
+      - name: Empaquetar capturas
+        if: always()
+        run: |
+          ls -R capturas || true
+          if [ -d capturas/capturas ]; then cd capturas/capturas && zip -q -r "$GITHUB_WORKSPACE/afinador-acustico/capturas-api${{ matrix.api }}.zip" . ; fi
+
+      - name: Guardar capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-api${{ matrix.api }}
+          path: afinador-acustico/capturas-api${{ matrix.api }}.zip
+          if-no-files-found: warn
 
   release:
     name: Publicar APK
@@ -172,6 +188,12 @@ jobs:
         with:
           name: apk
           path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: capturas-api*
+          path: dist
+          merge-multiple: true
 
       - name: Crear release con el APK
         uses: softprops/action-gh-release@v2
@@ -186,6 +208,7 @@ jobs:
             - `AfinadorAcustico-1.0.${{ github.run_number }}.apk`: versión de lanzamiento optimizada y firmada. **Instalá esta.**
             - `…-debug.apk`: versión de prueba con depuración habilitada.
             - `SHA256SUMS.txt`: sumas de verificación.
+            - `capturas-api*.zip`: capturas de pantalla tomadas en el emulador durante las pruebas.
 
             Pasaron las pruebas del motor (matemática y audio sintético), lint y las pruebas de interfaz en emulador.
           files: dist/*
