@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -35,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -93,13 +95,13 @@ fun SettingsScreen(
                     )
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        RoundTextButton("−", { viewModel.setA4(settings.a4 - 1.0) }, description = "Bajar A4 1 Hz", tag = "a4_menos")
+                        RoundTextButton("−", { viewModel.changeA4(-1.0) }, description = "Bajar A4 1 Hz", tag = "a4_menos")
                         Text(
                             Format.a4(settings.a4),
                             color = colors.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
                             modifier = Modifier.weight(1f).testTag("a4_valor"),
                         )
-                        RoundTextButton("+", { viewModel.setA4(settings.a4 + 1.0) }, description = "Subir A4 1 Hz", tag = "a4_mas")
+                        RoundTextButton("+", { viewModel.changeA4(1.0) }, description = "Subir A4 1 Hz", tag = "a4_mas")
                     }
                     CustomA4Field(current = settings.a4, onApply = viewModel::setA4)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -243,9 +245,17 @@ fun SettingsScreen(
 
 @Composable
 private fun CustomA4Field(current: Double, onApply: (Double) -> Unit) {
+    val focusManager = LocalFocusManager.current
     var text by rememberSaveable { mutableStateOf("") }
     val parsed = text.replace(',', '.').toDoubleOrNull()
     val valid = parsed != null && ReferencePitch.isValid(parsed)
+    val apply = {
+        if (valid && parsed != null) {
+            onApply(Math.round(parsed * 10.0) / 10.0)
+            text = ""
+            focusManager.clearFocus() // cierra el teclado
+        }
+    }
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             value = text,
@@ -260,11 +270,12 @@ private fun CustomA4Field(current: Double, onApply: (Double) -> Unit) {
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { apply() }),
             modifier = Modifier.weight(1f).testTag("a4_personalizada"),
         )
         Spacer(Modifier.width(8.dp))
         Button(
-            onClick = { parsed?.let { onApply(Math.round(it * 10.0) / 10.0); text = "" } },
+            onClick = { apply() },
             enabled = valid,
             modifier = Modifier.testTag("a4_aplicar"),
         ) { Text("Aplicar") }

@@ -61,6 +61,31 @@ class AppUiTest {
         rule.waitForIdle()
     }
 
+    /** Los ajustes se guardan en DataStore de forma asíncrona: esperar el resultado en vez de asertar al instante. */
+    private fun waitText(tag: String, text: String, timeout: Long = 5_000) {
+        rule.waitUntil(timeout) {
+            rule.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().any { node ->
+                node.config.getOrNull(SemanticsProperties.Text)?.any { it.text.contains(text) } == true
+            }
+        }
+        rule.onNodeWithTag(tag).assertTextContains(text, substring = true)
+    }
+
+    private fun waitDescription(tag: String, description: String, timeout: Long = 5_000) {
+        rule.waitUntil(timeout) {
+            rule.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().any { node ->
+                node.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(description) == true
+            }
+        }
+    }
+
+    private fun waitSelected(tag: String, timeout: Long = 5_000) {
+        rule.waitUntil(timeout) {
+            rule.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().any { it.config.getOrNull(SemanticsProperties.Selected) == true }
+        }
+        rule.onNodeWithTag(tag).assertIsSelected()
+    }
+
     private fun recreate() {
         rule.activityRule.scenario.recreate()
         startFresh()
@@ -78,18 +103,18 @@ class AppUiTest {
         rule.onNodeWithTag("abrir_ajustes").assertIsDisplayed()
         // Con el micrófono del emulador en silencio, el motor real informa que espera una cuerda.
         rule.onNodeWithTag("estado").assertTextContains("Esperando una cuerda")
-        rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, E2")))
-        rule.onNodeWithTag("cuerda_1").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 1, E4")))
+        waitDescription("cuerda_6", "Cuerda 6, E2")
+        waitDescription("cuerda_1", "Cuerda 1, E4")
     }
 
     @Test
     fun seleccionManualDeCuerdaYVueltaAutomatico() {
         tab("tuner")
         rule.onNodeWithTag("cuerda_5").performClick()
-        rule.onNodeWithTag("modo_auto").assertTextContains("Manual: cuerda 5")
+        waitText("modo_auto", "Manual: cuerda 5")
         rule.onNodeWithTag("cuerda_5").assertIsSelected()
         rule.onNodeWithTag("modo_auto").performClick()
-        rule.onNodeWithTag("modo_auto").assertTextContains("Automático")
+        waitText("modo_auto", "Automático")
     }
 
     @Test
@@ -100,67 +125,73 @@ class AppUiTest {
         rule.onNodeWithTag("lista_afinaciones").performScrollToNode(hasTestTag("afinacion_drop_d"))
         rule.onNodeWithTag("afinacion_drop_d").performClick()
         tab("tuner")
-        rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, D2")))
-        rule.onNodeWithTag("cuerda_5").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 5, A2")))
+        waitDescription("cuerda_6", "Cuerda 6, D2")
+        waitDescription("cuerda_5", "Cuerda 5, A2")
         // Volver a la estándar.
         tab("tunings")
         rule.onNodeWithTag("lista_afinaciones").performScrollToNode(hasTestTag("afinacion_estandar"))
         rule.onNodeWithTag("afinacion_estandar").performClick()
         tab("tuner")
-        rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, E2")))
+        waitDescription("cuerda_6", "Cuerda 6, E2")
     }
 
     @Test
     fun referenciaA4YTransposicionCambianLosObjetivos() {
         tab("settings")
         rule.onNodeWithTag("a4_432").performClick()
-        rule.onNodeWithTag("a4_valor").assertTextContains("432 Hz")
-        rule.onNodeWithTag("objetivo_sexta").performScrollTo().assertTextContains("E2 (80,91 Hz)", substring = true)
+        waitText("a4_valor", "432 Hz")
+        rule.onNodeWithTag("objetivo_sexta").performScrollTo()
+        waitText("objetivo_sexta", "E2 (80,91 Hz)")
 
         rule.onNodeWithTag("a4_440").performScrollTo().performClick()
-        rule.onNodeWithTag("objetivo_sexta").performScrollTo().assertTextContains("E2 (82,41 Hz)", substring = true)
+        rule.onNodeWithTag("objetivo_sexta").performScrollTo()
+        waitText("objetivo_sexta", "E2 (82,41 Hz)")
 
         // Valor personalizado válido e inválido.
         rule.onNodeWithTag("a4_personalizada").performScrollTo().performTextReplacement("500")
         rule.onNodeWithTag("a4_aplicar").assertIsNotEnabled()
         rule.onNodeWithTag("a4_personalizada").performTextReplacement("445,5")
         rule.onNodeWithTag("a4_aplicar").performClick()
-        rule.onNodeWithTag("a4_valor").assertTextContains("445,5 Hz")
+        waitText("a4_valor", "445,5 Hz")
         rule.onNodeWithTag("a4_reset").performScrollTo().performClick()
-        rule.onNodeWithTag("a4_valor").assertTextContains("440 Hz")
+        waitText("a4_valor", "440 Hz")
 
         // Transposición: +1 semitono convierte E2 en F2 (87,31 Hz) y vuelve a cero con un toque.
         rule.onNodeWithTag("ajustes_tono_mas").performScrollTo().performClick()
-        rule.onNodeWithTag("ajustes_tono_valor").assertTextContains("+1 semitono")
-        rule.onNodeWithTag("objetivo_sexta").performScrollTo().assertTextContains("F2 (87,31 Hz)", substring = true)
+        waitText("ajustes_tono_valor", "+1 semitono")
+        rule.onNodeWithTag("objetivo_sexta").performScrollTo()
+        waitText("objetivo_sexta", "F2 (87,31 Hz)")
         rule.onNodeWithTag("ajustes_tono_menos").performScrollTo().performClick()
         rule.onNodeWithTag("ajustes_tono_menos").performClick()
-        rule.onNodeWithTag("ajustes_tono_valor").assertTextContains("−1 semitono")
+        waitText("ajustes_tono_valor", "−1 semitono")
         rule.onNodeWithTag("tono_reset").performScrollTo().performClick()
-        rule.onNodeWithTag("ajustes_tono_valor").assertTextContains("0 semitonos")
+        waitText("ajustes_tono_valor", "0 semitonos")
 
         // La transposición rápida desde la pantalla principal también cambia las cuerdas.
         tab("tuner")
         rule.onNodeWithTag("tono_mas").performClick()
-        rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, F2")))
+        waitDescription("cuerda_6", "Cuerda 6, F2")
         rule.onNodeWithTag("tono_valor").performClick() // volver a cero
-        rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, E2")))
+        waitDescription("cuerda_6", "Cuerda 6, E2")
     }
 
     @Test
     fun temaElegidoPersisteAlReabrir() {
         tab("settings")
         rule.onNodeWithTag("tema_light").performScrollTo().performClick()
-        rule.onNodeWithTag("tema_light").assertIsSelected()
+        waitSelected("tema_light")
         recreate()
         tab("settings")
-        rule.onNodeWithTag("tema_light").performScrollTo().assertIsSelected()
+        rule.onNodeWithTag("tema_light").performScrollTo()
+        waitSelected("tema_light")
         rule.onNodeWithTag("tema_dark").performClick()
+        waitSelected("tema_dark")
         recreate()
         tab("settings")
-        rule.onNodeWithTag("tema_dark").performScrollTo().assertIsSelected()
+        rule.onNodeWithTag("tema_dark").performScrollTo()
+        waitSelected("tema_dark")
         rule.onNodeWithTag("tema_system").performClick()
-        rule.onNodeWithTag("tema_system").assertIsSelected()
+        waitSelected("tema_system")
     }
 
     @Test
@@ -180,7 +211,7 @@ class AppUiTest {
         // Persiste tras recrear la actividad y queda seleccionada.
         recreate()
         tab("tuner")
-        rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, D2")))
+        waitDescription("cuerda_6", "Cuerda 6, D2")
         tab("tunings")
         rule.onNodeWithTag("pestana_personalizadas").performClick()
         rule.onNodeWithText("Prueba UI").assertIsDisplayed()
@@ -194,7 +225,7 @@ class AppUiTest {
         rule.onNodeWithTag("confirmar_eliminar").performClick()
         rule.waitUntil(5_000) { rule.onAllNodes(hasText("Prueba UI")).fetchSemanticsNodes().isEmpty() }
         tab("tuner")
-        rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, E2")))
+        waitDescription("cuerda_6", "Cuerda 6, E2")
     }
 
     @Test

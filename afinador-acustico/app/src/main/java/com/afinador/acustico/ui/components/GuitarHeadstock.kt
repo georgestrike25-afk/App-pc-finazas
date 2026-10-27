@@ -212,7 +212,7 @@ private fun StringButton(
     Box(
         modifier
             .size(size)
-            .shadow(if (active) 10.dp else 2.dp, CircleShape, ambientColor = border, spotColor = border)
+            .shadow(if (active) 10.dp else 0.dp, CircleShape, ambientColor = border, spotColor = border)
             .clip(CircleShape)
             .background(fill)
             .border(if (active || selected) 2.5.dp else 1.5.dp, border, CircleShape)

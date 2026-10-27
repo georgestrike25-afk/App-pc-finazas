@@ -20,6 +20,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.afinador.acustico.ui.theme.AppTheme
 import com.afinador.core.TuningStatus
@@ -39,6 +41,8 @@ fun TuningMeter(
     toleranceCents: Double,
     status: TuningStatus,
     modifier: Modifier = Modifier,
+    /** Radio del círculo de la nota ubicado en el pivote; 0 = pivote simple. */
+    hubRadius: Dp = 0.dp,
 ) {
     val colors = AppTheme.colors
     val target = if (hasPitch && !cents.isNaN()) cents.coerceIn(-50.0, 50.0).toFloat() else 0f
@@ -60,9 +64,11 @@ fun TuningMeter(
     ) {
         val sweep = 140f
         val start = 270f - sweep / 2
-        val radius = min(size.width * 0.46f, size.height * 0.92f)
-        val center = Offset(size.width / 2f, size.height * 0.97f)
-        val track = radius * 0.11f
+        val hub = hubRadius.toPx()
+        val labelSpace = 20.dp.toPx()
+        val center = Offset(size.width / 2f, if (hub > 0f) size.height - hub else size.height * 0.97f)
+        val radius = min(size.width * 0.5f - labelSpace * 1.6f, center.y - labelSpace).coerceAtLeast(hub * 1.2f + 8f)
+        val track = (radius * 0.1f).coerceAtMost(14.dp.toPx())
         val arcTopLeft = Offset(center.x - radius, center.y - radius)
         val arcSize = Size(radius * 2, radius * 2)
 
@@ -105,18 +111,28 @@ fun TuningMeter(
                 cap = StrokeCap.Round,
             )
         }
+        // Rótulos fuera del arco, para que la aguja nunca los tape.
         listOf(-50, -25, 0, 25, 50).forEach { c ->
             val text = if (c > 0) "+$c" else "$c"
             val layout = measurer.measure(text, labelStyle)
-            val p = point(angleFor(c.toFloat()), radius - track * 3.1f)
+            val p = point(angleFor(c.toFloat()), radius + track * 0.5f + labelSpace * 0.6f)
             drawText(layout, topLeft = Offset(p.x - layout.size.width / 2f, p.y - layout.size.height / 2f))
         }
-        // Aguja.
+        val grave = measurer.measure("Grave", labelStyle)
+        val aguda = measurer.measure("Aguda", labelStyle)
+        val endLeft = point(start, radius)
+        val endRight = point(start + sweep, radius)
+        drawText(grave, topLeft = Offset(endLeft.x - grave.size.width / 2f, endLeft.y + track))
+        drawText(aguda, topLeft = Offset(endRight.x - aguda.size.width / 2f, endRight.y + track))
+        // Aguja: sale del borde del círculo de la nota (o del pivote si no hay círculo).
         val needleAngle = angleFor(animated)
         val tip = point(needleAngle, radius - track * 0.3f)
-        drawLine(needleColor.copy(alpha = 0.25f), center, tip, strokeWidth = 14f, cap = StrokeCap.Round)
-        drawLine(needleColor, center, tip, strokeWidth = 5f, cap = StrokeCap.Round)
-        drawCircle(needleColor, radius * 0.07f, center)
-        drawCircle(Color.White.copy(alpha = 0.85f), radius * 0.028f, center)
+        val base = if (hub > 0f) point(needleAngle, hub + 2.dp.toPx()) else center
+        drawLine(needleColor.copy(alpha = 0.25f), base, tip, strokeWidth = 14f, cap = StrokeCap.Round)
+        drawLine(needleColor, base, tip, strokeWidth = 5f, cap = StrokeCap.Round)
+        if (hub <= 0f) {
+            drawCircle(needleColor, radius * 0.07f, center)
+            drawCircle(Color.White.copy(alpha = 0.85f), radius * 0.028f, center)
+        }
     }
 }

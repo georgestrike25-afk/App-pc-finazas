@@ -56,19 +56,46 @@ fun ChromaticScreen(
             quality = reading.quality,
             onSettings = onOpenSettings,
         )
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            val size = min(min(maxWidth * 0.62f, maxHeight * 0.92f), 230.dp)
-            NoteBadge(
-                reading = reading,
-                waitingName = null,
-                waitingOctave = null,
-                waitingHz = null,
-                size = size,
-                showCents = settings.showCents,
-            )
+        when {
+            permission != MicPermission.GRANTED -> {
+                Spacer(Modifier.weight(1f))
+                MicRequestCard(permission, onRequestMic)
+                Spacer(Modifier.weight(1f))
+            }
+            audioStatus is AudioStatus.Failed -> {
+                Spacer(Modifier.weight(1f))
+                ErrorCard(audioStatus.message)
+                Spacer(Modifier.weight(1f))
+            }
+            else -> {
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                    val badge = min(min(maxWidth * 0.46f, maxHeight * 0.5f), 176.dp)
+                    TuningMeter(
+                        cents = reading.cents,
+                        hasPitch = reading.hasPitch,
+                        toleranceCents = settings.toleranceCents,
+                        status = reading.status,
+                        hubRadius = badge / 2,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    NoteBadge(
+                        reading = reading,
+                        waitingName = null,
+                        waitingOctave = null,
+                        waitingHz = null,
+                        size = badge,
+                        showCents = settings.showCents,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+                Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+                    StatusPill(reading.status, reading.hasPitch)
+                }
+            }
         }
+        Spacer(Modifier.height(8.dp))
         if (reading.hasPitch) {
-            Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 Measure("Medida", Format.hz(reading.frequency, 2))
                 Measure("Objetivo", Format.hz(reading.targetFrequency, 2), "objetivo")
                 Measure("Nota", reading.targetName, "nota_cromatica")
@@ -77,24 +104,8 @@ fun ChromaticScreen(
             Text(
                 "Tocá o cantá cualquier nota",
                 color = colors.textMuted, fontSize = 13.sp, textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                modifier = Modifier.fillMaxWidth().height(38.dp).padding(top = 10.dp),
             )
-        }
-        when {
-            permission != MicPermission.GRANTED -> MicRequestCard(permission, onRequestMic)
-            audioStatus is AudioStatus.Failed -> ErrorCard(audioStatus.message)
-            else -> {
-                TuningMeter(
-                    cents = reading.cents,
-                    hasPitch = reading.hasPitch,
-                    toleranceCents = settings.toleranceCents,
-                    status = reading.status,
-                    modifier = Modifier.height(120.dp),
-                )
-                Box(Modifier.fillMaxWidth().padding(top = 4.dp), contentAlignment = Alignment.Center) {
-                    StatusPill(reading.status, reading.hasPitch)
-                }
-            }
         }
         Spacer(Modifier.height(10.dp))
         NoteStrip(if (reading.hasPitch) NoteMath.pitchClass(reading.targetMidi) else -1)

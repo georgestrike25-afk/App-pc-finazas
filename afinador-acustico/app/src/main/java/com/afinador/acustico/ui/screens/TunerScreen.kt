@@ -80,6 +80,7 @@ fun TunerScreen(
     }
     val statusColor = if (reading.hasPitch) colors.forStatus(reading.status) else colors.accent
 
+    val compact = LocalConfiguration.current.screenHeightDp < 720
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         TopBar(
             title = "Afinador de Guitarra",
@@ -88,23 +89,40 @@ fun TunerScreen(
             quality = reading.quality,
             onSettings = onOpenSettings,
         )
-        Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Chip(
-                text = "${tuning.name} ▾",
-                selected = false,
-                onClick = onOpenTunings,
-                modifier = Modifier.weight(1f, fill = false).testTag("selector_afinacion"),
-            )
-            Spacer(Modifier.weight(1f))
-            Chip(
-                text = if (selectedString == null) "Automático" else "Manual: cuerda ${6 - selectedString}",
-                selected = selectedString == null,
-                onClick = onAuto,
-                modifier = Modifier.testTag("modo_auto"),
-            )
+
+        // Medidor con la nota en el centro del arco (la aguja sale del círculo de la nota).
+        when {
+            permission != MicPermission.GRANTED -> MicRequestCard(permission, onRequestMic)
+            audioStatus is AudioStatus.Failed -> ErrorCard(audioStatus.message)
+            else -> {
+                val badge = if (compact) 98.dp else 124.dp
+                Box(Modifier.fillMaxWidth().height(if (compact) 156.dp else 196.dp)) {
+                    TuningMeter(
+                        cents = reading.cents,
+                        hasPitch = reading.hasPitch,
+                        toleranceCents = settings.toleranceCents,
+                        status = reading.status,
+                        hubRadius = badge / 2,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    NoteBadge(
+                        reading = reading,
+                        waitingName = selectedString?.let { targets[it].pitchName },
+                        waitingOctave = selectedString?.let { NoteMath.octave(targets[it].midi).toString() },
+                        waitingHz = selectedString?.let { targets[it].frequency },
+                        size = badge,
+                        showCents = settings.showCents,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+                Box(Modifier.fillMaxWidth().padding(top = 6.dp), contentAlignment = Alignment.Center) {
+                    StatusPill(reading.status, reading.hasPitch)
+                }
+            }
         }
 
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        // Clavijero y mástil: ocupan todo el espacio restante.
+        Box(Modifier.weight(1f).fillMaxWidth().padding(top = 4.dp)) {
             GuitarHeadstock(
                 targets = targets,
                 activeString = active,
@@ -113,46 +131,17 @@ fun TunerScreen(
                 selectedString = selectedString,
                 onSelectString = onSelectString,
                 modifier = Modifier.testTag("mastil"),
-            ) { noteY, neckWidth ->
-                val badge = min(neckWidth * 1.25f, 132.dp)
-                NoteBadge(
-                    reading = reading,
-                    waitingName = selectedString?.let { targets[it].pitchName },
-                    waitingOctave = selectedString?.let { NoteMath.octave(targets[it].midi).toString() },
-                    waitingHz = selectedString?.let { targets[it].frequency },
-                    size = badge,
-                    showCents = settings.showCents,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = noteY - badge / 2),
+            ) { _, _ ->
+                Chip(
+                    text = if (selectedString == null) "Automático" else "Manual: cuerda ${6 - selectedString}",
+                    selected = selectedString == null,
+                    onClick = onAuto,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 4.dp).testTag("modo_auto"),
                 )
             }
         }
 
-        when {
-            permission != MicPermission.GRANTED -> MicRequestCard(permission, onRequestMic)
-            audioStatus is AudioStatus.Failed -> ErrorCard(audioStatus.message)
-            else -> {
-                TuningMeter(
-                    cents = reading.cents,
-                    hasPitch = reading.hasPitch,
-                    toleranceCents = settings.toleranceCents,
-                    status = reading.status,
-                    modifier = Modifier.height(if (LocalConfiguration.current.screenHeightDp < 700) 92.dp else 112.dp),
-                )
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Grave", color = colors.textMuted, fontSize = 12.sp, modifier = Modifier.width(56.dp))
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        StatusPill(reading.status, reading.hasPitch)
-                    }
-                    Text("Aguda", color = colors.textMuted, fontSize = 12.sp, textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         QuickControls(
             settings = settings,
             onOpenTunings = onOpenTunings,
@@ -160,7 +149,7 @@ fun TunerScreen(
             onTranspose = onTranspose,
             onResetTranspose = onResetTranspose,
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
     }
 }
 
@@ -201,19 +190,20 @@ fun NoteBadge(
                     Text(reading.targetPitchName, color = colors.text, fontSize = big, fontWeight = FontWeight.Bold, lineHeight = big)
                     Text("${reading.targetOctave}", color = colors.textMuted, fontSize = (big.value * 0.4f).sp, modifier = Modifier.padding(bottom = 4.dp))
                 }
-                Text(Format.hz(reading.frequency), color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text(Format.hz(reading.frequency), color = colors.text, fontSize = 12.sp, lineHeight = 13.sp, fontWeight = FontWeight.Medium)
                 if (showCents) {
-                    Text(Format.cents(reading.cents), color = ring, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(Format.cents(reading.cents), color = ring, fontSize = 11.sp, lineHeight = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             } else if (waitingName != null && waitingHz != null) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(waitingName, color = colors.textMuted, fontSize = big, fontWeight = FontWeight.Bold, lineHeight = big)
                     Text(waitingOctave ?: "", color = colors.textMuted, fontSize = (big.value * 0.4f).sp, modifier = Modifier.padding(bottom = 4.dp))
                 }
-                Text("objetivo ${Format.hz(waitingHz)}", color = colors.textMuted, fontSize = 11.sp)
+                Text("objetivo", color = colors.textMuted, fontSize = 10.sp, lineHeight = 11.sp)
+                Text(Format.hz(waitingHz), color = colors.textMuted, fontSize = 11.sp, lineHeight = 12.sp)
             } else {
-                Text("♪", color = colors.textMuted, fontSize = big)
-                Text("Tocá una cuerda", color = colors.textMuted, fontSize = 11.sp, textAlign = TextAlign.Center)
+                Text("♪", color = colors.textMuted, fontSize = (big.value * 0.8f).sp, lineHeight = big)
+                Text("Tocá una\ncuerda", color = colors.textMuted, fontSize = 11.sp, lineHeight = 13.sp, textAlign = TextAlign.Center)
             }
         }
     }
@@ -231,10 +221,9 @@ private fun QuickControls(
     Panel(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onOpenTunings).padding(6.dp),
+                Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onOpenTunings).padding(6.dp).testTag("selector_afinacion"),
             ) {
-                Text("Afinación", color = colors.textMuted, fontSize = 11.sp)
-                Text(settings.tuning.name, color = colors.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(settings.tuning.name + " ▾", color = colors.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(settings.tuning.noteNames(settings.transpose).joinToString(" ") { it.dropLast(1) }, color = colors.textMuted, fontSize = 11.sp, maxLines = 1)
             }
             Column(

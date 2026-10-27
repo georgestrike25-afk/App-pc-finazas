@@ -110,7 +110,8 @@ class TunerViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setA4(value: Double) = save { repository.setA4(value) }
     fun setTranspose(value: Int) = save { repository.setTranspose(value) }
-    fun changeTranspose(delta: Int) = save { repository.setTranspose((settings.value?.transpose ?: 0) + delta) }
+    fun changeTranspose(delta: Int) = save { repository.changeTranspose(delta) }
+    fun changeA4(delta: Double) = save { repository.changeA4(delta) }
     fun setSensitivity(value: Float) = save { repository.setSensitivity(value) }
     fun setTolerance(value: Double) = save { repository.setTolerance(value) }
     fun setTheme(mode: ThemeMode) = save { repository.setTheme(mode) }

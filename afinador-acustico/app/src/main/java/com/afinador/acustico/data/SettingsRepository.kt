@@ -78,6 +78,14 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setA4(value: Double) = edit { it[Keys.A4] = ReferencePitch.clamp(value) }
     suspend fun setTranspose(value: Int) = edit { it[Keys.TRANSPOSE] = Transpose.clamp(value) }
+
+    /** Suma atómica: varios toques rápidos no se pierden aunque el valor guardado no se haya leído aún. */
+    suspend fun changeTranspose(delta: Int) = edit { it[Keys.TRANSPOSE] = Transpose.clamp((it[Keys.TRANSPOSE] ?: 0) + delta) }
+
+    suspend fun changeA4(delta: Double) = edit {
+        val current = ReferencePitch.clamp(it[Keys.A4] ?: ReferencePitch.DEFAULT)
+        it[Keys.A4] = ReferencePitch.clamp(Math.round((current + delta) * 10.0) / 10.0)
+    }
     suspend fun setTuning(id: String) = edit { it[Keys.TUNING] = id }
     suspend fun setSensitivity(value: Float) = edit { it[Keys.SENSITIVITY] = value.coerceIn(0f, 1f) }
     suspend fun setTolerance(value: Double) = edit { it[Keys.TOLERANCE] = value }
