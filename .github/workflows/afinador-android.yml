@@ -1,0 +1,191 @@
+name: Afinador Acústico (Android)
+
+on:
+  push:
+    paths:
+      - "afinador-acustico/**"
+      - ".github/workflows/afinador-android.yml"
+  pull_request:
+    paths:
+      - "afinador-acustico/**"
+      - ".github/workflows/afinador-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: afinador-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: afinador-acustico
+
+env:
+  AFINADOR_VERSION_CODE: ${{ github.run_number }}
+
+jobs:
+  build:
+    name: Compilar, pruebas unitarias y lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Preparar clave de firma
+        env:
+          KEYSTORE_BASE64: ${{ secrets.AFINADOR_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.AFINADOR_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.AFINADOR_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.AFINADOR_KEY_PASSWORD }}
+        run: |
+          KS="$RUNNER_TEMP/afinador-release.jks"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KS"
+            echo "AFINADOR_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "AFINADOR_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "AFINADOR_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "AFINADOR_SIGNING=permanente" >> "$GITHUB_ENV"
+          else
+            # Sin secretos configurados: clave propia generada para esta compilación (no se publica).
+            PASS="$(openssl rand -hex 24)"
+            echo "::add-mask::$PASS"
+            keytool -genkeypair -v -keystore "$KS" -storetype PKCS12 -alias afinador \
+              -keyalg RSA -keysize 4096 -validity 10000 -storepass "$PASS" -keypass "$PASS" \
+              -dname "CN=Afinador Acustico, O=Afinador, C=AR" >/dev/null 2>&1
+            echo "AFINADOR_KEYSTORE_PASSWORD=$PASS" >> "$GITHUB_ENV"
+            echo "AFINADOR_KEY_ALIAS=afinador" >> "$GITHUB_ENV"
+            echo "AFINADOR_KEY_PASSWORD=$PASS" >> "$GITHUB_ENV"
+            echo "AFINADOR_SIGNING=efimera" >> "$GITHUB_ENV"
+          fi
+          echo "AFINADOR_KEYSTORE=$KS" >> "$GITHUB_ENV"
+
+      - name: Pruebas del motor (matemática y audio sintético)
+        run: ./gradlew :core:test --stacktrace
+
+      - name: Pruebas unitarias, lint y compilación (debug + release)
+        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest --stacktrace
+
+      - name: Verificar APK de lanzamiento
+        id: verify
+        run: |
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          SIZE=$(stat -c %s "$APK")
+          echo "Tamaño: $SIZE bytes"
+          test "$SIZE" -gt 500000 && test "$SIZE" -lt 30000000
+          "$BT/apksigner" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/firma.txt"
+          "$BT/aapt2" dump badging "$APK" | head -20 | tee "$RUNNER_TEMP/badging.txt"
+          "$BT/aapt2" dump permissions "$APK" | tee "$RUNNER_TEMP/permisos.txt"
+          grep -q "android.permission.RECORD_AUDIO" "$RUNNER_TEMP/permisos.txt"
+          if grep -q "android.permission.INTERNET" "$RUNNER_TEMP/permisos.txt"; then echo "La app no debe pedir Internet"; exit 1; fi
+          mkdir -p dist
+          NAME="AfinadorAcustico-1.0.${AFINADOR_VERSION_CODE}.apk"
+          cp "$APK" "dist/$NAME"
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/AfinadorAcustico-1.0.${AFINADOR_VERSION_CODE}-debug.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: afinador-acustico/dist/
+
+      - name: Guardar informes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informes-build
+          path: |
+            afinador-acustico/core/build/reports/
+            afinador-acustico/app/build/reports/
+            afinador-acustico/app/build/test-results/
+
+  ui-tests:
+    name: Pruebas de interfaz (emulador API ${{ matrix.api }}, ${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: 34
+            profile: pixel_6
+          - api: 29
+            profile: Nexus 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Habilitar KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Compilar pruebas
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+
+      - name: Ejecutar pruebas en el emulador
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: ${{ matrix.profile }}
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none -camera-front none
+          working-directory: afinador-acustico
+          script: ./gradlew :app:connectedDebugAndroidTest --stacktrace
+
+      - name: Guardar informes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informes-ui-api${{ matrix.api }}
+          path: afinador-acustico/app/build/reports/androidTests/
+
+  release:
+    name: Publicar APK
+    needs: [build, ui-tests]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: dist
+
+      - name: Crear release con el APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: afinador-v1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Afinador Acústico 1.0.${{ github.run_number }}
+          prerelease: true
+          body: |
+            APK de **Afinador Acústico** compilada automáticamente desde `${{ github.sha }}` (rama `${{ github.ref_name }}`).
+
+            - `AfinadorAcustico-1.0.${{ github.run_number }}.apk`: versión de lanzamiento optimizada y firmada. **Instalá esta.**
+            - `…-debug.apk`: versión de prueba con depuración habilitada.
+            - `SHA256SUMS.txt`: sumas de verificación.
+
+            Pasaron las pruebas del motor (matemática y audio sintético), lint y las pruebas de interfaz en emulador.
+          files: dist/*
