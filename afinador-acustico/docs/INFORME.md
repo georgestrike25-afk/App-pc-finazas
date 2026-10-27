@@ -1,4 +1,4 @@
-# Informe de compilación y pruebas — Afinador Acústico 1.0.6
+# Informe de compilación y pruebas — Afinador Acústico 1.0.7
 
 Todo lo que figura acá se ejecutó de verdad, en este entorno o en GitHub Actions. Ningún resultado es simulado.
 
@@ -6,11 +6,11 @@ Todo lo que figura acá se ejecutó de verdad, en este entorno o en GitHub Actio
 
 | | |
 |---|---|
-| APK de lanzamiento | `AfinadorAcustico-1.0.6.apk` (1.344.560 bytes) |
-| Descarga | https://github.com/georgestrike25-afk/App-pc-finazas/releases/download/afinador-v1.0.6/AfinadorAcustico-1.0.6.apk |
-| Página del release | https://github.com/georgestrike25-afk/App-pc-finazas/releases/tag/afinador-v1.0.6 |
-| SHA-256 | `5994657a0442a61001e575c9079cb46d00954fff997aec627061c6608a86f20e` |
-| Paquete | `com.afinador.acustico`, versionCode 6, minSdk 26 (Android 8.0), targetSdk 35 |
+| APK de lanzamiento | `AfinadorAcustico-1.0.7.apk` (1.344.560 bytes) |
+| Descarga | https://github.com/georgestrike25-afk/App-pc-finazas/releases/download/afinador-v1.0.7/AfinadorAcustico-1.0.7.apk |
+| Página del release | https://github.com/georgestrike25-afk/App-pc-finazas/releases/tag/afinador-v1.0.7 |
+| SHA-256 | `db7dce668276aff779f3d9eff182665be50f9044a9b8ec9029c66f9a5632b74b` |
+| Paquete | `com.afinador.acustico`, versionCode 7, minSdk 26 (Android 8.0), targetSdk 35 |
 | Firma | APK Signature Scheme v2, verificada con `apksigner verify` (1 firmante). Clave generada en la compilación (ver «Limitaciones»). |
 | Permisos | Sólo `RECORD_AUDIO`. Ni Internet ni ningún otro (lo comprueba el CI y falla si aparece `INTERNET`). |
 | Código fuente | rama `ccr-f6019910-wn0a74`, carpeta `afinador-acustico/` |
@@ -57,7 +57,7 @@ El ≈ 0,3 cent de error con la cuerda pulsada viene de la inarmonicidad física
 
 **Fallas encontradas y corregidas:** la primera versión fallaba con ruido fuerte. Tenía errores de octava (−1201 cents) con SNR 10 dB y una dispersión de 17 cents con SNR 20 dB en E2. Se corrigió agregando un pasa bajos Butterworth antes de YIN y eligiendo el primer mínimo cercano al global cuando hay ruido.
 
-### 2. App Android (CI, ejecución 40548450807, commit `2c77270`): todo correcto
+### 2. App Android (CI, ejecución 40550350794, commit `421c153`): todo correcto
 
 - `:app:testDebugUnitTest`, `:app:lintDebug` (sin errores), `assembleDebug`, `assembleRelease` (R8 activado) y `assembleDebugAndroidTest`: correctos.
 - **Pruebas de interfaz en emulador**, 8 de 8 en dos dispositivos: API 34 (Pixel 6) y API 29 (Nexus 5, pantalla chica de 360×640 dp). Usan el micrófono, el motor y DataStore reales:
