@@ -208,8 +208,10 @@ def text_path(font_file, text, size, x=0.0, baseline=0.0, tracking=0.0):
 def wordmark(size=100.0):
     """Trazados de "En" y "Tono"; devuelve (en, tono, ancho, alto de mayúscula)."""
     en, en_w = text_path(FONT_BOLD, "En", size, 0, size * 0.7275, tracking=-size * 0.01)
-    tono, tono_w = text_path(FONT_BOLD, "Tono", size, en_w - size * 0.005, size * 0.7275, tracking=-size * 0.01)
-    return en, tono, en_w - size * 0.005 + tono_w, size * 0.7275
+    # Ajuste óptico entre "n" y "T": la T tiene mucho espacio lateral y sin esto queda un hueco.
+    gap = -size * 0.04
+    tono, tono_w = text_path(FONT_BOLD, "Tono", size, en_w + gap, size * 0.7275, tracking=-size * 0.01)
+    return en, tono, en_w + gap + tono_w, size * 0.7275
 
 
 # --------------------------------------------------------------------------------------------
