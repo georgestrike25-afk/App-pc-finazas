@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import com.afinador.acustico.AudioStatus
 import com.afinador.acustico.data.AppSettings
 import com.afinador.acustico.ui.Format
+import com.afinador.acustico.ui.brand.EnTonoMark
+import com.afinador.acustico.ui.brand.EnTonoWordmark
 import com.afinador.acustico.ui.MicPermission
 import com.afinador.acustico.ui.components.AppIcons
 import com.afinador.acustico.ui.components.GuitarHeadstock
@@ -83,11 +85,12 @@ fun TunerScreen(
     val compact = LocalConfiguration.current.screenHeightDp < 720
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         TopBar(
-            title = "Afinador de Guitarra",
-            subtitle = "Acústica · ${tuning.name}",
+            title = "EnTono",
+            subtitle = "Afinador de guitarra · ${tuning.name}",
             level = reading.signalLevel,
             quality = reading.quality,
             onSettings = onOpenSettings,
+            wordmark = true,
         )
 
         // Medidor con la nota en el centro del arco (la aguja sale del círculo de la nota).
@@ -258,18 +261,25 @@ private fun QuickControls(
 }
 
 @Composable
-fun TopBar(title: String, subtitle: String?, level: Float, quality: Float, onSettings: (() -> Unit)?) {
+fun TopBar(
+    title: String,
+    subtitle: String?,
+    level: Float,
+    quality: Float,
+    onSettings: (() -> Unit)?,
+    /** Muestra el logotipo "EnTono" en lugar del título. */
+    wordmark: Boolean = false,
+) {
     val colors = AppTheme.colors
     Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(36.dp).clip(CircleShape).background(colors.accentSoft),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(AppIcons.Headstock, contentDescription = null, tint = colors.accent, modifier = Modifier.size(22.dp))
-        }
+        EnTonoMark(38.dp)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, color = colors.accent, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            if (wordmark) {
+                EnTonoWordmark(height = 21.dp, modifier = Modifier.padding(top = 2.dp, bottom = 3.dp))
+            } else {
+                Text(title, color = colors.accent, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
             if (subtitle != null) Text(subtitle, color = colors.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         SignalBars(level, quality)

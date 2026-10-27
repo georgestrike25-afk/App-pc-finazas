@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo grafito del ícono de EnTono.
+     Generado por branding/generar_marca.py: no editar a mano. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M0,0 H108 V108 H0 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="radial" android:centerX="54" android:centerY="46" android:gradientRadius="78">
+                    <item android:offset="0" android:color="#2B2D2C" />
+                    <item android:offset="0.6" android:color="#222322" />
+                    <item android:offset="1" android:color="#1E1E1E" />
+                </gradient>
+            </aapt:attr>
+    </path>
+    <path
+        android:pathData="M14,54 A40,40 0 1,0 94,54 A40,40 0 1,0 14,54 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="radial" android:centerX="54" android:centerY="54" android:gradientRadius="40">
+                    <item android:offset="0" android:color="#0000C853" />
+                    <item android:offset="0.72" android:color="#1A00C853" />
+                    <item android:offset="1" android:color="#0000C853" />
+                </gradient>
+            </aapt:attr>
+    </path>
+</vector>

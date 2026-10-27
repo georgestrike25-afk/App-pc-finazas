@@ -1,4 +1,4 @@
-name: Afinador Acústico (Android)
+name: EnTono (Android)
 
 on:
   push:
@@ -64,7 +64,7 @@ jobs:
             echo "::add-mask::$PASS"
             keytool -genkeypair -v -keystore "$KS" -storetype PKCS12 -alias afinador \
               -keyalg RSA -keysize 4096 -validity 10000 -storepass "$PASS" -keypass "$PASS" \
-              -dname "CN=Afinador Acustico, O=Afinador, C=AR" >/dev/null 2>&1
+              -dname "CN=EnTono, O=EnTono, C=AR" >/dev/null 2>&1
             echo "AFINADOR_KEYSTORE_PASSWORD=$PASS" >> "$GITHUB_ENV"
             echo "AFINADOR_KEY_ALIAS=afinador" >> "$GITHUB_ENV"
             echo "AFINADOR_KEY_PASSWORD=$PASS" >> "$GITHUB_ENV"
@@ -93,9 +93,9 @@ jobs:
           grep -q "android.permission.RECORD_AUDIO" "$RUNNER_TEMP/permisos.txt"
           if grep -q "android.permission.INTERNET" "$RUNNER_TEMP/permisos.txt"; then echo "La app no debe pedir Internet"; exit 1; fi
           mkdir -p dist
-          NAME="AfinadorAcustico-1.0.${AFINADOR_VERSION_CODE}.apk"
+          NAME="EnTono-1.0.${AFINADOR_VERSION_CODE}.apk"
           cp "$APK" "dist/$NAME"
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/AfinadorAcustico-1.0.${AFINADOR_VERSION_CODE}-debug.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/EnTono-1.0.${AFINADOR_VERSION_CODE}-debug.apk"
           (cd dist && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
@@ -189,7 +189,7 @@ jobs:
         with:
           tag_name: afinador-diagnostico-ui
           target_commitish: ${{ github.sha }}
-          name: "Afinador: diagnóstico de pruebas de interfaz (no instalar)"
+          name: "EnTono: diagnóstico de pruebas de interfaz (no instalar)"
           prerelease: true
           body: Capturas de pantalla e informes de las pruebas de interfaz de la última ejecución de CI. No contiene APK.
           files: |
@@ -217,14 +217,14 @@ jobs:
       - name: Crear release con el APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: afinador-v1.0.${{ github.run_number }}
+          tag_name: entono-v1.0.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: Afinador Acústico 1.0.${{ github.run_number }}
+          name: EnTono 1.0.${{ github.run_number }}
           prerelease: true
           body: |
-            APK de **Afinador Acústico** compilada automáticamente desde `${{ github.sha }}` (rama `${{ github.ref_name }}`).
+            APK de **EnTono** (afinador de guitarra) compilada automáticamente desde `${{ github.sha }}` (rama `${{ github.ref_name }}`).
 
-            - `AfinadorAcustico-1.0.${{ github.run_number }}.apk`: versión de lanzamiento optimizada y firmada. **Instalá esta.**
+            - `EnTono-1.0.${{ github.run_number }}.apk`: versión de lanzamiento optimizada y firmada. **Instalá esta.**
             - `…-debug.apk`: versión de prueba con depuración habilitada.
             - `SHA256SUMS.txt`: sumas de verificación.
             - `capturas-api*.zip`: capturas de pantalla tomadas en el emulador durante las pruebas.

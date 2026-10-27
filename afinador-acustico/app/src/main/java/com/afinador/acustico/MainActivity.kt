@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.afinador.acustico.data.ThemeMode
 import com.afinador.acustico.ui.AppRoot
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: TunerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen() // pantalla de inicio de EnTono (antes de super.onCreate)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {

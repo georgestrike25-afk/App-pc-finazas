@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.afinador.acustico.ui.brand.EnTonoAppIcon
+import com.afinador.acustico.ui.brand.EnTonoWordmark
 import com.afinador.acustico.ui.components.Panel
 import com.afinador.acustico.ui.components.TuningMeter
 import com.afinador.acustico.ui.theme.AppTheme
@@ -101,7 +103,13 @@ fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "—"
     InfoPage("Acerca de", onBack) {
-        Paragraph("Afinador Acústico", "Versión $version\nAfinador de guitarra acústica de seis cuerdas, libre de publicidad y sin conexión.")
+        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            EnTonoAppIcon(96.dp)
+            Spacer(Modifier.height(14.dp))
+            EnTonoWordmark(height = 34.dp)
+            Text("AFINADOR DE GUITARRA", color = AppTheme.colors.textMuted, fontSize = 12.sp, letterSpacing = 2.5.sp, modifier = Modifier.padding(top = 6.dp))
+        }
+        Paragraph("EnTono", "Versión $version\nAfinador de guitarra acústica de seis cuerdas, libre de publicidad y sin conexión.")
         Paragraph(
             "Cómo detecta las notas",
             "Usa el algoritmo YIN (de Cheveigné y Kawahara, 2002) implementado desde cero, con autocorrelación por FFT, " +
@@ -122,7 +130,7 @@ fun OnboardingOverlay(onFinish: () -> Unit) {
     val colors = AppTheme.colors
     var page by rememberSaveable { mutableIntStateOf(0) }
     val pages = listOf(
-        Triple("Tocá una cuerda", "El afinador reconoce sola qué cuerda estás tocando y la ilumina en el mástil. Si preferís, tocá el botón de una cuerda para fijarla.", 0),
+        Triple("Te damos la bienvenida a EnTono", "Tocá una cuerda: el afinador reconoce solo qué cuerda estás tocando y la ilumina en el mástil. Si preferís, tocá el botón de una cuerda para fijarla.", 0),
         Triple("Seguí la aguja", "Grave a la izquierda, aguda a la derecha. Ajustá la clavija hasta que la aguja quede en el centro y todo se ponga verde: «¡Afinada!».", 1),
         Triple("Tu micrófono, sólo para afinar", "El sonido se analiza en el teléfono y no se graba ni se envía. Al tocar «Empezar» te vamos a pedir permiso para usar el micrófono.", 2),
     )
@@ -141,7 +149,12 @@ fun OnboardingOverlay(onFinish: () -> Unit) {
             }
             Spacer(Modifier.weight(1f))
             when (kind) {
-                0 -> Text("🎸", fontSize = 72.sp)
+                0 -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    EnTonoAppIcon(120.dp)
+                    Spacer(Modifier.height(18.dp))
+                    EnTonoWordmark(height = 40.dp)
+                    Text("AFINADOR DE GUITARRA", color = colors.textMuted, fontSize = 12.sp, letterSpacing = 2.5.sp, modifier = Modifier.padding(top = 6.dp))
+                }
                 1 -> TuningMeter(cents = 0.0, hasPitch = true, toleranceCents = 3.0, status = TuningStatus.IN_TUNE, modifier = Modifier.height(130.dp))
                 else -> Text("🎙️", fontSize = 72.sp)
             }

@@ -108,6 +108,19 @@ class AppUiTest {
     }
 
     @Test
+    fun marcaEnTonoVisible() {
+        tab("tuner")
+        rule.onNodeWithTag("marca_entono").assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("EnTono")))
+        rule.onNodeWithText("Afinador de guitarra", substring = true).assertIsDisplayed()
+        tab("settings")
+        rule.onNodeWithText("Acerca de").performScrollTo().performClick()
+        rule.onNodeWithTag("marca_entono").assertIsDisplayed()
+        rule.onNodeWithText("AFINADOR DE GUITARRA").assertIsDisplayed()
+        rule.onNodeWithTag("volver").performClick()
+    }
+
+    @Test
     fun seleccionManualDeCuerdaYVueltaAutomatico() {
         tab("tuner")
         rule.onNodeWithTag("cuerda_5").performClick()

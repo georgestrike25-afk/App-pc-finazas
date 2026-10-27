@@ -5,4 +5,11 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+
+    <!-- Pantalla de inicio: ícono de EnTono sobre grafito, en todas las versiones de Android. -->
+    <style name="Theme.EnTono.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/entono_graphite</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Afinador</item>
+    </style>
 </resources>

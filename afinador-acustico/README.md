@@ -1,4 +1,4 @@
-# Afinador Acústico
+# EnTono — Afinador de guitarra
 
 Afinador de guitarra acústica de seis cuerdas para Android: usa el micrófono del teléfono, funciona
 sin conexión, no tiene publicidad ni cuentas y no pide permiso de Internet.
@@ -7,8 +7,8 @@ sin conexión, no tiene publicidad ni cuentas y no pide permiso de Internet.
 
 1. En el teléfono, abrí **Releases** del repositorio
    (`https://github.com/georgestrike25-afk/App-pc-finazas/releases`) y entrá a la más reciente
-   **Afinador Acústico 1.0.N**.
-2. Descargá `AfinadorAcustico-1.0.N.apk` (no el `-debug`).
+   **EnTono 1.0.N**.
+2. Descargá `EnTono-1.0.N.apk` (no el `-debug`).
 3. Abrí el archivo descargado. Si Android lo pide, permití **Instalar apps desconocidas** para el
    navegador o el gestor de archivos.
 4. Al abrir la app, seguí el tutorial y aceptá el permiso de **micrófono**.
@@ -25,6 +25,28 @@ Requisitos: Android 8.0 (API 26) o superior, con micrófono.
 </p>
 
 Capturas reales tomadas en el emulador durante las pruebas de CI.
+
+## Identidad visual
+
+| | |
+|---|---|
+| Nombre | **EnTono** — «Afinador de guitarra» |
+| Colores | grafito `#1E1E1E`, verde principal `#00C853`, verde secundario `#0A6B45` (textos verdes del tema claro), madera y metal |
+| Tipografía del logotipo | Inter ExtraBold (SIL Open Font License 1.1), convertida a trazados |
+| Ícono | adaptable y vectorial: fondo grafito + clavijero 3+3 dentro de un anillo de afinación verde; variante monocroma para los íconos temáticos de Android 13+ |
+| Marca simplificada | clavijero y anillo sin cuerdas ni detalles finos, para tamaños chicos (barra superior de la app) |
+| Pantalla de inicio | ícono sobre grafito; en Android 12+ también el logotipo «EnTono» |
+
+Todos los recursos salen de `branding/generar_marca.py` (una sola definición de las formas):
+`python3 branding/generar_marca.py --png` regenera los vectores de Android, el logotipo para Compose y
+las piezas en `docs/marca/` (ícono para Play Store de 512 px, ícono de 1024 px, versiones simplificadas
+de 24–96 px, monocromo y logotipo completo con texto).
+
+<p>
+  <img src="docs/marca/entono-logo-completo-1024.png" width="240" alt="Logotipo completo de EnTono">
+  <img src="docs/marca/entono-icono-192.png" width="96" alt="Ícono de la app">
+  <img src="docs/marca/entono-icono-simple-48.png" width="48" alt="Ícono simplificado">
+</p>
 
 ## Funciones
 

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -68,6 +69,9 @@ class ScreenshotTest {
             save("04_afinaciones_$theme")
             tab("settings")
             save("05_ajustes_$theme")
+            rule.onNodeWithText("Acerca de").performScrollTo().performClick()
+            save("06_acerca_de_$theme")
+            rule.onNodeWithTag("volver").performClick()
         }
         tab("settings")
         rule.onNodeWithTag("tema_system").performScrollTo().performClick()

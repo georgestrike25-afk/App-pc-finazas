@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="window_light">#FFF3F5F4</color>
-    <color name="window_dark">#FF0B0F0E</color>
-    <color name="launcher_background">#FF0B1412</color>
+    <!-- Identidad de EnTono -->
+    <color name="entono_graphite">#FF1E1E1E</color>
+    <color name="entono_green">#FF00C853</color>
+    <color name="entono_green_dark">#FF0A6B45</color>
+
+    <color name="window_light">#FFF4F5F4</color>
+    <color name="window_dark">@color/entono_graphite</color>
 </resources>
