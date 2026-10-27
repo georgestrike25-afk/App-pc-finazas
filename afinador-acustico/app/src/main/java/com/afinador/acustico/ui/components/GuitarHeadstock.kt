@@ -59,12 +59,12 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /** Geometría compartida entre el dibujo y los botones de cuerda superpuestos. */
-private class HeadstockGeometry(val width: Float, val height: Float, buttonPx: Float, keyPx: Float) {
+private class HeadstockGeometry(val width: Float, val height: Float, sideReservePx: Float, keyPx: Float) {
     val cx = width / 2f
-    val top = height * 0.03f
-    val nutY = height * 0.60f
+    val top = height * TOP
+    val nutY = height * NUT
     val headHeight = nutY - top
-    val halfTop = min(width / 2f - buttonPx - keyPx - buttonPx * 0.35f, height * 0.30f).coerceAtLeast(width * 0.16f)
+    val halfTop = min(width / 2f - sideReservePx - keyPx, height * 0.30f).coerceAtLeast(width * 0.16f)
     val halfNut = halfTop * 0.60f
     val keyLength = keyPx
 
@@ -75,7 +75,7 @@ private class HeadstockGeometry(val width: Float, val height: Float, buttonPx: F
         return halfTop * curve
     }
 
-    fun postY(row: Int) = top + headHeight * (0.20f + 0.24f * row)
+    fun postY(row: Int) = top + headHeight * (ROW_START + ROW_STEP * row)
 
     /** Clavija de cada cuerda: izquierda 6‑5‑4 de arriba abajo, derecha 1‑2‑3 (como en una guitarra real 3+3). */
     fun post(index: Int): Offset {
@@ -85,6 +85,8 @@ private class HeadstockGeometry(val width: Float, val height: Float, buttonPx: F
         val x = halfWidthAt(y) * 0.58f
         return Offset(if (left) cx - x else cx + x, y)
     }
+
+    fun row(index: Int): Int = if (index <= 2) index else 5 - index
 
     fun keyEnd(index: Int): Offset {
         val p = post(index)
@@ -99,6 +101,13 @@ private class HeadstockGeometry(val width: Float, val height: Float, buttonPx: F
     fun fretY(n: Int): Float {
         val scale = (height - nutY) * 3.6f
         return nutY + scale * (1f - 2f.pow(-n / 12f))
+    }
+
+    companion object {
+        const val TOP = 0.03f
+        const val NUT = 0.60f
+        const val ROW_START = 0.20f
+        const val ROW_STEP = 0.24f
     }
 }
 
@@ -123,10 +132,16 @@ fun GuitarHeadstock(
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val density = LocalDensity.current
-        val buttonSize = if (maxWidth < 340.dp) 44.dp else 50.dp
+        // En pantallas bajas la separación entre clavijas es menor que el botón: se achica el botón
+        // (sin bajar de 40 dp para que siga siendo fácil de tocar) y, si aún no entra, la fila del
+        // medio se desplaza hacia afuera en zigzag para que los botones no se tapen.
+        val rowSpacing = maxHeight * (HeadstockGeometry.NUT - HeadstockGeometry.TOP) * HeadstockGeometry.ROW_STEP
+        val buttonSize = minOf(if (maxWidth < 340.dp) 46.dp else 50.dp, maxOf(40.dp, rowSpacing * 0.95f))
+        val zigzag = buttonSize > rowSpacing * 0.95f
+        val zigzagShift = if (zigzag) buttonSize * 0.85f else 0.dp
         val keySize = if (maxWidth < 340.dp) 22.dp else 28.dp
         val geometry = with(density) {
-            HeadstockGeometry(maxWidth.toPx(), maxHeight.toPx(), buttonSize.toPx(), keySize.toPx())
+            HeadstockGeometry(maxWidth.toPx(), maxHeight.toPx(), (buttonSize + zigzagShift + 8.dp).toPx(), keySize.toPx())
         }
         val wood = remember { woodPalette() }
 
@@ -142,7 +157,7 @@ fun GuitarHeadstock(
             val end = geometry.keyEnd(target.index)
             val left = target.index <= 2
             val half = with(density) { buttonSize.toPx() / 2f }
-            val gap = with(density) { 6.dp.toPx() }
+            val gap = with(density) { 6.dp.toPx() + if (geometry.row(target.index) == 1) zigzagShift.toPx() else 0f }
             val x = if (left) end.x - gap - half * 2 else end.x + gap
             StringButton(
                 target = target,

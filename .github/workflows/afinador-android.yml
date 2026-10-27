@@ -153,9 +153,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none -camera-front none
           working-directory: afinador-acustico
-          script: |
-            ./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --stacktrace
-            mkdir -p capturas && adb pull /sdcard/Android/data/com.afinador.acustico/files/capturas capturas/ || true
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --stacktrace; S=$?; mkdir -p capturas; adb pull /sdcard/Android/data/com.afinador.acustico/files/capturas capturas/ || true; exit $S
 
       - name: Guardar informes
         if: always()
@@ -168,7 +166,8 @@ jobs:
         if: always()
         run: |
           ls -R capturas || true
-          if [ -d capturas/capturas ]; then cd capturas/capturas && zip -q -r "$GITHUB_WORKSPACE/afinador-acustico/capturas-api${{ matrix.api }}.zip" . ; fi
+          if [ -d capturas/capturas ]; then (cd capturas/capturas && zip -q -r "$GITHUB_WORKSPACE/afinador-acustico/capturas-api${{ matrix.api }}.zip" .) ; fi
+          if [ -d app/build/reports/androidTests ]; then (cd app/build/reports/androidTests && zip -q -r "$GITHUB_WORKSPACE/afinador-acustico/informe-ui-api${{ matrix.api }}.zip" .) ; fi
 
       - name: Guardar capturas
         if: always()
@@ -177,6 +176,21 @@ jobs:
           name: capturas-api${{ matrix.api }}
           path: afinador-acustico/capturas-api${{ matrix.api }}.zip
           if-no-files-found: warn
+
+      # Diagnóstico: capturas e informe de cada ejecución, aunque las pruebas fallen (no es un APK).
+      - name: Publicar diagnóstico de interfaz
+        if: always() && github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: afinador-diagnostico-ui
+          target_commitish: ${{ github.sha }}
+          name: "Afinador: diagnóstico de pruebas de interfaz (no instalar)"
+          prerelease: true
+          body: Capturas de pantalla e informes de las pruebas de interfaz de la última ejecución de CI. No contiene APK.
+          files: |
+            afinador-acustico/capturas-api${{ matrix.api }}.zip
+            afinador-acustico/informe-ui-api${{ matrix.api }}.zip
+          fail_on_unmatched_files: false
 
   release:
     name: Publicar APK

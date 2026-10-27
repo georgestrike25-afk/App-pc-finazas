@@ -99,6 +99,7 @@ fun StatusPill(status: TuningStatus, hasPitch: Boolean, modifier: Modifier = Mod
             .background(color.copy(alpha = 0.16f))
             .border(1.dp, color.copy(alpha = 0.6f), RoundedCornerShape(50))
             .padding(horizontal = 18.dp, vertical = 6.dp)
+            .semantics(mergeDescendants = true) {}
             .testTag("estado"),
     ) {
         Text(text, color = color, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)

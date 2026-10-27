@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -137,7 +138,7 @@ fun TunerScreen(
                     hasPitch = reading.hasPitch,
                     toleranceCents = settings.toleranceCents,
                     status = reading.status,
-                    modifier = Modifier.height(112.dp),
+                    modifier = Modifier.height(if (LocalConfiguration.current.screenHeightDp < 700) 92.dp else 112.dp),
                 )
                 Row(
                     Modifier.fillMaxWidth().padding(top = 2.dp),

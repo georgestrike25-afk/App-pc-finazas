@@ -51,6 +51,8 @@ class ScreenshotTest {
         if (rule.onAllNodes(hasTestTag("tutorial")).fetchSemanticsNodes().isNotEmpty()) {
             save("00_tutorial")
             rule.onNodeWithTag("tutorial_saltar").performClick()
+            // El cierre del tutorial se guarda en DataStore de forma asíncrona: esperar a que desaparezca.
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("tutorial")).fetchSemanticsNodes().isEmpty() }
         }
         for (theme in listOf("dark", "light")) {
             tab("settings")

@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
@@ -49,6 +50,8 @@ class AppUiTest {
         }
         if (rule.onAllNodes(hasTestTag("tutorial")).fetchSemanticsNodes().isNotEmpty()) {
             rule.onNodeWithTag("tutorial_saltar").performClick()
+            // El cierre del tutorial se guarda en DataStore de forma asíncrona: esperar a que desaparezca.
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("tutorial")).fetchSemanticsNodes().isEmpty() }
         }
         rule.waitUntilExactlyOneExists(hasTestTag("tab_tuner"), 5_000)
     }
@@ -94,13 +97,15 @@ class AppUiTest {
         tab("tunings")
         rule.onNodeWithTag("pestana_predefinidas").performClick()
         rule.onNodeWithTag("lista_afinaciones").assertIsDisplayed()
+        rule.onNodeWithTag("lista_afinaciones").performScrollToNode(hasTestTag("afinacion_drop_d"))
         rule.onNodeWithTag("afinacion_drop_d").performClick()
         tab("tuner")
         rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, D2")))
         rule.onNodeWithTag("cuerda_5").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 5, A2")))
         // Volver a la estándar.
         tab("tunings")
-        rule.onNodeWithTag("afinacion_estandar").performScrollTo().performClick()
+        rule.onNodeWithTag("lista_afinaciones").performScrollToNode(hasTestTag("afinacion_estandar"))
+        rule.onNodeWithTag("afinacion_estandar").performClick()
         tab("tuner")
         rule.onNodeWithTag("cuerda_6").assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Cuerda 6, E2")))
     }
@@ -162,7 +167,8 @@ class AppUiTest {
     fun afinacionPersonalizadaSeGuardaEditaYElimina() {
         tab("tunings")
         rule.onNodeWithTag("pestana_predefinidas").performClick()
-        rule.onNodeWithTag("afinacion_estandar").performScrollTo().performClick()
+        rule.onNodeWithTag("lista_afinaciones").performScrollToNode(hasTestTag("afinacion_estandar"))
+        rule.onNodeWithTag("afinacion_estandar").performClick()
         rule.onNodeWithTag("crear_afinacion").performClick()
         rule.onNodeWithTag("editor_nombre").performTextReplacement("Prueba UI")
         rule.onNodeWithTag("editor_menos_6").performClick()
