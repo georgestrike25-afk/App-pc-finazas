@@ -1,4 +1,4 @@
-# Informe de compilación y pruebas — Afinador Acústico 1.0.7
+# Informe de compilación y pruebas — EnTono 1.0.9
 
 Todo lo que figura acá se ejecutó de verdad, en este entorno o en GitHub Actions. Ningún resultado es simulado.
 
@@ -6,11 +6,11 @@ Todo lo que figura acá se ejecutó de verdad, en este entorno o en GitHub Actio
 
 | | |
 |---|---|
-| APK de lanzamiento | `AfinadorAcustico-1.0.7.apk` (1.344.560 bytes) |
-| Descarga | https://github.com/georgestrike25-afk/App-pc-finazas/releases/download/afinador-v1.0.7/AfinadorAcustico-1.0.7.apk |
-| Página del release | https://github.com/georgestrike25-afk/App-pc-finazas/releases/tag/afinador-v1.0.7 |
-| SHA-256 | `db7dce668276aff779f3d9eff182665be50f9044a9b8ec9029c66f9a5632b74b` |
-| Paquete | `com.afinador.acustico`, versionCode 7, minSdk 26 (Android 8.0), targetSdk 35 |
+| APK de lanzamiento | `EnTono-1.0.9.apk` (1.402.614 bytes) |
+| Descarga | https://github.com/georgestrike25-afk/App-pc-finazas/releases/download/entono-v1.0.9/EnTono-1.0.9.apk |
+| Página del release | https://github.com/georgestrike25-afk/App-pc-finazas/releases/tag/entono-v1.0.9 |
+| SHA-256 | `b6b1ff6f161b9dd402058a696107c20f5e5611329a822dfb5d6eb003d0067e0e` |
+| Paquete | `com.afinador.acustico` (nombre visible «EnTono»), versionCode 9, minSdk 26 (Android 8.0), targetSdk 35 |
 | Firma | APK Signature Scheme v2, verificada con `apksigner verify` (1 firmante). Clave generada en la compilación (ver «Limitaciones»). |
 | Permisos | Sólo `RECORD_AUDIO`. Ni Internet ni ningún otro (lo comprueba el CI y falla si aparece `INTERNET`). |
 | Código fuente | rama `ccr-f6019910-wn0a74`, carpeta `afinador-acustico/` |
@@ -18,6 +18,14 @@ Todo lo que figura acá se ejecutó de verdad, en este entorno o en GitHub Actio
 También se publica una variante `-debug.apk` como versión de prueba. Para usar la app, instalá la de lanzamiento.
 
 Verificación de la descarga hecha en este entorno: el SHA-256 coincide con `SHA256SUMS.txt`, el zip está íntegro y contiene `classes.dex`, `AndroidManifest.xml` y `resources.arsc`.
+
+## Identidad visual EnTono (versión 1.0.9)
+
+- Nombre visible **EnTono**; el identificador de paquete `com.afinador.acustico` no cambió (las instalaciones previas siguen siendo la misma app).
+- Ícono adaptable vectorial (fondo + primer plano + monocromo), pantalla de inicio con `core-splashscreen` (logotipo «EnTono» en Android 12+), logotipo en la barra superior, el tutorial y Acerca de.
+- Paleta: grafito `#1E1E1E`, verde `#00C853` (tema oscuro) y `#0A6B45` (verdes del tema claro, por contraste).
+- Los recursos se generan con `branding/generar_marca.py`; las piezas para tiendas y redes están en [`marca/`](marca/).
+- Verificado en CI: `aapt2 dump badging` informa `application-label:'EnTono'`; las pruebas de interfaz pasaron en API 34 y API 29. La primera ejecución del job de API 34 falló **antes de correr pruebas** porque el runner no pudo descargar el emulador («Error on ZipFile unknown archive»); la ejecución siguiente pasó.
 
 ## Entorno
 
@@ -57,10 +65,10 @@ El ≈ 0,3 cent de error con la cuerda pulsada viene de la inarmonicidad física
 
 **Fallas encontradas y corregidas:** la primera versión fallaba con ruido fuerte. Tenía errores de octava (−1201 cents) con SNR 10 dB y una dispersión de 17 cents con SNR 20 dB en E2. Se corrigió agregando un pasa bajos Butterworth antes de YIN y eligiendo el primer mínimo cercano al global cuando hay ruido.
 
-### 2. App Android (CI, ejecución 40550350794, commit `421c153`): todo correcto
+### 2. App Android (CI, ejecución 40562792777, commit `594dc3d`): todo correcto
 
 - `:app:testDebugUnitTest`, `:app:lintDebug` (sin errores), `assembleDebug`, `assembleRelease` (R8 activado) y `assembleDebugAndroidTest`: correctos.
-- **Pruebas de interfaz en emulador**, 8 de 8 en dos dispositivos: API 34 (Pixel 6) y API 29 (Nexus 5, pantalla chica de 360×640 dp). Usan el micrófono, el motor y DataStore reales:
+- **Pruebas de interfaz en emulador**, 9 de 9 en dos dispositivos: API 34 (Pixel 6) y API 29 (Nexus 5, pantalla chica de 360×640 dp). Usan el micrófono, el motor y DataStore reales:
   - La pantalla principal muestra el mástil, las 6 cuerdas, la nota, el medidor y los controles sin desplazar, incluso en la pantalla chica.
   - Con el micrófono del emulador en silencio, el motor real informa «Esperando una cuerda».
   - La cuerda se selecciona a mano y se vuelve al modo automático.
@@ -70,6 +78,7 @@ El ≈ 0,3 cent de error con la cuerda pulsada viene de la inarmonicidad física
   - El tema Claro u Oscuro elegido sigue igual después de recrear la actividad.
   - Una afinación personalizada se crea, se guarda, sigue después de recrear la actividad y se elimina.
   - Se recorrieron el modo cromático, la privacidad y el tutorial.
+  - La marca EnTono (logotipo y «Afinador de guitarra») se ve en la pantalla principal y en Acerca de.
   - Se tomaron capturas de todas las pantallas en los dos temas (adjuntas al release).
 
 **Fallas encontradas por estas pruebas y corregidas:**
