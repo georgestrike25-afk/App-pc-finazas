@@ -101,10 +101,15 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null || true
           sudo apt-get install -y -qq imagemagick > /dev/null || true
-          for f in $(find shots -name '*.png' | sort); do
-            convert "$f" -resize 420x\> -quality 62 /tmp/shot.jpg
+          cd shots/files/aura-shots 2>/dev/null || exit 0
+          ls
+          montage launcher_light.png launcher_dark.png app_home.png app_widgets.png app_customize.png app_forecast.png -tile 6x1 -geometry 300x+6+6 -background '#222' /tmp/sheet_a.jpg || true
+          montage minimal_clock_*.png minimal_weather_*.png minimal_duo_*.png minimal_night_*.png minimal_forecast_*.png opacity_dark_*.png profile_*_duo.png -tile 4x -geometry 360x+4+4 -background '#222' /tmp/sheet_b.jpg || true
+          for f in /tmp/sheet_a.jpg /tmp/sheet_b.jpg; do
+            [ -f "$f" ] || continue
+            convert "$f" -resize 1400x\> -quality 55 "$f"
             echo "AURA_SHOT_BEGIN $(basename "$f")"
-            base64 -w0 /tmp/shot.jpg; echo
+            base64 -w0 "$f"; echo
             echo "AURA_SHOT_END"
           done
 
