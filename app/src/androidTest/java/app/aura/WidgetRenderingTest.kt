@@ -47,7 +47,7 @@ class WidgetRenderingTest {
 
     companion object {
         val outDir: File by lazy {
-            File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null), "aura-shots").apply { mkdirs() }
+            File(InstrumentationRegistry.getInstrumentation().targetContext.filesDir, "aura-shots").apply { mkdirs() }
         }
 
         @BeforeClass
@@ -141,8 +141,10 @@ class WidgetRenderingTest {
                 // Transparente: la mayor parte del área no tiene ningún píxel pintado.
                 val fraction = transparentFraction(bmp)
                 assertTrue("$type $size: solo ${"%.2f".format(fraction)} transparente", fraction > 0.5)
-                if (type.showsClock) {
+                // Forecast pequeño prioriza el clima: no incluye la hora por diseño.
+                if (type.showsClock && !(type == WidgetType.FORECAST && size == SizeClass.SMALL)) {
                     val clock = view.findViewById<TextClock>(R.id.w_time)
+                    assertNotNull("$type $size sin reloj", clock)
                     assertTrue("$type $size sin hora", clock.text.isNotBlank())
                 }
                 if (type.showsWeather) {

@@ -91,13 +91,15 @@ jobs:
             adb shell settings put system time_12_24 24
             ./gradlew :app:connectedDebugAndroidTest || echo "AURA_TESTS_FAILED" > /tmp/aura_failed
             mkdir -p shots
-            adb pull /sdcard/Android/data/app.aura/files/aura-shots shots/ || true
+            adb exec-out run-as app.aura tar c files/aura-shots > shots.tar || true
+            tar xf shots.tar -C shots || true
             adb shell dumpsys appwidget | grep -i "app.aura" | head -20 || true
             ls -R shots || true
 
       - name: Capturas en el registro (para revisión remota)
         if: always()
         run: |
+          sudo apt-get update -qq > /dev/null || true
           sudo apt-get install -y -qq imagemagick > /dev/null || true
           for f in $(find shots -name '*.png' | sort); do
             convert "$f" -resize 420x\> -quality 62 /tmp/shot.jpg

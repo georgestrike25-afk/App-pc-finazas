@@ -38,7 +38,7 @@ class LauncherWidgetTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
     private val device = UiDevice.getInstance(instrumentation)
-    private val out = File(context.getExternalFilesDir(null), "aura-shots").apply { mkdirs() }
+    private val out = File(context.filesDir, "aura-shots").apply { mkdirs() }
 
     private fun setWallpaper(dark: Boolean) {
         val dm = context.resources.displayMetrics

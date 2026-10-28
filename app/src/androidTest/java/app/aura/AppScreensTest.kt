@@ -17,7 +17,7 @@ import java.io.File
 class AppScreensTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val device = UiDevice.getInstance(instrumentation)
-    private val out = File(instrumentation.targetContext.getExternalFilesDir(null), "aura-shots").apply { mkdirs() }
+    private val out = File(instrumentation.targetContext.filesDir, "aura-shots").apply { mkdirs() }
 
     private fun shot(name: String) {
         device.waitForIdle()
