@@ -100,7 +100,7 @@ jobs:
         run: |
           sudo apt-get install -y -qq imagemagick > /dev/null || true
           for f in $(find shots -name '*.png' | sort); do
-            convert "$f" -resize 540x\> -quality 70 /tmp/shot.jpg
+            convert "$f" -resize 420x\> -quality 62 /tmp/shot.jpg
             echo "AURA_SHOT_BEGIN $(basename "$f")"
             base64 -w0 /tmp/shot.jpg; echo
             echo "AURA_SHOT_END"
