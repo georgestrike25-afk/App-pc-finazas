@@ -3,7 +3,9 @@ import { getDb, type FinanzasDB } from '../db/db';
 import { addAudit, getDeviceId, getSettings, notify, nowIso, subscribe } from '../db/repo';
 import { currentMonth } from '../domain/dates';
 import { formatARS } from '../domain/money';
-import { codigoPareja, huellaDoc, nuevoDoc, otro, partes, planEspejo, unirDocs, type Miembro, type ParejaCfg, type ParejaDoc } from '../domain/pareja';
+import { codigoPareja, huellaDoc, nuevoDoc, otro, partes, planEspejo, unirDocs, type Miembro, type ParejaCfg, type ParejaDoc, type ParejaGasto } from '../domain/pareja';
+import { uid } from '../domain/text';
+import type { Expense } from '../domain/types';
 import { findServer, normalizeServerUrl } from './syncClient';
 import { detenerHost, iniciarHost, type HostInfo } from './parejaHost';
 
@@ -24,6 +26,9 @@ export interface ParejaEstado {
   /** Última vez que se sincronizó con otro dispositivo (no con este mismo). */
   ultima?: string;
   error?: string;
+  /** Diagnóstico: cómo fue el último intento con cada dirección, y las de este dispositivo. */
+  contactos?: Record<string, { ok: boolean; at: string; motivo?: string }>;
+  host?: HostInfo;
 }
 
 /** La frase es aleatoria y larga: alcanza con menos iteraciones que una contraseña escrita a mano. */
@@ -151,6 +156,31 @@ async function migrarConsultorio(db: FinanzasDB) {
   for (const e of viejos) await db.expenses.put({ ...e, deleted: true, updatedAt: now });
 }
 
+/**
+ * Un gasto marcado como compartido desde Gastos (botón ½ o la tilde "Compartido") va a la pareja:
+ * se saca de la lista local y vuelve como gasto de pareja (con la parte de cada uno).
+ * Devuelve false si el modo pareja no está activo o el gasto no se puede mandar (se repite todos los meses).
+ */
+export async function compartirConPareja(e: Expense, db: FinanzasDB = getDb()): Promise<boolean> {
+  const st = await loadPareja(db);
+  if (!st?.yo || e.id.startsWith('pareja-') || e.frequency !== 'unica' || e.deleted) return false;
+  const yo = st.yo;
+  const paga: Miembro = e.paidBy === 'pareja' ? otro(yo) : yo;
+  const mio = Math.min(100, Math.max(0, e.kind === 'hogar' ? e.userPct : 50));
+  const t = nowIso();
+  const g: ParejaGasto = { id: uid(), createdAt: t, updatedAt: t, autor: yo, paga, pctPaga: paga === yo ? mio : 100 - mio, concepto: e.concept, total: e.totalAmount, fecha: e.date, mes: e.month, categoria: e.category };
+  const viejo = await db.expenses.get(e.id);
+  if (viejo) await db.expenses.put({ ...viejo, deleted: true, updatedAt: t, deviceId: await getDeviceId(db) });
+  await cambiarPareja((d) => ({ ...d, gastos: [...d.gastos, g] }), db);
+  return true;
+}
+
+/** Gastos compartidos anotados en este dispositivo que nunca se mandaron a la pareja (de este mes y el anterior). */
+export function sinMandar(expenses: Expense[], mes: string): Expense[] {
+  const desde = `${Number(mes.slice(0, 4)) - (mes.slice(5) === '01' ? 1 : 0)}-${mes.slice(5) === '01' ? '12' : String(Number(mes.slice(5)) - 1).padStart(2, '0')}`;
+  return expenses.filter((e) => !e.deleted && e.kind === 'hogar' && e.frequency === 'unica' && !e.id.startsWith('pareja-') && e.month >= desde);
+}
+
 export interface Novedad {
   titulo: string;
   texto: string;
@@ -266,15 +296,18 @@ export async function syncPareja(f: FetchLike = fetch, db: FinanzasDB = getDb(),
     st = { ...st, doc: { ...st.doc, servidores: [...(st.doc.servidores ?? []).filter((x) => x.id !== deviceId), { id: deviceId, url: host.publica, updatedAt: nowIso() }] } };
   }
   const versiones = { ...(st.versiones ?? {}) };
+  const contactos = { ...(st.contactos ?? {}) };
   let errMsg: string | undefined;
   const una = async (url: string, timeout: number) => {
     try {
       const r = await syncCon(url, st!, conTiempo(f, timeout));
       st = { ...st!, doc: r.doc };
       versiones[url] = r.ver;
+      contactos[url] = { ok: true, at: nowIso() };
       return true;
     } catch (e) {
       if (!(e instanceof TypeError)) errMsg = (e as Error).message;
+      contactos[url] = { ok: false, at: nowIso(), motivo: e instanceof TypeError ? 'no responde' : (e as Error).message };
       return false;
     }
   };
@@ -293,6 +326,8 @@ export async function syncPareja(f: FetchLike = fetch, db: FinanzasDB = getDb(),
   st = {
     ...st,
     versiones,
+    contactos,
+    host,
     vistos: [...st.vistos, ...res.novedades.map((n) => n.id)].slice(-3000),
     ...(res.conectados.length ? { ultima: nowIso() } : {}),
     error: errMsg,

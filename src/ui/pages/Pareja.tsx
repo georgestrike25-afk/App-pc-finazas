@@ -4,7 +4,7 @@ import { useApp } from '../store';
 import { desktop, isNative } from '../../platform';
 import { iniciarHost, type HostInfo } from '../../sync/parejaHost';
 import { loadSyncConfig } from '../../sync/autoSync';
-import { cambiarPareja, codigoDe, crearPareja, elegirYo, loadPareja, onPareja, runParejaSync, salirPareja, unirPareja, type ParejaEstado } from '../../sync/pareja';
+import { cambiarPareja, codigoDe, compartirConPareja, crearPareja, sinMandar, elegirYo, loadPareja, onPareja, runParejaSync, salirPareja, unirPareja, type ParejaEstado } from '../../sync/pareja';
 import { fijosDelMes, leerCodigoPareja, otro, partes, saldo, type FilaFijo, type Miembro, type ParejaGasto, type ParejaItem, type ParejaPago } from '../../domain/pareja';
 import { addMonths, formatDate, monthLabel, monthOf, todayIso, type MonthKey } from '../../domain/dates';
 import { formatARS, type Cents } from '../../domain/money';
@@ -351,6 +351,63 @@ function SyncTag({ st, el }: { st: ParejaEstado; el: string }) {
   );
 }
 
+/** Qué dispositivos respondieron la última vez (para saber por qué no llega algo). */
+function Diagnostico({ st, el }: { st: ParejaEstado; el: string }) {
+  const nombre = (url: string) => {
+    if (url === st.host?.local) return 'Este dispositivo (lo que te dejaron)';
+    const s = st.doc.servidores?.find((x) => x.url === url);
+    if (url.endsWith(':8797')) return s ? `Celular (${url.replace(/^https?:\/\//, '')})` : `Celular de ${el} (${url.replace(/^https?:\/\//, '')})`;
+    return `PC (${url.replace(/^https?:\/\//, '')})`;
+  };
+  const filas = Object.entries(st.contactos ?? {});
+  return (
+    <div className="pj-diag" data-testid="pareja-diagnostico">
+      <p><strong>Conexión</strong></p>
+      <p>Tu dirección en este Wi-Fi: <strong>{st.host?.publica?.replace(/^https?:\/\//, '') ?? 'sin red (o la app no pudo abrir el puerto)'}</strong></p>
+      {filas.length === 0 ? (
+        <p>Todavía no se intentó sincronizar.</p>
+      ) : (
+        <ul>
+          {filas.map(([url, c]) => (
+            <li key={url}>
+              {c.ok ? '✓' : '✗'} {nombre(url)}: {c.ok ? 'conectado' : c.motivo ?? 'no responde'} · {new Date(c.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted">Si el celular de {el} "no responde": que tenga Brote abierto, que estén en la misma red (no en datos móviles ni en la red de invitados del router) y que las dos direcciones empiecen igual (por ejemplo, 192.168.0.…).</p>
+    </div>
+  );
+}
+
+/** Gastos marcados como compartidos en Gastos (½ o la tilde) que quedaron solo en este celular. */
+function SinMandar({ el }: { el: string }) {
+  const { data, month, toast } = useApp();
+  const lista = sinMandar(data.expenses, month);
+  if (!lista.length) return null;
+  const mandar = async (ids: string[]) => {
+    let n = 0;
+    for (const e of lista.filter((x) => ids.includes(x.id))) if (await compartirConPareja(e)) n++;
+    toast(n === 1 ? `Mandado: a ${el} le aparece su parte.` : `${n} gastos mandados a ${el}.`);
+  };
+  return (
+    <Card title={`Compartidos que ${el} todavía no ve`} className="pj-pend" help="Son gastos que marcaste como compartidos en Gastos antes de usar el modo pareja (o con la tilde de compartido). Quedaron solo en tu celular: mandalos para que le aparezca su parte.">
+      <ul className="pj-list">
+        {lista.map((e) => (
+          <li key={e.id} className="pj-item">
+            <span className="grow">
+              <span className="t">{e.concept}</span>
+              <span className="s">{formatDate(e.date)} · {e.paidBy === 'pareja' ? `pagó ${el}` : 'pagaste vos'} · {formatARS(e.totalAmount)}</span>
+            </span>
+            <button className="btn small" onClick={() => mandar([e.id])}>Mandar</button>
+          </li>
+        ))}
+      </ul>
+      {lista.length > 1 && <button className="btn primary" onClick={() => mandar(lista.map((e) => e.id))}>Mandar todos a {el}</button>}
+    </Card>
+  );
+}
+
 function Principal({ st }: { st: ParejaEstado }) {
   const { month, setMonth } = useApp();
   const yo = st.yo!;
@@ -405,6 +462,7 @@ function Principal({ st }: { st: ParejaEstado }) {
       </details>
       <details className="more-opts small">
         <summary>Más opciones</summary>
+        <Diagnostico st={st} el={el} />
         <p>Sos <strong>{n[yo]}</strong> en este dispositivo. Se sincroniza cuando los dos celulares están en el mismo Wi-Fi (o con el hotspot de uno) y uno de los dos abre Brote; el otro lo recibe aunque tenga Brote cerrado, si tiene activada la lectura de notificaciones. La PC es opcional: si está prendida con Brote abierto, también guarda los compartidos.</p>
         <button className="btn small ghost danger" onClick={async () => (await confirmDialog('¿Salir del modo pareja en este dispositivo?\nLos gastos que ya están en tu lista quedan.', { danger: true, ok: 'Salir' })) && salirPareja()}>Salir del modo pareja</button>
       </details>
@@ -414,6 +472,7 @@ function Principal({ st }: { st: ParejaEstado }) {
   return (
     <div className="page pareja">
       <MonthNav month={month} setMonth={setMonth} />
+      <SinMandar el={el} />
       {!st.ultima && conectar}
       <div className="cols cols-main">
         <section className="cash-card pj-hero" aria-label={`Saldo con ${el}`}>

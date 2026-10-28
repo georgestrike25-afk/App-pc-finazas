@@ -9,20 +9,33 @@ import { Badge, Card, confirmDialog, Empty, Money, MonthNav, useNarrow } from '.
 import { DAILY_CATEGORIES, ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
 import { NotifReviewCard } from './Notificaciones';
 import { categoryIcon } from '../components/categoryIcon';
+import { usePareja } from './Pareja';
+import { compartirConPareja } from '../../sync/pareja';
+import { esDePareja } from '../../domain/pareja';
 
 /** Gasto que pagaste vos entero y tu pareja te devuelve la mitad (marcado con el botón rápido). */
 const isHalf = (e: Expense) => e.kind === 'hogar' && e.userPct === 50 && e.paidBy === 'usuario';
 
 /** Botón rápido "½ con …": pasa el gasto a compartido 50 % (o lo vuelve a solo tuyo). */
 function HalfButton({ e, partner }: { e: Expense; partner: string }) {
+  const { toast } = useApp();
+  const pareja = usePareja();
   const on = isHalf(e);
+  // Los gastos del modo pareja se manejan en Gastos → Pareja (ahí está "No es compartido").
+  if (esDePareja(e)) return <Badge tone="info">Con {pareja?.yo ? pareja.doc.nombres[pareja.yo === 'a' ? 'b' : 'a'] : partner}</Badge>;
   if (e.kind === 'hogar' && !on) return null;
-  const toggle = () =>
-    saveRecord<Expense>(
+  const toggle = async () => {
+    // Con el modo pareja activo, el gasto se manda: a tu pareja le aparece su mitad.
+    if (!on && pareja?.yo && (await compartirConPareja({ ...e, kind: 'hogar', userPct: 50, paidBy: 'usuario' }))) {
+      toast(`Compartido con ${pareja.doc.nombres[pareja.yo === 'a' ? 'b' : 'a']}: le aparece su mitad.`);
+      return;
+    }
+    await saveRecord<Expense>(
       'expenses',
       on ? { ...e, kind: DAILY_CATEGORIES.includes(e.category) ? 'cotidiano' : 'personal', userPct: 100, paidBy: undefined } : { ...e, kind: 'hogar', userPct: 50, paidBy: 'usuario' },
       `${on ? 'Gasto vuelve a ser solo tuyo' : `Gasto a medias con ${partner}`}: "${e.concept}"`,
     );
+  };
   return (
     <button className={`btn small ${on ? 'primary' : 'ghost'}`} aria-pressed={on} onClick={toggle} title={on ? `Quitar: vuelve a ser solo tuyo` : `Lo pagaste vos y ${partner} te devuelve la mitad`} aria-label={`${on ? 'Quitar mitad con' : 'Mitad con'} ${partner}: ${e.concept}`}>
       ½ {partner}

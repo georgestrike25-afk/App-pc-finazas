@@ -8,7 +8,7 @@ import { getDb, setDb } from '../../src/db/db';
 import { loadDataSet, saveRecord, softDelete } from '../../src/db/repo';
 import { cashStatus } from '../../src/domain/cash';
 import { codigoPareja, fijosDelMes, leerCodigoPareja, nuevoDoc, partes, planEspejo, saldo, unirDocs, type ParejaDoc, type ParejaGasto } from '../../src/domain/pareja';
-import { aplicarEspejo, cambiarPareja, codigoDe, crearPareja, elegirYo, loadPareja, syncPareja, unirPareja } from '../../src/sync/pareja';
+import { aplicarEspejo, cambiarPareja, codigoDe, compartirConPareja, crearPareja, sinMandar, elegirYo, loadPareja, syncPareja, unirPareja } from '../../src/sync/pareja';
 import type { Expense, Settings } from '../../src/domain/types';
 
 const T = '2026-01-02T10:00:00.000Z';
@@ -264,5 +264,25 @@ describe('modo pareja sin la PC: cada celular recibe al otro', () => {
       rmSync(sj.dir, { recursive: true, force: true });
       rmSync(sa.dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('compartir desde Gastos con el modo pareja activo', () => {
+  it('el botón ½ o la tilde de compartido mandan el gasto a la pareja (y no queda duplicado)', async () => {
+    const db = await freshDb();
+    await crearPareja({ yo: 'Antonella', otro: 'Jorge' }, db);
+    const e = await saveRecord<Expense>('expenses', expense({ kind: 'hogar', month: '2026-10', date: '2026-10-25', totalAmount: 30_000, userPct: 50, paidBy: 'usuario', concept: 'Verdulería' }), 't', db);
+    expect(sinMandar((await loadDataSet(db)).expenses, '2026-10').map((x) => x.id)).toEqual([e.id]);
+    expect(await compartirConPareja(e, db)).toBe(true);
+    const st = (await loadPareja(db))!;
+    const g = st.doc.gastos.find((x) => x.concepto === 'Verdulería')!;
+    expect(g).toMatchObject({ paga: 'a', pctPaga: 50, total: 30_000 });
+    const vivos = (await loadDataSet(db)).expenses.filter((x) => x.concept === 'Verdulería');
+    expect(vivos.map((x) => x.id)).toEqual([`pareja-${g.id}`]);
+    expect(sinMandar((await loadDataSet(db)).expenses, '2026-10')).toEqual([]);
+    // Lo pagó la otra persona: le debés tu parte.
+    const f = await saveRecord<Expense>('expenses', expense({ kind: 'hogar', month: '2026-10', date: '2026-10-26', totalAmount: 10_000, userPct: 50, paidBy: 'pareja', concept: 'Farmacia' }), 't', db);
+    await compartirConPareja(f, db);
+    expect((await loadPareja(db))!.doc.gastos.find((x) => x.concepto === 'Farmacia')).toMatchObject({ paga: 'b', pctPaga: 50 });
   });
 });
