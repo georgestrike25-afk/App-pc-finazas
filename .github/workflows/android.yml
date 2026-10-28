@@ -53,3 +53,70 @@ jobs:
           path: |
             core/build/reports/
             app/build/reports/
+
+  emulator:
+    name: Widgets reales en emulador
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Habilitar KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar APK de prueba
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - name: Pruebas instrumentadas y capturas
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            adb shell settings put system time_12_24 24
+            ./gradlew :app:connectedDebugAndroidTest || echo "AURA_TESTS_FAILED" > /tmp/aura_failed
+            mkdir -p shots
+            adb pull /sdcard/Android/data/app.aura/files/aura-shots shots/ || true
+            adb shell dumpsys appwidget | grep -i "app.aura" | head -20 || true
+            ls -R shots || true
+
+      - name: Capturas en el registro (para revisión remota)
+        if: always()
+        run: |
+          sudo apt-get install -y -qq imagemagick > /dev/null || true
+          for f in $(find shots -name '*.png' | sort); do
+            convert "$f" -resize 540x\> -quality 70 /tmp/shot.jpg
+            echo "AURA_SHOT_BEGIN $(basename "$f")"
+            base64 -w0 /tmp/shot.jpg; echo
+            echo "AURA_SHOT_END"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: widget-screenshots
+          path: shots/
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: instrumented-reports
+          path: app/build/reports/androidTests/
+
+      - name: Resultado
+        run: test ! -f /tmp/aura_failed

@@ -70,6 +70,9 @@ class WidgetRenderer(private val context: Context) {
         return build(request, WidgetSizing.classify(request.type, w, h))
     }
 
+    /** Composición concreta; la usan las pruebas instrumentadas para inflar cada tamaño. */
+    fun renderSize(request: Request, size: SizeClass): RemoteViews = build(request, size)
+
     /** Ancho mínimo (vertical) y alto máximo (vertical), como recomienda la documentación de Android. */
     private fun sizeFromOptions(options: Bundle?): Pair<Int, Int> {
         val w = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH) ?: 0
