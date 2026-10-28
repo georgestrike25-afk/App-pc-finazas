@@ -1,0 +1,36 @@
+{
+  "latitude": -34.6,
+  "longitude": -58.375,
+  "generationtime_ms": 0.12,
+  "utc_offset_seconds": -10800,
+  "timezone": "America/Argentina/Buenos_Aires",
+  "timezone_abbreviation": "GMT-3",
+  "elevation": 27.0,
+  "current_units": {"time": "unixtime", "interval": "seconds", "temperature_2m": "°C"},
+  "current": {
+    "time": 1761674400,
+    "interval": 900,
+    "temperature_2m": 21.4,
+    "apparent_temperature": 20.9,
+    "relative_humidity_2m": 61,
+    "is_day": 1,
+    "weather_code": 2,
+    "wind_speed_10m": 14.2
+  },
+  "hourly": {
+    "time": [1761670800, 1761674400, 1761678000, 1761681600, 1761685200],
+    "temperature_2m": [20.8, 21.4, 22.0, null, 21.1],
+    "weather_code": [1, 2, 3, 61, 95],
+    "is_day": [1, 1, 1, 1, 0],
+    "precipitation_probability": [0, 5, null, 60, 80]
+  },
+  "daily": {
+    "time": [1761620400, 1761706800],
+    "weather_code": [2, 63],
+    "temperature_2m_max": [24.6, 19.2],
+    "temperature_2m_min": [14.1, 12.8],
+    "sunrise": [1761641820, 1761728160],
+    "sunset": [1761690180, 1761776640],
+    "precipitation_probability_max": [10, 85]
+  }
+}

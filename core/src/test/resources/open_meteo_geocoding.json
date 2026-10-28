@@ -1,0 +1,5 @@
+{"results":[
+ {"id":3117735,"name":"Madrid","latitude":40.4165,"longitude":-3.70256,"country_code":"ES","admin1":"Madrid","country":"España","timezone":"Europe/Madrid"},
+ {"id":3433955,"name":"Buenos Aires","latitude":-34.61315,"longitude":-58.37723,"country":"Argentina","admin1":"Buenos Aires F.D.","timezone":"America/Argentina/Buenos_Aires"},
+ {"name":"Sin coordenadas"}
+],"generationtime_ms":0.6}
