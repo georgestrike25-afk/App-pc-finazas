@@ -57,6 +57,8 @@ jobs:
   emulator:
     name: Widgets reales en emulador
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: build
     timeout-minutes: 50
     steps:
@@ -96,22 +98,18 @@ jobs:
             adb shell dumpsys appwidget | grep -i "app.aura" | head -20 || true
             ls -R shots || true
 
-      - name: Capturas en el registro (para revisión remota)
-        if: always()
+      - name: Guardar capturas en docs/capturas
+        if: github.event_name == 'push'
         run: |
-          sudo apt-get update -qq > /dev/null || true
-          sudo apt-get install -y -qq imagemagick > /dev/null || true
-          cd shots/files/aura-shots 2>/dev/null || exit 0
-          ls
-          montage launcher_light.png launcher_dark.png app_home.png app_widgets.png app_customize.png app_forecast.png -tile 6x1 -geometry 300x+6+6 -background '#222' /tmp/sheet_a.jpg || true
-          montage minimal_clock_*.png minimal_weather_*.png minimal_duo_*.png minimal_night_*.png minimal_forecast_*.png opacity_dark_*.png profile_*_duo.png -tile 4x -geometry 360x+4+4 -background '#222' /tmp/sheet_b.jpg || true
-          for f in /tmp/sheet_a.jpg /tmp/sheet_b.jpg; do
-            [ -f "$f" ] || continue
-            convert "$f" -resize 1400x\> -quality 55 "$f"
-            echo "AURA_SHOT_BEGIN $(basename "$f")"
-            base64 -w0 "$f"; echo
-            echo "AURA_SHOT_END"
-          done
+          src=shots/files/aura-shots
+          [ -d "$src" ] || exit 0
+          rm -rf docs/capturas && mkdir -p docs/capturas
+          cp "$src"/*.png docs/capturas/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/capturas
+          git commit -m "Capturas del emulador (${GITHUB_SHA::7}) [skip ci]" || exit 0
+          git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - uses: actions/upload-artifact@v4
         if: always()
