@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aura</string>
+    <string name="app_slogan">El cielo y el tiempo, a tu manera</string>
+
+    <!-- Selector de widgets -->
+    <string name="widget_clock_name">Aura Clock</string>
+    <string name="widget_clock_desc">Reloj minimalista con fecha opcional. Transparente por defecto.</string>
+    <string name="widget_weather_name">Aura Weather</string>
+    <string name="widget_weather_desc">Icono, temperatura actual y, si querés, ubicación y máx./mín.</string>
+    <string name="widget_duo_name">Aura Duo</string>
+    <string name="widget_duo_desc">Hora y clima en una composición equilibrada.</string>
+    <string name="widget_forecast_name">Aura Forecast</string>
+    <string name="widget_forecast_desc">Hora, clima actual y evolución de las próximas horas y días.</string>
+    <string name="widget_night_name">Aura Night</string>
+    <string name="widget_night_desc">Reloj nocturno de baja distracción con condición y temperatura.</string>
+
+    <!-- Estados del widget -->
+    <string name="widget_no_place">Elegí una ciudad</string>
+    <string name="widget_no_data">Sin datos aún</string>
+    <string name="widget_status_stale">Actualizado hace %1$s</string>
+    <string name="widget_status_expired">Sin actualizar · %1$s</string>
+    <string name="widget_now">Ahora</string>
+    <string name="widget_today">Hoy</string>
+    <string name="widget_hilo_cd">Máxima %1$s, mínima %2$s</string>
+    <string name="age_minutes">%1$d min</string>
+    <string name="age_hours">%1$d h</string>
+    <string name="age_days">%1$d d</string>
+
+    <!-- Condiciones -->
+    <string name="cond_clear_day">Despejado</string>
+    <string name="cond_clear_night">Noche despejada</string>
+    <string name="cond_partly_cloudy_day">Parcialmente nublado</string>
+    <string name="cond_partly_cloudy_night">Parcialmente nublado</string>
+    <string name="cond_cloudy">Nublado</string>
+    <string name="cond_drizzle">Llovizna</string>
+    <string name="cond_rain">Lluvia</string>
+    <string name="cond_thunderstorm">Tormenta eléctrica</string>
+    <string name="cond_snow">Nieve</string>
+    <string name="cond_fog">Niebla</string>
+    <string name="cond_wind">Viento</string>
+
+    <string name="current_location">Ubicación actual</string>
+</resources>

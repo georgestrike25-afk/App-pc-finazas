@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_icons.py. No editar a mano. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <group>
+        <clip-path android:pathData="M-4,-4H52V52H-4ZM40.5,41.6A9.1,9.1 0 0,0 37.94,25.23A11.1,11.1 0 0,0 16.53,27.28A8.1,8.1 0 0,0 14.3,41.6Z" />
+        <path android:pathData="M11.7,18.5A5.8,5.8 0 1,1 23.3,18.5A5.8,5.8 0 1,1 11.7,18.5Z"
+            android:fillColor="#FFC857" />
+    </group>
+    <group>
+        <clip-path android:pathData="M-4,-4H52V52H-4ZM40.5,41.6A9.1,9.1 0 0,0 37.94,25.23A11.1,11.1 0 0,0 16.53,27.28A8.1,8.1 0 0,0 14.3,41.6Z" />
+        <path android:pathData="M26.8,18.5L30.5,18.5M24.08,25.08L26.69,27.69M17.5,27.8L17.5,31.5M10.92,25.08L8.31,27.69M8.2,18.5L4.5,18.5M10.92,11.92L8.31,9.31M17.5,9.2L17.5,5.5M24.08,11.92L26.69,9.31"
+            android:strokeColor="#FFC857"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

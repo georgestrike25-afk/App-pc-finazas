@@ -9,6 +9,9 @@ import kotlinx.serialization.Serializable
 enum class LocationMode { DEVICE, MANUAL }
 
 @Serializable
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+@Serializable
 data class AppSettings(
     val temperatureUnit: TemperatureUnit = TemperatureUnit.CELSIUS,
     val hourFormat: HourFormat = HourFormat.SYSTEM,
@@ -21,6 +24,7 @@ data class AppSettings(
     val savedPlaces: List<Place> = emptyList(),
     val wifiOnly: Boolean = false,
     val providerId: String = "open-meteo",
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val onboardingDone: Boolean = false,
 ) {
     val activePlace: Place?

@@ -1,0 +1,55 @@
+name: Android
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compilar, probar y empaquetar
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recursos generados al día
+        run: |
+          python3 tools/aura_icons.py
+          python3 tools/aura_widgets.py
+          git diff --stat --exit-code
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Pruebas unitarias
+        run: ./gradlew --stacktrace :core:test :app:testDebugUnitTest
+
+      - name: APK debug y release
+        run: ./gradlew --stacktrace :app:assembleDebug :app:assembleRelease
+
+      - name: Lint
+        run: ./gradlew :app:lintDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aura-apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: |
+            core/build/reports/
+            app/build/reports/

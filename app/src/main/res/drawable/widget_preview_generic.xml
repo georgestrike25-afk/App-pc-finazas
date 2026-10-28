@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vista previa estática para el selector de widgets en Android 8–11 (en 12+ se usa previewLayout). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="180dp" android:height="80dp" />
+            <solid android:color="#E6101D2B" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item android:width="40dp" android:height="40dp" android:gravity="center" android:drawable="@drawable/ic_aura_mark" />
+</layer-list>

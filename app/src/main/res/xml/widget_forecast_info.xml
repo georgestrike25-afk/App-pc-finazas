@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_forecast_desc"
+    android:initialLayout="@layout/w_forecast_medium_light_sh"
+    android:previewLayout="@layout/w_forecast_preview"
+    android:previewImage="@drawable/widget_preview_generic"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    android:configure="app.aura.widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional" />

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Descarga de datos meteorológicos y búsqueda de ciudades. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- WorkManager espera a tener red antes de actualizar. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Opcional: solo si el usuario elige "Ubicación del dispositivo". Precisión aproximada; nunca en segundo plano. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+
+    <application
+        android:name=".AuraApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Aura">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <receiver android:name=".widget.ClockWidgetReceiver" android:exported="true" android:label="@string/widget_clock_name">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_clock_info" />
+        </receiver>
+        <receiver android:name=".widget.WeatherWidgetReceiver" android:exported="true" android:label="@string/widget_weather_name">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_weather_info" />
+        </receiver>
+        <receiver android:name=".widget.DuoWidgetReceiver" android:exported="true" android:label="@string/widget_duo_name">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_duo_info" />
+        </receiver>
+        <receiver android:name=".widget.ForecastWidgetReceiver" android:exported="true" android:label="@string/widget_forecast_name">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_forecast_info" />
+        </receiver>
+        <receiver android:name=".widget.NightWidgetReceiver" android:exported="true" android:label="@string/widget_night_name">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_night_info" />
+        </receiver>
+
+        <!-- Cambios de zona horaria, hora o idioma: el reloj (TextClock) se adapta solo; esto re-renderiza
+             las etiquetas de horas/días del pronóstico. Son difusiones del sistema exentas de las
+             restricciones de difusiones implícitas. -->
+        <receiver android:name=".widget.SystemChangeReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Acciones internas: actualización manual desde el widget y confirmación de widgets anclados. -->
+        <receiver android:name=".widget.WidgetActionReceiver" android:exported="false" />
+    </application>
+</manifest>

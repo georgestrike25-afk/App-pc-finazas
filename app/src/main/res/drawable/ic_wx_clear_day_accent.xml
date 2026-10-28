@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_icons.py. No editar a mano. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M16.5,24A7.5,7.5 0 1,1 31.5,24A7.5,7.5 0 1,1 16.5,24Z"
+        android:fillColor="#FFC857" />
+    <path android:pathData="M36,24L41,24M32.49,32.49L36.02,36.02M24,36L24,41M15.51,32.49L11.98,36.02M12,24L7,24M15.51,15.51L11.98,11.98M24,12L24,7M32.49,15.51L36.02,11.98"
+        android:strokeColor="#FFC857"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
