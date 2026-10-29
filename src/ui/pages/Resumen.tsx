@@ -125,12 +125,21 @@ export function ResumenPage() {
             <dd><Money value={r.info.statementsTotal} /></dd>
             <dt>Pagos de resumen registrados <small className="muted">(cancelan consumos ya imputados)</small></dt>
             <dd><Money value={r.info.cardPaymentsTotal} /></dd>
-            <dt>Reintegro Sancor esperado</dt>
-            <dd><Money value={r.info.sancorExpected} /></dd>
-            <dt>Reintegro Sancor recibido</dt>
-            <dd><Money value={r.info.sancorReceived} /></dd>
-            <dt>Reintegro Sancor pendiente</dt>
-            <dd><Money value={r.info.sancorPending} /></dd>
+            {data.pareja ? (
+              <>
+                <dt>Sancor con tu pareja</dt>
+                <dd className="small">Con el modo pareja, su parte de Sancor está en el saldo de Compartidos y se salda con "Pagado".</dd>
+              </>
+            ) : (
+              <>
+                <dt>Reintegro Sancor esperado</dt>
+                <dd><Money value={r.info.sancorExpected} /></dd>
+                <dt>Reintegro Sancor recibido</dt>
+                <dd><Money value={r.info.sancorReceived} /></dd>
+                <dt>Reintegro Sancor pendiente</dt>
+                <dd><Money value={r.info.sancorPending} /></dd>
+              </>
+            )}
           </dl>
         </Card>
         <Card title="Presupuesto cotidiano">

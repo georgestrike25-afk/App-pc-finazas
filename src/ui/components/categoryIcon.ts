@@ -1,8 +1,9 @@
-import { ArrowRightLeft, Bus, Car, Dumbbell, Flame, Fuel, GraduationCap, HeartPulse, House, PawPrint, Pill, Receipt, Shapes, Shirt, ShoppingCart, Smartphone, Ticket, Utensils, Wifi, Zap, type LucideIcon } from 'lucide-react';
+import { ArrowRightLeft, Bus, Car, Dumbbell, Flame, Fuel, GraduationCap, HeartPulse, House, PawPrint, Pill, Receipt, Shapes, Shirt, ShoppingCart, Smartphone, Stethoscope, Ticket, Utensils, Wifi, Zap, type LucideIcon } from 'lucide-react';
 import { normalizeText } from '../../domain/text';
 
 const RULES: Array<[RegExp, LucideIcon]> = [
-  [/super|almacen|verdul|carnic|mercado/, ShoppingCart],
+  [/super|almacen|verdul|carnic|mercado|gasto diario|dia a dia/, ShoppingCart],
+  [/consultorio/, Stethoscope],
   [/combust|nafta|ypf|shell|axion/, Fuel],
   [/farmac/, Pill],
   [/deliver|comida|restaur|bar|cafe|panader/, Utensils],
@@ -10,7 +11,8 @@ const RULES: Array<[RegExp, LucideIcon]> = [
   [/auto|seguro|patente/, Car],
   [/alquiler|hogar|expensa|casa/, House],
   [/luz|electric|edenor|edesur/, Zap],
-  [/gas\b|^gas/, Flame],
+  // "Gas" solo como palabra suelta ("Gasto diario" no es gas).
+  [/(^|\s)gas(\s|$)/, Flame],
   [/internet|wifi|fibra/, Wifi],
   [/celular|telefon|movil/, Smartphone],
   [/salud|sancor|obra social|medic|consult|odont/, HeartPulse],

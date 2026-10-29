@@ -5,6 +5,8 @@ import { checkServer, parsePairingCode } from '../../sync/syncClient';
 import { getSyncStatus, loadSyncConfig, onSyncStatus, runSync, saveSyncConfig, type StoredSyncConfig, type SyncStatus } from '../../sync/autoSync';
 import { desktop, isNative, saveFile, saveToDocuments, esPrueba } from '../../platform';
 import { DesktopPairingCard } from './DesktopPairing';
+import { QrScanner } from '../components/Qr';
+import { ScanLine } from 'lucide-react';
 import { getDb } from '../../db/db';
 import { Badge, Card, confirmDialog, Field } from '../components/ui';
 
@@ -81,9 +83,10 @@ export function CopiasPage() {
     await doRestore(text);
   };
 
-  const applyCode = () => {
+  const [scan, setScan] = useState(false);
+  const applyCode = (texto = code) => {
     try {
-      const p = parsePairingCode(code);
+      const p = parsePairingCode(texto);
       setCfg({ ...cfg, ...p });
       setCode('');
       setSyncMsg('Código aplicado. Ingrese la frase de sincronización y toque "Sincronizar ahora".');
@@ -111,10 +114,22 @@ export function CopiasPage() {
           {(id) => (
             <div className="row">
               <input id={id} placeholder="FP1-…" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" />
-              <button className="btn" onClick={applyCode} disabled={!code.trim()}>Usar código</button>
+              <button className="btn" onClick={() => applyCode()} disabled={!code.trim()}>Usar código</button>
             </div>
           )}
         </Field>
+        {!!navigator.mediaDevices?.getUserMedia && (
+          <button className="btn primary" onClick={() => setScan(true)}><ScanLine aria-hidden />Escanear el QR de la PC</button>
+        )}
+        {scan && (
+          <QrScanner
+            onRead={(t) => {
+              setScan(false);
+              applyCode(t);
+            }}
+            onClose={() => setScan(false)}
+          />
+        )}
         <div className="form-grid">
           <Field label="Dirección del servidor">{(id) => <input id={id} placeholder="http://192.168.0.10:8787" value={cfg.serverUrl} onChange={(e) => setCfg({ ...cfg, serverUrl: e.target.value.trim() })} inputMode="url" />}</Field>
           <Field label="Espacio (mismo nombre en ambos dispositivos)">{(id) => <input id={id} placeholder="hogar" value={cfg.space} onChange={(e) => setCfg({ ...cfg, space: e.target.value.trim() })} />}</Field>

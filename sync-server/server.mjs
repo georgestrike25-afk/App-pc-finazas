@@ -78,7 +78,7 @@ function cors(req, res) {
   if (origin && (ALLOWED.includes('*') || ALLOWED.includes(origin))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, If-Match');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, If-Match, X-Brote-Miembro');
     res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
     res.setHeader('Access-Control-Max-Age', '600');
     // Chrome pide permiso explícito para llamar a direcciones de la red local desde la app.

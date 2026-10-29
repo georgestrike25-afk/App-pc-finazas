@@ -63,6 +63,9 @@ export interface ParejaPago extends ParejaRegistro {
 export interface ParejaServidor extends ParejaRegistro {
   /** id = identificador del dispositivo. */
   url: string;
+  /** Quién usa ese dispositivo y si es un celular o una PC (para avisar si dos celulares eligen ser la misma persona). */
+  yo?: Miembro;
+  tipo?: 'celular' | 'pc';
 }
 
 export interface ParejaDoc {
@@ -160,9 +163,30 @@ export function saldo(doc: ParejaDoc, yo: Miembro, mes?: MonthKey): Saldo {
 
 export interface FilaFijo {
   item: ParejaItem;
+  /** Lo cargado este mes (si lo pueden poner los dos, lo que puso este dispositivo). */
   gasto?: ParejaGasto;
+  /** Todo lo cargado este mes para este renglón (en "los dos" puede haber uno de cada uno). */
+  delMes: ParejaGasto[];
   /** Monto del mes anterior, como referencia ("Igual que el mes pasado"). */
   anterior?: Cents;
+}
+
+/** Id del gasto de un renglón de la planilla en un mes ("los dos": uno por persona, para que no se pisen). */
+export const idFijo = (item: Pick<ParejaItem, 'id' | 'paga'>, mes: MonthKey, yo: Miembro) => (item.paga === 'ambos' ? `${item.id}-${mes}-${yo}` : `${item.id}-${mes}`);
+
+/**
+ * Gastos que parecen anotados dos veces: mismo monto, misma fecha y pagados por la misma persona
+ * (por ejemplo, si se guardó dos veces desde el widget). Devuelve los que están de más.
+ */
+export function posiblesRepetidos(doc: ParejaDoc): Set<string> {
+  const vistos = new Map<string, ParejaGasto>();
+  const out = new Set<string>();
+  for (const g of [...doc.gastos].filter((x) => !x.deleted && !x.itemId).sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    const k = `${g.paga}|${g.total}|${g.fecha}`;
+    if (vistos.has(k)) out.add(g.id);
+    else vistos.set(k, g);
+  }
+  return out;
 }
 
 /** Planilla de gastos fijos del mes: lo cargado y lo pendiente (los que no se comparten solo los ve quien paga). */
@@ -172,10 +196,12 @@ export function fijosDelMes(doc: ParejaDoc, mes: MonthKey, yo: Miembro): FilaFij
     .filter((i) => !i.deleted && (i.pctPaga < 100 || i.paga === yo))
     .map((item) => {
       const delItem = doc.gastos.filter((g) => !g.deleted && g.itemId === item.id);
+      const delMes = delItem.filter((g) => g.mes === mes);
       return {
         item,
-        gasto: delItem.find((g) => g.mes === mes),
-        anterior: delItem.filter((g) => g.mes === prev).at(-1)?.total,
+        delMes,
+        gasto: item.paga === 'ambos' ? delMes.find((g) => g.paga === yo) : delMes[0],
+        anterior: delItem.filter((g) => g.mes === prev && (item.paga !== 'ambos' || g.paga === yo)).at(-1)?.total,
       };
     });
 }
@@ -209,13 +235,21 @@ export function planEspejo(doc: ParejaDoc, yo: Miembro, expenses: Expense[], ctx
     if (c && !ctx.categories.includes(c) && !plan.categorias.includes(c)) plan.categorias.push(c);
   };
 
-  // Fijos con monto que se cargan solos este mes.
+  // Fijos con monto que se cargan solos: este mes y los anteriores en que no se abrió Brote
+  // (desde que existe el renglón y el modo pareja, hasta 12 meses atrás).
+  const inicio = monthOf(doc.nombres.updatedAt.slice(0, 10));
   for (const item of doc.items) {
-    if (item.deleted || !item.fijo) continue;
+    if (item.deleted || !item.fijo || item.paga === 'ambos') continue;
+    let desde = [inicio, monthOf(item.updatedAt.slice(0, 10)), addMonths(ctx.mes, -11)].sort().at(-1)!;
+    if (desde > ctx.mes) desde = ctx.mes;
+    for (let mes = desde; mes <= ctx.mes; mes = addMonths(mes, 1)) cargarFijo(item, mes);
+  }
+  function cargarFijo(item: ParejaItem, mes: MonthKey) {
+    if (!item.fijo) return;
     if (item.pctPaga >= 100) {
-      if (item.paga !== yo) continue;
-      const id = idFijoSolo(item.id, ctx.mes);
-      if (byId.has(id)) continue; // ya está (o se borró a propósito este mes)
+      if (item.paga !== yo) return;
+      const id = idFijoSolo(item.id, mes);
+      if (byId.has(id)) return; // ya está (o se borró a propósito ese mes)
       cat(item.categoria);
       plan.put.push({
         id,
@@ -225,8 +259,8 @@ export function planEspejo(doc: ParejaDoc, yo: Miembro, expenses: Expense[], ctx
         kind: 'personal',
         category: item.categoria,
         concept: item.nombre,
-        date: `${ctx.mes}-01`,
-        month: ctx.mes,
+        date: `${mes}-01`,
+        month: mes,
         totalAmount: item.fijo,
         userPct: 100,
         paid: true,
@@ -235,9 +269,9 @@ export function planEspejo(doc: ParejaDoc, yo: Miembro, expenses: Expense[], ctx
         source: 'manual',
         notes: 'Gasto fijo de la planilla (modo pareja): se carga solo todos los meses.',
       });
-    } else if (!doc.gastos.some((g) => g.itemId === item.id && g.mes === ctx.mes)) {
+    } else if (!doc.gastos.some((g) => g.itemId === item.id && g.mes === mes) && !plan.nuevos.some((g) => g.itemId === item.id && g.mes === mes)) {
       plan.nuevos.push({
-        id: `${item.id}-${ctx.mes}`,
+        id: `${item.id}-${mes}`,
         createdAt: ctx.nowIso,
         updatedAt: ctx.nowIso,
         autor: yo,
@@ -245,8 +279,8 @@ export function planEspejo(doc: ParejaDoc, yo: Miembro, expenses: Expense[], ctx
         pctPaga: item.pctPaga,
         concepto: item.nombre,
         total: item.fijo,
-        fecha: `${ctx.mes}-01`,
-        mes: ctx.mes,
+        fecha: `${mes}-01`,
+        mes,
         categoria: item.categoria,
         itemId: item.id,
       });

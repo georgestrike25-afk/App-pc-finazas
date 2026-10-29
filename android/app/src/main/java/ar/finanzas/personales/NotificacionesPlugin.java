@@ -182,7 +182,7 @@ public class NotificacionesPlugin extends Plugin {
             call.reject("faltan datos");
             return;
         }
-        ServidorPareja.configurar(getContext(), token, espacio);
+        ServidorPareja.configurar(getContext(), token, espacio, call.getString("yo", ""));
         JSObject r = new JSObject();
         JSArray urls = new JSArray();
         if (ServidorPareja.andando()) for (String u : ServidorPareja.direcciones()) urls.put(u);
@@ -199,5 +199,34 @@ public class NotificacionesPlugin extends Plugin {
     public void detenerPareja(PluginCall call) {
         ServidorPareja.olvidar(getContext());
         call.resolve();
+    }
+
+    /** Modo pareja: recibir con Brote cerrado (servicio con notificación fija). */
+    @PluginMethod
+    public void segundoPlano(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("activo", false));
+        try {
+            ServicioPareja.cambiar(getContext(), on);
+            // Sin esto, Android corta el Wi-Fi a Brote cuando el celular está quieto un rato.
+            android.os.PowerManager pm = (android.os.PowerManager) getContext().getSystemService(android.content.Context.POWER_SERVICE);
+            if (on && Build.VERSION.SDK_INT >= 23 && pm != null && !pm.isIgnoringBatteryOptimizations(getContext().getPackageName()) && getActivity() != null) {
+                Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                i.setData(android.net.Uri.parse("package:" + getContext().getPackageName()));
+                getActivity().startActivity(i);
+            }
+        } catch (Exception e) {
+            call.reject("No se pudo activar.", e);
+            return;
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void estadoSegundoPlano(PluginCall call) {
+        android.os.PowerManager pm = (android.os.PowerManager) getContext().getSystemService(android.content.Context.POWER_SERVICE);
+        JSObject r = new JSObject();
+        r.put("activo", ServicioPareja.activo(getContext()));
+        r.put("sinRestriccionBateria", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName())));
+        call.resolve(r);
     }
 }

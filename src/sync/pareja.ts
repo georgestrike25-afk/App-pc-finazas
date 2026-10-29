@@ -104,6 +104,18 @@ export async function unirPareja(cfg: ParejaCfg, db: FinanzasDB = getDb()): Prom
   return st;
 }
 
+/**
+ * Escaneaste el QR del otro estando ya conectados: si es el mismo modo pareja, solo se suman sus
+ * direcciones (por si cambió de Wi-Fi) y se sincroniza. Si es otro, avisa ("otro") y no toca nada.
+ */
+export async function reconectar(cfg: ParejaCfg, db: FinanzasDB = getDb()): Promise<'mismo' | 'otro'> {
+  const st = await loadPareja(db);
+  if (!st || st.cfg.space !== cfg.space) return 'otro';
+  await mutar(db, (cur) => (cur ? { ...cur, cfg: { ...cur.cfg, servidores: [...new Set([...cfg.servidores.map(normalizeServerUrl), ...cur.cfg.servidores])] } } : undefined));
+  if (db === getDb()) await runParejaSync();
+  return 'mismo';
+}
+
 /** Código para pasarle al otro: con todas las direcciones conocidas. */
 export function codigoDe(st: ParejaEstado, host: HostInfo = {}): string {
   const urls = [...new Set([host.publica, ...(st.doc.servidores ?? []).filter((x) => !x.deleted).map((x) => x.url), ...st.cfg.servidores].filter((u): u is string => !!u && u !== host.local))];
@@ -291,7 +303,7 @@ async function syncCon(url: string, st: ParejaEstado, f: FetchLike): Promise<{ d
     }
     const local = huellaDoc(doc);
     if (local === remota) return { doc, ver: { v: version, h: remota } };
-    const put = await f(ep, { method: 'PUT', headers: { ...headers, 'If-Match': String(version) }, body: JSON.stringify({ blob: await encode(doc, st.cfg.passphrase) }) });
+    const put = await f(ep, { method: 'PUT', headers: { ...headers, 'If-Match': String(version), ...(st.yo ? { 'X-Brote-Miembro': st.yo } : {}) }, body: JSON.stringify({ blob: await encode(doc, st.cfg.passphrase) }) });
     if (put.status === 409) {
       known = undefined;
       continue;
@@ -308,6 +320,31 @@ export interface ResultadoSync {
   conectados: string[];
   /** Direcciones que no respondieron (para buscarlas de nuevo en el Wi-Fi). */
   sinRespuesta: string[];
+  /** Se leyó lo que los demás dejaron en este mismo dispositivo. */
+  local?: boolean;
+}
+
+const tipoDe = (host: HostInfo): 'celular' | 'pc' => (host.local?.endsWith(':8797') ? 'celular' : 'pc');
+
+/** Último gasto o pago que anotó el otro (lo más nuevo que llegó de su lado). */
+export function ultimoDelOtro(st: ParejaEstado): string | undefined {
+  if (!st.yo) return undefined;
+  const suyos = [...st.doc.gastos.filter((g) => g.autor !== st.yo), ...st.doc.pagos.filter((p) => p.de !== st.yo)].map((x) => x.updatedAt);
+  return suyos.sort().at(-1);
+}
+
+/** ¿Hay cambios de este dispositivo que todavía no llegaron a ningún otro? */
+export function hayPendientes(st: ParejaEstado): boolean {
+  const h = huellaDoc(st.doc);
+  const otros = Object.entries(st.versiones ?? {}).filter(([url]) => url !== st.host?.local);
+  const propios = st.doc.gastos.some((g) => g.autor === st.yo) || st.doc.pagos.some((p) => p.de === st.yo);
+  return propios && !otros.some(([, v]) => v.h === h);
+}
+
+/** Otro celular ya eligió ser esa persona (en la PC es normal: la PC y el celular de la misma persona). */
+export function celularQueYaEs(st: ParejaEstado, m: Miembro, deviceId: string, host: HostInfo): boolean {
+  if (tipoDe(host) !== 'celular') return false;
+  return (st.doc.servidores ?? []).some((x) => !x.deleted && x.id !== deviceId && x.yo === m && x.tipo === 'celular');
 }
 
 /**
@@ -322,8 +359,9 @@ export async function syncPareja(f: FetchLike = fetch, db: FinanzasDB = getDb(),
   const deviceId = await getDeviceId(db);
   // Este dispositivo publica dónde se lo encuentra.
   const mio = st.doc.servidores?.find((x) => x.id === deviceId);
-  if (host.publica && (mio?.url !== host.publica || mio.deleted)) {
-    st = { ...st, doc: { ...st.doc, servidores: [...(st.doc.servidores ?? []).filter((x) => x.id !== deviceId), { id: deviceId, url: host.publica, updatedAt: nowIso() }] } };
+  const tipo = tipoDe(host);
+  if (host.publica && (mio?.url !== host.publica || mio.deleted || mio.yo !== st.yo || mio.tipo !== tipo)) {
+    st = { ...st, doc: { ...st.doc, servidores: [...(st.doc.servidores ?? []).filter((x) => x.id !== deviceId), { id: deviceId, url: host.publica, updatedAt: nowIso(), yo: st.yo, tipo }] } };
   }
   const versiones = { ...(st.versiones ?? {}) };
   const contactos = { ...(st.contactos ?? {}) };
@@ -341,7 +379,7 @@ export async function syncPareja(f: FetchLike = fetch, db: FinanzasDB = getDb(),
       return false;
     }
   };
-  if (host.local) await una(host.local, 8000);
+  if (host.local) res.local = await una(host.local, 8000);
   // Las direcciones de los otros se conocen recién después de leer lo que dejaron acá.
   const otros = [...st.cfg.servidores, ...(st.doc.servidores ?? []).filter((x) => !x.deleted && x.id !== deviceId).map((x) => x.url)].map(normalizeServerUrl);
   const remotos = [...new Set(otros)].filter((u) => u !== host.publica && u !== host.local);
@@ -359,7 +397,8 @@ export async function syncPareja(f: FetchLike = fetch, db: FinanzasDB = getDb(),
     contactos,
     host,
     vistos: [...st.vistos, ...res.novedades.map((n) => n.id)].slice(-3000),
-    ...(res.conectados.length ? { ultima: nowIso() } : {}),
+    // "Sincronizado": con otro dispositivo, o con este mismo (la PC y el celular guardan lo que les dejan los demás).
+    ...(res.conectados.length || res.local ? { ultima: nowIso() } : {}),
     error: errMsg,
   };
   // Si se anotó algo mientras se sincronizaba, se conserva (y se manda en la próxima).
@@ -408,7 +447,7 @@ async function sincronizarAhora(): Promise<ResultadoSync | null> {
   const st = await loadPareja();
   if (!st) return null;
   try {
-    const host = await iniciarHost(st.cfg.token, st.cfg.space);
+    const host = await iniciarHost(st.cfg.token, st.cfg.space, st.yo);
     const r = await syncPareja(fetch, getDb(), host);
     void quitarAvisoLlegada();
     // Un celular o la PC cambió de dirección en el Wi-Fi: se busca de nuevo (cada tanto, porque tarda).

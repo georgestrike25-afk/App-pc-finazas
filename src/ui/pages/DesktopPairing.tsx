@@ -3,6 +3,7 @@ import { useApp } from '../store';
 import { desktop, type DesktopPairing } from '../../platform';
 import { runSync, saveSyncConfig, type StoredSyncConfig } from '../../sync/autoSync';
 import { Card, Field } from '../components/ui';
+import { QrCode } from '../components/Qr';
 
 /** App de escritorio: esta PC es el servidor; muestra el código para el celular. */
 export function DesktopPairingCard({ cfg, setCfg }: { cfg: StoredSyncConfig; setCfg: (c: StoredSyncConfig) => void }) {
@@ -41,12 +42,15 @@ export function DesktopPairingCard({ cfg, setCfg }: { cfg: StoredSyncConfig; set
           {linked && <p className="ok-text small">✓ Activada en esta PC</p>}
         </li>
         <li>
-          <strong>Copiá este código</strong> y pasalo al celular:
+          <strong>En el celular, escaneá este QR</strong> (Más → Copias → "Escanear el QR de la PC") o copiá el código y pasalo:
           {p.code ? (
+            <>
+            <div className="pj-qr"><QrCode text={p.code} label="QR para conectar el celular con esta PC" /></div>
             <div className="pair-code">
               <code data-testid="codigo-pc">{p.code}</code>
               <button className="btn small" onClick={copy}>Copiar código</button>
             </div>
+            </>
           ) : (
             <p className="warn small">Esta PC no está conectada a una red. Conectala al Wi-Fi de tu casa y volvé a abrir la app.</p>
           )}

@@ -292,7 +292,7 @@ input[type='checkbox'], input[type='radio'] { width: 20px; height: 20px; min-hei
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
 th { font-size: 0.8rem; color: var(--muted); font-weight: 600; border-bottom-color: var(--border-strong); padding-top: 0; white-space: nowrap; }
-td.num, th.num { text-align: right; }
+td.num, th.num { text-align: right; white-space: nowrap; }
 td.actions { white-space: nowrap; text-align: right; }
 tbody tr { transition: background-color var(--t); }
 tbody tr:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }

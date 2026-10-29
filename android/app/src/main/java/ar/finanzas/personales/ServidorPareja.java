@@ -50,8 +50,8 @@ final class ServidorPareja {
     private static long ultimoAviso;
     private static final Object LOCK = new Object();
 
-    static void configurar(Context c, String tok, String space) {
-        Brote.prefs(c).edit().putString("parejaToken", tok).putString("parejaEspacio", space).apply();
+    static void configurar(Context c, String tok, String space, String yo) {
+        Brote.prefs(c).edit().putString("parejaToken", tok).putString("parejaEspacio", space).putString("parejaYo", yo == null ? "" : yo).apply();
         iniciar(c);
     }
 
@@ -298,7 +298,10 @@ final class ServidorPareja {
                 }
                 if (!tmp.renameTo(f)) throw new Exception("no se pudo guardar");
                 responder(out, h, 200, "{\"version\":" + (version + 1) + "}");
-                if (h.containsKey("x-brote-remoto")) avisarLlegada();
+                // Solo si lo mandó la otra persona (no la PC o el otro celular de uno mismo).
+                String quien = h.get("x-brote-miembro");
+                String yo = app == null ? null : Brote.prefs(app).getString("parejaYo", null);
+                if (h.containsKey("x-brote-remoto") && quien != null && yo != null && !quien.equals(yo)) avisarLlegada();
                 return;
             }
         }
@@ -312,7 +315,7 @@ final class ServidorPareja {
         String origen = h.get("origin");
         if (origen != null) {
             sb.append("Access-Control-Allow-Origin: ").append(origen).append("\r\nVary: Origin\r\n");
-            sb.append("Access-Control-Allow-Headers: Authorization, Content-Type, If-Match\r\n");
+            sb.append("Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, X-Brote-Miembro\r\n");
             sb.append("Access-Control-Allow-Methods: GET, PUT, OPTIONS\r\nAccess-Control-Max-Age: 600\r\n");
             if (h.containsKey("access-control-request-private-network")) sb.append("Access-Control-Allow-Private-Network: true\r\n");
         }

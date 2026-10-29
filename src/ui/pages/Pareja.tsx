@@ -1,11 +1,12 @@
 import { ArrowRightLeft, Check, ScanLine, Copy, Flame, HandCoins, HeartPulse, House, Info, Link2, Pencil, PiggyBank, Plus, RefreshCw, Settings2, Shapes, ShieldCheck, Stethoscope, Trash2, Users, Wifi, Zap, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
+import { getDeviceId } from '../../db/repo';
 import { desktop, esPrueba, isNative } from '../../platform';
-import { iniciarHost, type HostInfo } from '../../sync/parejaHost';
+import { cambiarSegundoPlano, estadoSegundoPlano, iniciarHost, type HostInfo } from '../../sync/parejaHost';
 import { loadSyncConfig } from '../../sync/autoSync';
-import { cambiarPareja, codigoDe, compartirConPareja, crearPareja, noMandar, sinMandar, elegirYo, loadPareja, onPareja, runParejaSync, salirPareja, unirPareja, type ParejaEstado } from '../../sync/pareja';
-import { fijosDelMes, leerCodigoPareja, otro, partes, saldo, type FilaFijo, type Miembro, type ParejaGasto, type ParejaItem, type ParejaPago } from '../../domain/pareja';
+import { cambiarPareja, celularQueYaEs, reconectar, codigoDe, compartirConPareja, crearPareja, hayPendientes, noMandar, sinMandar, ultimoDelOtro, elegirYo, loadPareja, onPareja, runParejaSync, salirPareja, unirPareja, type ParejaEstado } from '../../sync/pareja';
+import { fijosDelMes, idFijo, posiblesRepetidos, leerCodigoPareja, otro, partes, saldo, type FilaFijo, type Miembro, type ParejaGasto, type ParejaItem, type ParejaPago } from '../../domain/pareja';
 import { addMonths, formatDate, monthLabel, monthOf, todayIso, type MonthKey } from '../../domain/dates';
 import { formatARS, type Cents } from '../../domain/money';
 import { uid } from '../../domain/text';
@@ -137,7 +138,17 @@ function ElegirYo({ st }: { st: ParejaEstado }) {
         <p className="muted small" style={{ marginTop: 0 }}>Así Brote sabe qué parte es tuya.</p>
         <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
           {(['a', 'b'] as Miembro[]).map((m) => (
-            <button key={m} className="btn" onClick={() => elegirYo(m)}><Av name={n[m]} />Soy {n[m]}</button>
+            <button
+              key={m}
+              className="btn"
+              onClick={async () => {
+                const host = await iniciarHost(st.cfg.token, st.cfg.space);
+                if (celularQueYaEs(st, m, await getDeviceId(), host) && !(await confirmDialog(`Ya hay otro celular que eligió ser ${n[m]}.\n¿Seguro que este celular es de ${n[m]}? Si es de ${n[m === 'a' ? 'b' : 'a']}, elegí el otro nombre.`, { ok: `Sí, soy ${n[m]}` }))) return;
+                await elegirYo(m);
+              }}
+            >
+              <Av name={n[m]} />Soy {n[m]}
+            </button>
           ))}
         </div>
       </Card>
@@ -170,7 +181,7 @@ function FijoSheet({ fila, mes, st, onClose }: { fila: FilaFijo; mes: MonthKey; 
     await cambiarPareja((d) => {
       const g: ParejaGasto = gasto
         ? { ...gasto, total: v, updatedAt: t }
-        : { id: `${item.id}-${mes}`, createdAt: t, updatedAt: t, autor: yo, paga, pctPaga: item.pctPaga, concepto: item.nombre, total: v, fecha: mes === monthOf(todayIso()) ? todayIso() : `${mes}-01`, mes, categoria: item.categoria, itemId: item.id };
+        : { id: idFijo(item, mes, yo), createdAt: t, updatedAt: t, autor: yo, paga, pctPaga: item.pctPaga, concepto: item.nombre, total: v, fecha: mes === monthOf(todayIso()) ? todayIso() : `${mes}-01`, mes, categoria: item.categoria, itemId: item.id };
       return { ...d, gastos: [...d.gastos.filter((x) => x.id !== g.id), g] };
     });
     toast(`${item.nombre} de ${mesNombre(mes)} cargado`);
@@ -222,6 +233,8 @@ function AnotarSheet({ st, mes, gasto, onClose }: { st: ParejaEstado; mes: Month
     const full: ParejaGasto = gasto
       ? { ...gasto, ...g, total: g.total, mes: monthOf(g.fecha), updatedAt: t }
       : { id: uid(), createdAt: t, updatedAt: t, autor: yo, ...g, total: g.total, concepto: g.concepto.trim() || 'Compartido', mes: monthOf(g.fecha) };
+    const igual = !gasto && st.doc.gastos.find((x) => !x.deleted && x.total === full.total && x.fecha === full.fecha && x.paga === full.paga);
+    if (igual && !(await confirmDialog(`Ya hay un gasto de ${formatARS(full.total)} del ${formatDate(full.fecha)} ("${igual.concepto}").\n¿Es otro distinto?`, { ok: 'Sí, es otro' }))) return;
     await cambiarPareja((d) => ({ ...d, gastos: [...d.gastos.filter((x) => x.id !== full.id), full] }));
     toast(gasto ? 'Gasto compartido corregido' : `Anotado. A ${el} le aparece su parte.`);
     onClose();
@@ -244,7 +257,7 @@ function AnotarSheet({ st, mes, gasto, onClose }: { st: ParejaEstado; mes: Month
   );
 }
 
-function PagoSheet({ st, neto, mes, onClose }: { st: ParejaEstado; neto: Cents; mes: MonthKey; onClose: () => void }) {
+function PagoSheet({ st, neto, onClose }: { st: ParejaEstado; neto: Cents; onClose: () => void }) {
   const { toast } = useApp();
   const yo = st.yo!;
   const el = st.doc.nombres[otro(yo)];
@@ -255,7 +268,8 @@ function PagoSheet({ st, neto, mes, onClose }: { st: ParejaEstado; neto: Cents; 
   const save = async () => {
     if (!monto || monto <= 0) return;
     const t = now();
-    const p: ParejaPago = { id: uid(), createdAt: t, updatedAt: t, de, a: otro(de), monto, fecha: todayIso(), mes, medio };
+    // El pago es de hoy (aunque se esté mirando otro mes): cuenta en el mes de hoy.
+    const p: ParejaPago = { id: uid(), createdAt: t, updatedAt: t, de, a: otro(de), monto, fecha: todayIso(), mes: monthOf(todayIso()), medio };
     await cambiarPareja((d) => ({ ...d, pagos: [...d.pagos, p] }));
     toast(de === yo ? `Listo: le pasaste ${formatARS(monto)} a ${el}` : `Listo: ${el} te pasó ${formatARS(monto)}`);
     onClose();
@@ -346,13 +360,49 @@ function SyncTag({ st, el }: { st: ParejaEstado; el: string }) {
     setMsg('');
     const r = await runParejaSync();
     setBusy(false);
-    if (r && !r.conectados.length) setMsg(`No se encontró el celular de ${el} en este Wi-Fi. Lo anotado queda guardado y se manda cuando estén conectados a la misma red.`);
+    // En la PC no hace falta encontrar el celular: los celulares le dejan lo suyo a la PC.
+    if (r && !r.conectados.length && !(desktop() && r.local)) setMsg(`No se encontró el celular de ${el} en este Wi-Fi ahora. Lo anotado queda guardado y se manda cuando estén conectados a la misma red.`);
   };
+  const ult = ultimoDelOtro(st);
   return (
     <div className="pj-sync">
-      {st.error ? <Badge tone="warn">Sin sincronizar</Badge> : hora ? <Badge tone="ok">Sincronizado {hoy ? 'hoy' : 'el'} {hora}</Badge> : <Badge>Todavía sin sincronizar con {el}</Badge>}
+      {st.error ? <Badge tone="warn">Sin sincronizar</Badge> : hora ? <Badge tone="ok">Sincronizado {hoy ? 'hoy' : 'el'} {hora}</Badge> : <Badge>Todavía sin sincronizar</Badge>}
       <button className="btn small ghost" disabled={busy} onClick={sync}><RefreshCw aria-hidden className={busy ? 'spin' : ''} />{busy ? 'Buscando…' : 'Sincronizar'}</button>
+      {ult && <small className="muted d-block">Lo último de {el}: {new Date(ult).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</small>}
       {(st.error || msg) && <small className="muted d-block">{st.error ?? msg}</small>}
+    </div>
+  );
+}
+
+/** En el celular: seguir recibiendo con Brote cerrado (notificación fija). */
+function SegundoPlano({ el }: { el: string }) {
+  const { toast } = useApp();
+  const [e, setE] = useState<{ activo: boolean; sinRestriccionBateria: boolean } | null>(null);
+  useEffect(() => {
+    estadoSegundoPlano().then(setE);
+    const v = () => !document.hidden && estadoSegundoPlano().then(setE);
+    document.addEventListener('visibilitychange', v);
+    return () => document.removeEventListener('visibilitychange', v);
+  }, []);
+  if (!e) return null;
+  const cambiar = async (on: boolean) => {
+    try {
+      await cambiarSegundoPlano(on);
+      setE(await estadoSegundoPlano());
+      toast(on ? 'Listo: Brote recibe lo de tu pareja aunque esté cerrado.' : 'Desactivado.');
+    } catch {
+      toast('No se pudo cambiar.', 'error');
+    }
+  };
+  return (
+    <div className="pj-diag">
+      <label className="check">
+        <input type="checkbox" checked={e.activo} onChange={(x) => cambiar(x.target.checked)} />
+        <span><strong>Recibir con Brote cerrado</strong> (recomendado): {el} te puede mandar lo suyo aunque no tengas Brote abierto. Queda una notificación fija chiquita.</span>
+      </label>
+      {e.activo && !e.sinRestriccionBateria && (
+        <p className="small warn">Falta un permiso: Android puede cortarle el Wi-Fi a Brote para ahorrar batería. <button className="linklike" onClick={() => cambiar(true)}>Permitir</button></p>
+      )}
     </div>
   );
 }
@@ -457,7 +507,7 @@ function CelularDePrueba({ st, el, code }: { st: ParejaEstado; el: string; code:
 }
 
 function Principal({ st }: { st: ParejaEstado }) {
-  const { month, setMonth } = useApp();
+  const { month, setMonth, toast } = useApp();
   const yo = st.yo!;
   const n = st.doc.nombres;
   const el = n[otro(yo)];
@@ -467,7 +517,7 @@ function Principal({ st }: { st: ParejaEstado }) {
   const [plan, setPlan] = useState(false);
   const [host, setHost] = useState<HostInfo>({});
   useEffect(() => {
-    iniciarHost(st.cfg.token, st.cfg.space).then(setHost);
+    iniciarHost(st.cfg.token, st.cfg.space, st.yo).then(setHost);
   }, [st.cfg.token, st.cfg.space]);
 
   const total = saldo(st.doc, yo);
@@ -476,6 +526,7 @@ function Principal({ st }: { st: ParejaEstado }) {
   const compartidas = filas.filter((f) => f.item.pctPaga < 100);
   const cargados = compartidas.filter((f) => f.gasto).length;
   const sueltos = st.doc.gastos.filter((g) => !g.deleted && g.mes === month && !g.itemId).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const repetidos = posiblesRepetidos(st.doc);
   const pagos = st.doc.pagos.filter((x) => !x.deleted && x.mes === month);
   const code = codigoDe(st, host);
 
@@ -487,6 +538,24 @@ function Principal({ st }: { st: ParejaEstado }) {
     if (!(await confirmDialog('¿Borrar este pago?', { danger: true, ok: 'Borrar' }))) return;
     await cambiarPareja((d) => ({ ...d, pagos: d.pagos.map((y) => (y.id === x.id ? { ...y, deleted: true, updatedAt: now() } : y)) }));
   };
+  const [scan, setScan] = useState(false);
+  const leido = useCallback(async (t: string) => {
+    setScan(false);
+    try {
+      const cfg = leerCodigoPareja(t);
+      if ((await reconectar(cfg)) === 'mismo') {
+        toast('Listo: se actualizó la conexión y se sincronizó.');
+        return;
+      }
+      const aviso = hayPendientes(st) ? '\nOjo: lo que anotaste acá y todavía no se mandó se pierde.' : '';
+      if (!(await confirmDialog(`Este QR es de otro modo pareja.\n¿Dejar el actual y unirte a ese?${aviso}`, { danger: true, ok: 'Unirme a ese' }))) return;
+      await salirPareja();
+      await unirPareja(cfg);
+      await runParejaSync();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  }, [st, toast]);
   const copiar = async () => {
     if (desktop()) await desktop()!.copy(code);
     else if (isNative() && navigator.share) await navigator.share({ text: code }).catch(() => {});
@@ -501,6 +570,10 @@ function Principal({ st }: { st: ParejaEstado }) {
           En el celular de {el}: Brote → Gastos → Compartidos → <strong>Escanear QR</strong>. Tienen que estar en el mismo Wi-Fi. Es privado: no lo compartas con nadie más.
         </p>
       </div>
+      {!!navigator.mediaDevices?.getUserMedia && (
+        <button className="btn small" onClick={() => setScan(true)}><ScanLine aria-hidden />Escanear QR del otro (reconectar)</button>
+      )}
+      {scan && <QrScanner onRead={leido} onClose={() => setScan(false)} />}
       <details className="more-opts small">
         <summary>Mandar el código por WhatsApp (o para la PC)</summary>
         <div className="pair-code">
@@ -512,7 +585,15 @@ function Principal({ st }: { st: ParejaEstado }) {
         <summary>Más opciones</summary>
         <Diagnostico st={st} el={el} />
         <p>Sos <strong>{n[yo]}</strong> en este dispositivo. Se sincroniza cuando los dos celulares están en el mismo Wi-Fi (o con el hotspot de uno) y uno de los dos abre Brote; el otro lo recibe aunque tenga Brote cerrado, si tiene activada la lectura de notificaciones. La PC es opcional: si está prendida con Brote abierto, también guarda los compartidos.</p>
-        <button className="btn small ghost danger" onClick={async () => (await confirmDialog('¿Salir del modo pareja en este dispositivo?\nLos gastos que ya están en tu lista quedan.', { danger: true, ok: 'Salir' })) && salirPareja()}>Salir del modo pareja</button>
+        <button
+          className="btn small ghost danger"
+          onClick={async () => {
+            const aviso = hayPendientes(st) ? `\n\nOjo: hay cosas que anotaste acá que todavía no le llegaron a ${el}. Si salís ahora, se pierden. Sincronizá primero.` : '';
+            if (await confirmDialog(`¿Salir del modo pareja en este dispositivo?\nLos gastos que ya están en tu lista quedan.${aviso}`, { danger: true, ok: 'Salir' })) await salirPareja();
+          }}
+        >
+          Salir del modo pareja
+        </button>
       </details>
     </Card>
   );
@@ -521,6 +602,7 @@ function Principal({ st }: { st: ParejaEstado }) {
     <div className="page pareja">
       <MonthNav month={month} setMonth={setMonth} />
       <SinMandar el={el} st={st} />
+      <SegundoPlano el={el} />
       {!st.ultima && conectar}
       <div className="cols cols-main">
         <section className="cash-card pj-hero" aria-label={`Saldo con ${el}`}>
@@ -566,12 +648,15 @@ function Principal({ st }: { st: ParejaEstado }) {
                     <span className="grow">
                       <span className="t">{f.item.nombre}</span>
                       <span className="s">
+                        {f.item.paga === 'ambos' && f.delMes.length > 0 ? `${f.delMes.map((g) => `${g.paga === yo ? 'vos' : n[g.paga]} ${formatARS(g.total).replace(/,00$/, '')}`).join(' · ')} · ` : ''}
                         {solo ? `solo tuyo · fijo, se carga solo` : f.item.paga === 'ambos' ? 'los dos · ' : `${quien === yo ? 'lo pagás vos' : `lo paga ${n[quien]}`} · `}
                         {!solo && (f.item.pctPaga === 0 ? `todo ${quien === yo ? `de ${n[otro(yo)]}` : 'tuyo'}${f.item.fijo ? ' · fijo, se carga solo' : ''}` : f.gasto ? `${formatARS(f.gasto.total)} en total · ${f.item.pctPaga === 50 ? 'mitad y mitad' : `${pct(f.item.pctPaga)} / ${pct(100 - f.item.pctPaga)}`}` : f.item.opcional ? 'opcional' : 'falta el monto')}
                       </span>
                     </span>
                     {solo ? (
                       <span className="m"><Money value={f.item.fijo} /></span>
+                    ) : f.item.paga === 'ambos' && f.delMes.length > 1 ? (
+                      <span className="m"><Money value={f.delMes.reduce((a, g) => a + g.total, 0)} /><small>entre los dos</small></span>
                     ) : f.gasto ? (
                       <Poner g={f.gasto} yo={yo} n={n} />
                     ) : puedo ? (
@@ -595,8 +680,9 @@ function Principal({ st }: { st: ParejaEstado }) {
                 <li key={g.id} className="pj-item">
                   <span className="cat-ic"><Av name={n[g.paga]} /></span>
                   <span className="grow">
-                    <span className="t">{g.concepto}</span>
+                    <span className="t">{g.concepto} {repetidos.has(g.id) && <Badge tone="warn">¿Repetido?</Badge>}</span>
                     <span className="s">{formatDate(g.fecha)} · {g.paga === yo ? 'pagaste vos' : `pagó ${n[g.paga]}`} · {formatARS(g.total)}</span>
+                    {repetidos.has(g.id) && <span className="s">Hay otro igual (mismo monto, día y quien pagó). Si es el mismo, tocá "No es compartido" en este.</span>}
                     <span className="pj-acts">
                       <button className="linklike" onClick={() => setAnotar({ gasto: g })}><Pencil aria-hidden size={14} />Corregir</button>
                       <button className="linklike" onClick={() => noEsCompartido(g)}>No es compartido</button>
@@ -626,7 +712,7 @@ function Principal({ st }: { st: ParejaEstado }) {
 
       {fijo && <FijoSheet fila={fijo} mes={month} st={st} onClose={() => setFijo(null)} />}
       {anotar && <AnotarSheet st={st} mes={month} gasto={anotar.gasto} onClose={() => setAnotar(null)} />}
-      {pagar && <PagoSheet st={st} neto={total.neto} mes={month} onClose={() => setPagar(false)} />}
+      {pagar && <PagoSheet st={st} neto={total.neto} onClose={() => setPagar(false)} />}
       {plan && <PlanillaSheet st={st} onClose={() => setPlan(false)} />}
     </div>
   );

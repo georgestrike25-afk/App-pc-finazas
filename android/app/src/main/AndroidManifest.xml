@@ -90,6 +90,23 @@
 
         <!-- Lee las notificaciones de las apps financieras para anotar los gastos solos (como Mis Finanzas) -->
         <service
+            android:name=".ServicioPareja"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Recibir por el Wi-Fi de la casa los gastos compartidos que anota la pareja (modo pareja)" />
+        </service>
+
+        <receiver
+            android:name=".ArranqueReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <service
             android:name=".LectorNotificaciones"
             android:exported="true"
             android:label="@string/app_name"
@@ -107,5 +124,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Modo pareja: escanear el QR del otro celular (la imagen no sale del teléfono). -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Modo pareja con Brote cerrado (opcional): servicio con notificación fija y reinicio al prender el celular. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

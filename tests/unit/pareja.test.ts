@@ -7,7 +7,7 @@ import { emptyData, expense, freshDb } from './helpers';
 import { getDb, setDb } from '../../src/db/db';
 import { loadDataSet, saveRecord, softDelete } from '../../src/db/repo';
 import { cashStatus } from '../../src/domain/cash';
-import { codigoPareja, fijosDelMes, leerCodigoPareja, nuevoDoc, partes, planEspejo, saldo, unirDocs, type ParejaDoc, type ParejaGasto } from '../../src/domain/pareja';
+import { codigoPareja, fijosDelMes, idFijo, posiblesRepetidos, leerCodigoPareja, nuevoDoc, partes, planEspejo, saldo, unirDocs, type ParejaDoc, type ParejaGasto } from '../../src/domain/pareja';
 import { aplicarEspejo, cambiarPareja, codigoDe, compartirConPareja, crearPareja, noMandar, sinMandar, elegirYo, loadPareja, syncPareja, unirPareja } from '../../src/sync/pareja';
 import type { Expense, Settings } from '../../src/domain/types';
 
@@ -74,9 +74,11 @@ describe('modo pareja: gastos en la app de cada uno', () => {
     const e = p.put.find((x) => x.id === 'pareja-g1')!;
     expect(e).toMatchObject({ kind: 'hogar', totalAmount: 100_000, userPct: 50, paidBy: 'pareja', month: '2026-11' });
     // El consultorio (fijo) se carga solo este mes: es todo de Jorge y se lo debe a Antonella.
-    expect(p.nuevos).toEqual([expect.objectContaining({ id: 'fijo-7-2026-11', paga: 'b', pctPaga: 0, total: 2_000_000 })]);
+    // El documento es de enero: se cargan también los meses en que no se abrió Brote (hasta 12 atrás).
+    expect(p.nuevos.map((g) => g.id)).toEqual(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'].map((m) => `fijo-7-2026-${m}`));
+    expect(p.nuevos.at(-1)).toMatchObject({ paga: 'b', pctPaga: 0, total: 2_000_000 });
     expect(p.put.find((x) => x.id === 'pareja-fijo-7-2026-11')).toMatchObject({ totalAmount: 2_000_000, userPct: 100, paidBy: 'pareja' });
-    expect(saldo({ ...d, gastos: [...d.gastos, ...p.nuevos] }, 'a').neto).toBe(-50_000 - 2_000_000);
+    expect(saldo({ ...d, gastos: [...d.gastos, ...p.nuevos] }, 'a', '2026-11').neto).toBe(-50_000 - 2_000_000);
     // En la app de Antonella no es gasto suyo (0 %), pero suma a lo que Jorge le debe.
     const pb = planEspejo(d, 'b', [], ctx);
     expect(pb.put.find((x) => x.id === 'pareja-fijo-7-2026-11')).toMatchObject({ userPct: 0, paidBy: 'usuario' });
@@ -351,5 +353,52 @@ describe('Sincronizar mientras ya se está sincronizando', () => {
     await unirPareja({ ...st.cfg, servidores: [url] }, anto);
     await syncPareja(fetch, anto);
     expect((await loadPareja(anto))!.doc.gastos.map((g) => g.id)).toContain('durante');
+  });
+});
+
+describe('revisión: Fondo casa, repetidos y meses sin abrir Brote', () => {
+  it('Fondo casa: si ponen plata los dos, quedan las dos (no se pisan)', () => {
+    const d = doc([
+      gasto({ id: idFijo({ id: 'fijo-5', paga: 'ambos' }, '2026-11', 'a'), paga: 'a', total: 10_000, itemId: 'fijo-5' }),
+      gasto({ id: idFijo({ id: 'fijo-5', paga: 'ambos' }, '2026-11', 'b'), paga: 'b', total: 6_000, itemId: 'fijo-5' }),
+    ]);
+    const fila = fijosDelMes(d, '2026-11', 'a').find((f) => f.item.id === 'fijo-5')!;
+    expect(fila.delMes.map((g) => g.total)).toEqual([10_000, 6_000]);
+    expect(fila.gasto?.total).toBe(10_000);
+    expect(fijosDelMes(d, '2026-11', 'b').find((f) => f.item.id === 'fijo-5')!.gasto?.total).toBe(6_000);
+  });
+
+  it('marca como posible repetido el mismo monto, fecha y quien pagó', () => {
+    const d = doc([
+      gasto({ id: 'r1', paga: 'b', total: 2_300_000, createdAt: '2026-10-28T21:00:00.000Z' }),
+      gasto({ id: 'r2', paga: 'b', total: 2_300_000, createdAt: '2026-10-28T21:05:00.000Z' }),
+      gasto({ id: 'r3', paga: 'a', total: 2_300_000 }),
+    ]);
+    expect([...posiblesRepetidos(d)]).toEqual(['r2']);
+  });
+});
+
+describe('revisión: reconectar, salir y elegir persona', () => {
+  it('escanear el QR del mismo modo pareja solo suma direcciones; uno de otro modo pareja no toca nada', async () => {
+    const { reconectar } = await import('../../src/sync/pareja');
+    const db = await freshDb();
+    const st = await crearPareja({ yo: 'Jorge', otro: 'Antonella' }, db);
+    expect(await reconectar({ ...st.cfg, servidores: ['http://192.168.0.40:8797'] }, db)).toBe('mismo');
+    expect((await loadPareja(db))!.cfg.servidores).toContain('http://192.168.0.40:8797');
+    expect(await reconectar({ ...st.cfg, space: 'pareja-otroespacio1' }, db)).toBe('otro');
+  });
+
+  it('avisa si hay cosas sin mandar antes de salir, y si otro celular ya eligió ser esa persona', async () => {
+    const { hayPendientes, celularQueYaEs } = await import('../../src/sync/pareja');
+    const db = await freshDb();
+    await crearPareja({ yo: 'Jorge', otro: 'Antonella' }, db);
+    await cambiarPareja((d, yo) => ({ ...d, gastos: [...d.gastos, gasto({ id: 'p1', paga: yo, autor: yo, total: 100 })] }), db);
+    const st = (await loadPareja(db))!;
+    expect(hayPendientes(st)).toBe(true);
+    const conOtro = { ...st, doc: { ...st.doc, servidores: [{ id: 'cel-jorge', url: 'http://192.168.0.5:8797', updatedAt: T, yo: 'a' as const, tipo: 'celular' as const }] } };
+    expect(celularQueYaEs(conOtro, 'a', 'este', { local: 'http://127.0.0.1:8797' })).toBe(true);
+    expect(celularQueYaEs(conOtro, 'b', 'este', { local: 'http://127.0.0.1:8797' })).toBe(false);
+    // En la PC es normal ser la misma persona que un celular.
+    expect(celularQueYaEs(conOtro, 'a', 'este', { local: 'http://127.0.0.1:8787' })).toBe(false);
   });
 });

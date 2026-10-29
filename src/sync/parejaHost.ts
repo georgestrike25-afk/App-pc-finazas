@@ -8,9 +8,11 @@ import { desktop, isNative } from '../platform';
  * - la PC, con el servidor de la app de escritorio.
  */
 interface Host {
-  servidorPareja(o: { token: string; space: string }): Promise<{ urls: string[]; puerto: number }>;
+  servidorPareja(o: { token: string; space: string; yo?: string }): Promise<{ urls: string[]; puerto: number }>;
   detenerPareja(): Promise<void>;
   quitarAviso(o: { clave: string }): Promise<void>;
+  segundoPlano(o: { activo: boolean }): Promise<void>;
+  estadoSegundoPlano(): Promise<{ activo: boolean; sinRestriccionBateria: boolean }>;
 }
 const Native = registerPlugin<Host>('Notificaciones');
 
@@ -23,10 +25,10 @@ export interface HostInfo {
   publica?: string;
 }
 
-export async function iniciarHost(token: string, space: string): Promise<HostInfo> {
+export async function iniciarHost(token: string, space: string, yo?: string): Promise<HostInfo> {
   try {
     if (isNative()) {
-      const r = await Native.servidorPareja({ token, space });
+      const r = await Native.servidorPareja({ token, space, yo: yo ?? '' });
       return { local: `http://127.0.0.1:${r.puerto}`, publica: r.urls[0] };
     }
     const d = desktop();
@@ -47,4 +49,14 @@ export async function detenerHost() {
 /** Ya se abrió Brote: se saca el aviso "… actualizó los gastos compartidos" (los detalles llegan como avisos propios). */
 export async function quitarAvisoLlegada() {
   if (isNative()) await Native.quitarAviso({ clave: 'parejallegada' }).catch(() => {});
+}
+
+/** "Recibir con Brote cerrado" (solo en el celular): servicio con notificación fija. */
+export async function estadoSegundoPlano(): Promise<{ activo: boolean; sinRestriccionBateria: boolean } | null> {
+  if (!isNative()) return null;
+  return Native.estadoSegundoPlano().catch(() => null);
+}
+
+export async function cambiarSegundoPlano(activo: boolean): Promise<void> {
+  if (isNative()) await Native.segundoPlano({ activo });
 }
