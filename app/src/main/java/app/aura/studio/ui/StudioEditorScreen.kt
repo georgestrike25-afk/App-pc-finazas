@@ -339,12 +339,12 @@ private fun ColumnScope.WarpPanel(vm: StudioViewModel, p: StudioProject) {
     )
     Text("Perspectiva rápida", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 10.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 6.dp)) {
-        OutlinedButton(onClick = { vm.design { it.copy(warp = app.aura.core.studio.ClockDesign.perspective(-1)) } }) { Text("◁ Izquierda") }
-        OutlinedButton(onClick = { vm.design { it.copy(warp = app.aura.core.studio.ClockDesign.perspective(1)) } }) { Text("Derecha ▷") }
+        OutlinedButton(onClick = { vm.warpPreset("left") }) { Text("◁ Izquierda") }
+        OutlinedButton(onClick = { vm.warpPreset("right") }) { Text("Derecha ▷") }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = { vm.design { it.copy(warp = listOf(0.05f, 0f, -0.05f, 0f, 0f, 0f, 0f, 0f)) } }) { Text("Al fondo") }
-        OutlinedButton(onClick = { vm.design { it.copy(warp = listOf(0f, 0f, 0f, 0f, 0.05f, 0f, -0.05f, 0f)) } }) { Text("Hacia arriba") }
+        OutlinedButton(onClick = { vm.warpPreset("back") }) { Text("Al fondo") }
+        OutlinedButton(onClick = { vm.warpPreset("up") }) { Text("Hacia arriba") }
     }
     TextButton(onClick = { vm.design { it.copy(warp = emptyList()) } }, enabled = d.warp.isNotEmpty()) { Text("Quitar deformación") }
 }

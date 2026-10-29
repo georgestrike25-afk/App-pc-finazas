@@ -172,8 +172,8 @@ class StudioFlowTest {
             "studio_font_orbitron" to p.design.withMaterial(ClockMaterial.NEON).copy(customFont = "clock_orbitron", accentColor = 0xFF7FD6FF.toInt()),
             "studio_font_bebas_tall" to p.design.withMaterial(ClockMaterial.GLASS).copy(customFont = "clock_bebas", stretchY = 1.8f, stretchX = 0.9f),
             "studio_font_playfair_rotated" to p.design.withMaterial(ClockMaterial.STONE).copy(customFont = "clock_playfair", rotation = -8f),
-            "studio_warp_perspective" to p.design.withMaterial(ClockMaterial.GLASS).copy(customFont = "clock_anton", warp = app.aura.core.studio.ClockDesign.perspective(1, 0.08f)),
-            "studio_spread" to p.design.withMaterial(ClockMaterial.METAL).copy(customFont = "clock_bebas", spread = 0.6f),
+            "studio_warp_perspective" to p.design.withMaterial(ClockMaterial.GLASS).copy(customFont = "clock_anton", warp = app.aura.core.studio.ClockDesign.perspective(1, 0.02f)),
+            "studio_spread" to p.design.withMaterial(ClockMaterial.METAL).copy(customFont = "clock_bebas", spread = 1f),
         )
         samples.forEach { (name, design) ->
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)

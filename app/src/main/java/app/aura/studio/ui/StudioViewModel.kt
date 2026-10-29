@@ -216,6 +216,33 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         return compositor.clock.quad(w, h, p.design, extras)
     }
 
+    /**
+     * Deformaciones rápidas proporcionales al tamaño del reloj (no de la pantalla):
+     * "left"/"right" = perspectiva lateral, "back" = se aleja hacia el fondo, "up" = se inclina hacia arriba.
+     */
+    fun warpPreset(kind: String) {
+        val quad = clockQuadUnwarped() ?: return
+        val (w, h) = previewSize
+        val boxW = kotlin.math.hypot(quad[2] - quad[0], quad[3] - quad[1])
+        val boxH = kotlin.math.hypot(quad[6] - quad[0], quad[7] - quad[1])
+        val ay = boxH * 0.22f / h
+        val ax = boxW * 0.10f / w
+        val warp = when (kind) {
+            "left" -> listOf(0f, ay, 0f, 0f, 0f, 0f, 0f, -ay)
+            "right" -> listOf(0f, 0f, 0f, ay, 0f, -ay, 0f, 0f)
+            "back" -> listOf(ax, 0f, -ax, 0f, 0f, 0f, 0f, 0f)
+            else -> listOf(0f, 0f, 0f, 0f, -ax, 0f, ax, 0f)
+        }
+        design { it.copy(warp = warp) }
+    }
+
+    private fun clockQuadUnwarped(): FloatArray? {
+        val p = current ?: return null
+        val extras = lastExtras ?: return null
+        val (w, h) = previewSize
+        return compositor.clock.quad(w, h, p.design.copy(warp = emptyList()), extras)
+    }
+
     /** Agranda (o achica) el reloj para que ocupe casi todo el ancho de la pantalla. */
     fun fillWidth() {
         val quad = clockQuad() ?: return

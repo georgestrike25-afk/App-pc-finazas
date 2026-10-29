@@ -60,8 +60,8 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
             }
             t
         }
-        val spreadPx = d.spread * width * 0.5f
-        val warpMatrix = warpMatrix(d, transform, cx - total0 / 2f - spreadPx, cy, total0 + 2 * spreadPx, textSize, width, height)
+        val (shiftH, shiftM) = spreadShifts(d, cx, total0, width)
+        val warpMatrix = warpMatrix(d, transform, cx - total0 / 2f - shiftH, cy, total0 + shiftH + shiftM, textSize, width, height)
         // Transformación completa del reloj en pantalla: deformación ∘ (giro + estiramiento).
         val full = android.graphics.Matrix(transform).apply { warpMatrix?.let { postConcat(it) } }
         val camo = if (d.chameleon > 0 && backdrop != null) chameleonShader(backdrop, full, d) else null
@@ -85,7 +85,7 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         canvas.concat(full)
         val layer = canvas.saveLayerAlpha(null, (d.opacity * 255 / 100f).roundToInt())
         // Separación: las horas se alejan hacia la izquierda y los minutos hacia la derecha.
-        val positions = listOf(startX - spreadPx, startX + runs[0].width + spreadPx)
+        val positions = listOf(startX - shiftH, startX + runs[0].width + shiftM)
 
         fun eachRun(block: (Run, Float) -> Unit) = runs.forEachIndexed { i, r -> block(r, positions[i]) }
 
@@ -210,12 +210,25 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         listOf(extras.hours to hoursFace, extras.minutes to family).forEach { (t, f) -> paint.reset(textSize, f, d.letterSpacing); total += paint.measureText(t) }
         val cx = d.centerX * width
         val cy = d.centerY * height
-        val spreadPx = d.spread * width * 0.5f
+        val (shiftH, shiftM) = spreadShifts(d, cx, total, width)
         val transform = android.graphics.Matrix().apply { postScale(d.stretchX, d.stretchY, cx, cy); postRotate(d.rotation, cx, cy) }
-        val pts = boxCorners(cx - total / 2f - spreadPx, cy, total + 2 * spreadPx, textSize)
+        val pts = boxCorners(cx - total / 2f - shiftH, cy, total + shiftH + shiftM, textSize)
         transform.mapPoints(pts)
         if (d.warp.size == 8) for (i in 0 until 8) pts[i] += d.warp[i] * (if (i % 2 == 0) width else height)
         return pts
+    }
+
+    /**
+     * Separación desde el centro: al 100 % el borde exterior de las horas toca el margen izquierdo y
+     * el de los minutos el derecho (teniendo en cuenta el estiramiento horizontal).
+     */
+    private fun spreadShifts(d: ClockDesign, cx: Float, total: Float, width: Int): Pair<Float, Float> {
+        if (d.spread <= 0f) return 0f to 0f
+        val margin = width * 0.03f
+        val half = total * d.stretchX / 2f
+        val left = (cx - half - margin).coerceAtLeast(0f) / d.stretchX
+        val right = (width - margin - (cx + half)).coerceAtLeast(0f) / d.stretchX
+        return d.spread * left to d.spread * right
     }
 
     /** Caja de los números (sin transformar): arriba-izq., arriba-der., abajo-der., abajo-izq. */
@@ -232,7 +245,23 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         val src = boxCorners(left, cy, w, textSize)
         transform.mapPoints(src)
         val dst = FloatArray(8) { i -> src[i] + d.warp[i] * (if (i % 2 == 0) width else height) }
+        if (!isConvex(dst)) return null // esquinas cruzadas: deformación imposible, se ignora
         return android.graphics.Matrix().takeIf { it.setPolyToPoly(src, 0, dst, 0, 4) }
+    }
+
+    private fun isConvex(q: FloatArray): Boolean {
+        var sign = 0
+        for (i in 0 until 4) {
+            val ax = q[((i + 1) % 4) * 2] - q[i * 2]
+            val ay = q[((i + 1) % 4) * 2 + 1] - q[i * 2 + 1]
+            val bx = q[((i + 2) % 4) * 2] - q[((i + 1) % 4) * 2]
+            val by = q[((i + 2) % 4) * 2 + 1] - q[((i + 1) % 4) * 2 + 1]
+            val cross = ax * by - ay * bx
+            val sgn = if (cross > 0) 1 else if (cross < 0) -1 else 0
+            if (sgn == 0) return false
+            if (sign == 0) sign = sgn else if (sgn != sign) return false
+        }
+        return true
     }
 
     /** Caja del reloj en el lienzo, para tocarlo y moverlo en el editor. */
