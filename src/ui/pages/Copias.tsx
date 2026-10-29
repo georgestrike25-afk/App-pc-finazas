@@ -84,6 +84,7 @@ export function CopiasPage() {
   };
 
   const [scan, setScan] = useState(false);
+  const [verFrase, setVerFrase] = useState(false);
   const applyCode = (texto = code) => {
     try {
       const p = parsePairingCode(texto);
@@ -134,7 +135,12 @@ export function CopiasPage() {
           <Field label="Dirección del servidor">{(id) => <input id={id} placeholder="http://192.168.0.10:8787" value={cfg.serverUrl} onChange={(e) => setCfg({ ...cfg, serverUrl: e.target.value.trim() })} inputMode="url" />}</Field>
           <Field label="Espacio (mismo nombre en ambos dispositivos)">{(id) => <input id={id} placeholder="hogar" value={cfg.space} onChange={(e) => setCfg({ ...cfg, space: e.target.value.trim() })} />}</Field>
           <Field label="Token de acceso del servidor">{(id) => <input id={id} type="password" value={cfg.token} onChange={(e) => setCfg({ ...cfg, token: e.target.value })} autoComplete="off" />}</Field>
-          <Field label="Frase de sincronización" hint="La misma en todos los dispositivos, mínimo 8 caracteres.">{(id) => <input id={id} type="password" value={cfg.passphrase} onChange={(e) => setCfg({ ...cfg, passphrase: e.target.value })} autoComplete="off" />}</Field>
+          <Field label="Frase de sincronización" hint="La misma en todos los dispositivos, mínimo 8 caracteres.">{(id) => (
+            <div className="row">
+              <input id={id} type={verFrase ? 'text' : 'password'} value={cfg.passphrase} onChange={(e) => setCfg({ ...cfg, passphrase: e.target.value })} autoComplete="off" spellCheck={false} />
+              <button className="btn ghost" onClick={() => setVerFrase(!verFrase)} aria-pressed={verFrase}>{verFrase ? 'Ocultar' : 'Mostrar'}</button>
+            </div>
+          )}</Field>
         </div>
         <label className="check">
           <input type="checkbox" checked={cfg.auto} onChange={(e) => setCfg({ ...cfg, auto: e.target.checked })} />

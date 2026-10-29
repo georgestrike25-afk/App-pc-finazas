@@ -11,6 +11,8 @@ export function DesktopPairingCard({ cfg, setCfg }: { cfg: StoredSyncConfig; set
   const [p, setP] = useState<DesktopPairing | null>(null);
   const [phrase, setPhrase] = useState(cfg.passphrase);
   const [msg, setMsg] = useState('');
+  // Para ver la frase guardada (por ejemplo, para escribirla en el celular).
+  const [ver, setVer] = useState(false);
   useEffect(() => {
     desktop()?.pairing().then(setP);
   }, []);
@@ -36,7 +38,8 @@ export function DesktopPairingCard({ cfg, setCfg }: { cfg: StoredSyncConfig; set
         <li>
           <strong>Elegí una frase</strong> (la misma en la PC y en el celular, mínimo 8 caracteres). Guardala: sin ella no se pueden leer los datos sincronizados.
           <div className="row" style={{ marginTop: '0.4rem' }}>
-            <Field label="Frase de sincronización">{(id) => <input id={id} type="password" value={phrase} onChange={(e) => setPhrase(e.target.value)} autoComplete="off" />}</Field>
+            <Field label="Frase de sincronización" hint={cfg.passphrase ? undefined : 'Esta PC todavía no tiene una frase guardada.'}>{(id) => <input id={id} type={ver ? 'text' : 'password'} value={phrase} onChange={(e) => setPhrase(e.target.value)} autoComplete="off" spellCheck={false} />}</Field>
+            <button className="btn ghost" style={{ alignSelf: 'flex-end' }} onClick={() => setVer(!ver)} aria-pressed={ver}>{ver ? 'Ocultar frase' : 'Mostrar frase'}</button>
             <button className="btn primary" style={{ alignSelf: 'flex-end' }} onClick={save}>{linked ? 'Guardar' : 'Activar'}</button>
           </div>
           {linked && <p className="ok-text small">✓ Activada en esta PC</p>}
