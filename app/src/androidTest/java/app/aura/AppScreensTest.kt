@@ -6,6 +6,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import app.aura.core.settings.LocationMode
+import app.aura.core.weather.Coordinates
+import app.aura.core.weather.Place
 import app.aura.ui.MainActivity
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -35,6 +38,17 @@ class AppScreensTest {
         val node = device.wait(Until.findObject(By.text(text)), 15_000)
         assertNotNull("No se encontró «$text»", node)
         node.click()
+    }
+
+    @org.junit.Before
+    fun withRealPlace() = kotlinx.coroutines.runBlocking {
+        val c = instrumentation.targetContext.aura
+        val madrid = Place(
+            "om:3117735", "Madrid", "Madrid", "España", Coordinates(40.4165, -3.7026), "Europe/Madrid",
+        )
+        c.settings.update { it.copy(locationMode = LocationMode.MANUAL, manualPlace = madrid, savedPlaces = listOf(madrid)) }
+        c.weather.refresh(manual = true)
+        Unit
     }
 
     @Test
