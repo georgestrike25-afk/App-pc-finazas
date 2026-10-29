@@ -41,4 +41,8 @@
     <string name="cond_wind">Viento</string>
 
     <string name="current_location">Ubicación actual</string>
+
+    <!-- Aura Studio -->
+    <string name="studio_wallpaper_name">Aura Studio</string>
+    <string name="studio_wallpaper_desc">Tu diseño de Aura Studio con la hora en tiempo real.</string>
 </resources>

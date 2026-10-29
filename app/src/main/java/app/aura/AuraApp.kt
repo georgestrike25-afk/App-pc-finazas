@@ -8,6 +8,7 @@ import app.aura.core.openmeteo.OpenMeteoWeatherProvider
 import app.aura.data.LocationRepository
 import app.aura.data.SettingsRepository
 import app.aura.data.WeatherRepository
+import app.aura.studio.data.ProjectRepository
 import app.aura.widget.WidgetUpdater
 import app.aura.work.RefreshScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +40,7 @@ class AppContainer(context: Context) {
     val weather = WeatherRepository(context, weatherProvider, settings)
     val location = LocationRepository(context)
     val widgets = WidgetUpdater(context, settings, weather)
+    val studio = ProjectRepository(context)
 }
 
 val Context.aura: AppContainer get() = (applicationContext as AuraApp).container

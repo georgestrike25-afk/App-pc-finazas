@@ -1,6 +1,8 @@
 package app.aura.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,6 +66,7 @@ fun HomeScreen(
     onOpenWidgets: () -> Unit,
     onCustomize: () -> Unit,
     onOpenForecast: () -> Unit,
+    onOpenStudio: () -> Unit = {},
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val snapshot by viewModel.snapshot.collectAsStateWithLifecycle()
@@ -137,6 +140,8 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(16.dp))
+        StudioEntryCard(onOpenStudio)
+        Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = onCustomize,
@@ -160,6 +165,34 @@ fun HomeScreen(
             color = Aura.tokens.mutedText,
         )
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+/** Acceso a Aura Studio desde Inicio, con la misma estética de Aura (azul profundo y filo dorado). */
+@Composable
+private fun StudioEntryCard(onOpen: () -> Unit) {
+    androidx.compose.material3.Surface(
+        onClick = onOpen,
+        shape = MaterialTheme.shapes.large,
+        color = androidx.compose.ui.graphics.Color.Transparent,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Aura.tokens.accent.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier
+                .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(app.aura.ui.theme.AuraPalette.Deep, app.aura.ui.theme.AuraPalette.NightRaised)))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(painterResource(R.drawable.scene_clear_night), contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.size(width = 56.dp, height = 88.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Aura Studio", style = MaterialTheme.typography.titleMedium, color = androidx.compose.ui.graphics.Color.White)
+                Text("Creá un fondo con reloj 3D a partir de tus fotos", style = MaterialTheme.typography.bodySmall, color = app.aura.ui.theme.AuraPalette.Mist)
+            }
+            Icon(painterResource(R.drawable.ic_ui_studio), null, tint = Aura.tokens.accent)
+        }
     }
 }
 
@@ -188,6 +221,7 @@ private fun CurrentWeatherCard(
     error: String?,
     onRefresh: () -> Unit,
     onOpenForecast: () -> Unit,
+    onOpenStudio: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val unit = settings.temperatureUnit

@@ -59,6 +59,7 @@ class AppScreensTest {
             shot("home")
             tap("Pronóstico"); shot("forecast")
             tap("Widgets"); shot("widgets")
+            tap("Studio"); shot("studio")
             tap("Ajustes"); shot("settings")
             tap("Inicio")
             tap("Personalizar"); shot("customize")

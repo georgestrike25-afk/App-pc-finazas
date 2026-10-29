@@ -8,7 +8,13 @@
     <!-- Opcional: solo si el usuario elige "Ubicación del dispositivo". Precisión aproximada; nunca en segundo plano. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Aura Studio: aplicar el fondo creado (permiso normal, sin diálogo). -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <!-- Solo Android 8–9: guardar el diseño exportado en la Galería. Desde Android 10 no hace falta. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
     <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
 
     <application
         android:name=".AuraApp"
@@ -74,6 +80,21 @@
                 <action android:name="android.intent.action.LOCALE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- Aura Studio: fondo animado con la hora del diseño activo. -->
+        <service
+            android:name=".studio.wallpaper.AuraWallpaperService"
+            android:exported="true"
+            android:label="@string/studio_wallpaper_name"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data android:name="android.service.wallpaper" android:resource="@xml/aura_wallpaper" />
+        </service>
+
+        <!-- Segmentación del sujeto (ML Kit vía Play Services): el modelo se descarga al instalar. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="subject_segment" />
 
         <!-- Acciones internas: actualización manual desde el widget y confirmación de widgets anclados. -->
         <receiver android:name=".widget.WidgetActionReceiver" android:exported="false" />

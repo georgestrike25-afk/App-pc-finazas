@@ -32,7 +32,12 @@ import app.aura.ui.screens.HomeScreen
 import app.aura.ui.screens.LocationScreen
 import app.aura.ui.screens.SettingsScreen
 import app.aura.ui.screens.WidgetsScreen
+import app.aura.studio.ui.MaskEditorScreen
+import app.aura.studio.ui.StudioEditorScreen
+import app.aura.studio.ui.StudioHomeScreen
+import app.aura.studio.ui.StudioViewModel
 import app.aura.ui.theme.Aura
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 object Routes {
     const val HOME = "home"
@@ -41,6 +46,12 @@ object Routes {
     const val SETTINGS = "settings"
     const val LOCATION = "location"
     const val CUSTOMIZE = "customize/{type}?widgetId={widgetId}"
+    const val STUDIO = "studio"
+    const val STUDIO_EDITOR = "studio/editor/{id}"
+    const val STUDIO_MASK = "studio/mask/{id}"
+
+    fun studioEditor(id: String) = "studio/editor/$id"
+    fun studioMask(id: String) = "studio/mask/$id"
 
     fun customize(type: WidgetType, widgetId: Int? = null) =
         "customize/${type.name}" + (widgetId?.let { "?widgetId=$it" } ?: "")
@@ -51,6 +62,7 @@ private data class Tab(val route: String, val label: String, @DrawableRes val ic
 private val tabs = listOf(
     Tab(Routes.HOME, "Inicio", R.drawable.ic_ui_home),
     Tab(Routes.FORECAST, "Pronóstico", R.drawable.ic_ui_forecast),
+    Tab(Routes.STUDIO, "Studio", R.drawable.ic_ui_studio),
     Tab(Routes.WIDGETS, "Widgets", R.drawable.ic_ui_widgets),
     Tab(Routes.SETTINGS, "Ajustes", R.drawable.ic_ui_settings),
 )
@@ -58,6 +70,8 @@ private val tabs = listOf(
 @Composable
 fun AuraNavHost(viewModel: AuraViewModel, destination: String?, onDestinationConsumed: () -> Unit) {
     val nav = rememberNavController()
+    // Ámbito de la actividad: el editor, la máscara y la lista comparten el proyecto abierto.
+    val studio: StudioViewModel = viewModel()
     val backStack by nav.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
@@ -99,6 +113,7 @@ fun AuraNavHost(viewModel: AuraViewModel, destination: String?, onDestinationCon
                     onOpenWidgets = { nav.switchTab(Routes.WIDGETS) },
                     onCustomize = { nav.navigate(Routes.customize(WidgetType.DUO)) },
                     onOpenForecast = { nav.switchTab(Routes.FORECAST) },
+                    onOpenStudio = { nav.switchTab(Routes.STUDIO) },
                 )
             }
             composable(Routes.FORECAST) { ForecastScreen(viewModel, onOpenLocation = { nav.navigate(Routes.LOCATION) }) }
@@ -106,6 +121,18 @@ fun AuraNavHost(viewModel: AuraViewModel, destination: String?, onDestinationCon
                 WidgetsScreen(viewModel, onCustomize = { type, id -> nav.navigate(Routes.customize(type, id)) })
             }
             composable(Routes.SETTINGS) { SettingsScreen(viewModel, onOpenLocation = { nav.navigate(Routes.LOCATION) }) }
+            composable(Routes.STUDIO) { StudioHomeScreen(studio, onOpen = { id -> nav.navigate(Routes.studioEditor(id)) }) }
+            composable(Routes.STUDIO_EDITOR, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                StudioEditorScreen(
+                    studio, id,
+                    onBack = { studio.close(); nav.popBackStack() },
+                    onEditMask = { nav.navigate(Routes.studioMask(id)) },
+                )
+            }
+            composable(Routes.STUDIO_MASK, arguments = listOf(navArgument("id") { type = NavType.StringType })) {
+                MaskEditorScreen(studio, onDone = { nav.popBackStack() })
+            }
             composable(Routes.LOCATION) { LocationScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(
                 Routes.CUSTOMIZE,
