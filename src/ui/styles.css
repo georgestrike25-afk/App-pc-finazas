@@ -653,3 +653,7 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .pj-diag p { margin: 4px 0; }
 .pj-diag ul { margin: 4px 0; padding-left: 18px; }
 .pj-pend { border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); }
+.pj-titulo { font-size: 1rem; margin: 8px 0 0; color: var(--muted); }
+.pj-sancor { margin-top: 16px; }
+.pj-sancor > summary { font-weight: 600; cursor: pointer; }
+.pj-sancor .page { margin-top: 12px; }

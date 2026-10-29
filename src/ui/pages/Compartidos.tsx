@@ -10,7 +10,7 @@ import type { SancorCharge } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Field, Modal, Money, MoneyInput, MonthNav, MonthSelect } from '../components/ui';
 import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 import { ExpenseTable } from './Gastos';
-import { ParejaResumen, usePareja } from './Pareja';
+import { ParejaPage, usePareja } from './Pareja';
 
 function SancorForm({ initial, onClose }: { initial: Partial<SancorCharge> & { month: MonthKey; partnerPct: number }; onClose: () => void }) {
   const { toast } = useApp();
@@ -57,7 +57,34 @@ function ReimbursementForm({ charge, onClose }: { charge: SancorCharge; onClose:
   );
 }
 
+/**
+ * Compartidos = todo lo que compartís con tu pareja, en una sola pestaña.
+ * Con el modo pareja activo se ve el modo pareja (y el cargo de Sancor del resumen, abajo).
+ * Sin el modo pareja: arriba para activarlo o unirse, y abajo los gastos del hogar de siempre.
+ */
 export function CompartidosPage() {
+  const st = usePareja();
+  if (st === undefined) return <p className="muted">Cargando…</p>;
+  if (st?.yo) {
+    return (
+      <>
+        <ParejaPage />
+        <details className="card more-opts pj-sancor">
+          <summary>Sancor en el resumen de la tarjeta</summary>
+          <HogarClasico soloSancor />
+        </details>
+      </>
+    );
+  }
+  return (
+    <>
+      <ParejaPage />
+      <HogarClasico />
+    </>
+  );
+}
+
+function HogarClasico({ soloSancor }: { soloSancor?: boolean }) {
   const { data, month, setMonth } = useApp();
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   const [sancorEdit, setSancorEdit] = useState<(Partial<SancorCharge> & { month: MonthKey; partnerPct: number }) | null>(null);
@@ -71,11 +98,13 @@ export function CompartidosPage() {
 
   return (
     <div className="page">
+      {!soloSancor && (
+      <>
+      <h2 className="pj-titulo">Sin el modo pareja</h2>
       <MonthNav month={month} setMonth={setMonth} />
       <div className="page-actions">
         <button className="btn primary" onClick={() => setEditing(newExpenseDraft('hogar', month, data.settings.defaultUserPct))}>+ Gasto del hogar</button>
       </div>
-      <ParejaResumen />
       <div className="kpis">
         <div className="kpi"><span>Total gastos del hogar</span><Money value={sum(occ.map((o) => o.total))} /></div>
         <div className="kpi"><span>Mi parte</span><Money value={sum(occ.map((o) => o.userShare))} /></div>
@@ -85,13 +114,15 @@ export function CompartidosPage() {
       <Card title="Gastos del hogar (alquiler, servicios, supermercado compartido…)" help="Gastos que dividís con tu pareja. En cada uno podés elegir qué parte es tuya (por defecto 50 %) y quién lo pagó; arriba ves quién le debe a quién.">
         <ExpenseTable kinds={['hogar']} emptyText="Registre alquiler, electricidad, gas, internet, supermercado compartido u otros. El reparto inicial es 50/50 y se puede editar en cada gasto." />
       </Card>
+      </>
+      )}
 
       <Card
         title="Sancor Salud"
         help="La tarjeta te cobra la cuota entera de Sancor, pero tu pareja te devuelve su parte. Acá ves cuánto te tienen que devolver y anotás cuando te lo dan."
         actions={<button className="btn small" onClick={() => setSancorEdit({ id: uid(), month, partnerPct: data.settings.sancorPartnerPct })}>+ Asociar cargo manualmente</button>}
       >
-        {pareja?.yo && <p className="small warn">Con el modo pareja activado, lo que te devuelve tu pareja se marca con <a href="#/pareja">Pagado</a>: no lo registres acá también como reintegro, para no contarlo dos veces.</p>}
+        {pareja?.yo && <p className="small warn">Con el modo pareja activado, lo que te devuelve tu pareja se marca con <strong>Pagado</strong> (arriba): no lo registres acá también como reintegro, para no contarlo dos veces.</p>}
         <p className="muted small">
           Al importar un resumen de Visa, el cargo de Sancor Salud se detecta automáticamente. Si no se detecta, asócielo manualmente. El total de la tarjeta nunca se reduce por un reintegro no recibido.
         </p>

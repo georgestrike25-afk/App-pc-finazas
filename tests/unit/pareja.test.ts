@@ -305,3 +305,29 @@ describe('widget: "Con Jorge"', () => {
     expect((await db.expenses.get('pareja-w1'))).toMatchObject({ userPct: 50, paidBy: 'usuario' });
   });
 });
+
+describe('al abrir Brote todo corre a la vez', () => {
+  it('lo anotado en el widget no se pierde aunque la sincronización y el pasaje a Gastos guarden al mismo tiempo', async () => {
+    const { compartidosAPareja } = await import('../../src/notifications/native');
+    const db = await freshDb();
+    await crearPareja({ yo: 'Jorge', otro: 'Antonella' }, db);
+    await cambiarPareja((d, yo) => ({ ...d, gastos: [...d.gastos, gasto({ id: 'viejo', paga: yo, autor: yo, total: 3_572, mes: '2026-10', fecha: '2026-10-20' })] }), db);
+    // Un gasto de pareja editado desde Gastos: el pasaje a Gastos tiene algo que devolver a la pareja.
+    const e = (await db.expenses.get('pareja-viejo'))!;
+    await db.expenses.put({ ...e, totalAmount: 4_000, updatedAt: new Date(Date.now() + 60_000).toISOString() });
+    // El otro celular no responde (sin red): la sincronización tarda y guarda al final.
+    const lento: typeof fetch = () => new Promise((_, no) => setTimeout(() => no(new TypeError('sin red')), 30));
+    const despues = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    await Promise.all([
+      syncPareja(lento, db, { local: 'http://127.0.0.1:1' }),
+      aplicarEspejo(db),
+      ...[0, 1, 2, 3, 5, 8].map((ms) => despues(ms).then(() => aplicarEspejo(db))),
+      despues(2).then(() => compartidosAPareja([{ id: 'w20', accion: 'guardar', tipo: 'compartido', categoria: 'dia', monto: 2_000_000, descripcion: 'Día a día', fecha: Date.parse('2026-10-28T21:24:00') }])),
+      aplicarEspejo(db),
+    ]);
+    const st = (await loadPareja(db))!;
+    expect(st.doc.gastos.find((g) => g.id === 'w20')).toMatchObject({ total: 2_000_000, paga: 'a' });
+    expect(st.doc.gastos.find((g) => g.id === 'viejo')?.total).toBe(4_000);
+    expect(saldo(st.doc, 'a', '2026-10').pagasteVos).toBe(2_000_000 + 4_000);
+  });
+});

@@ -287,7 +287,7 @@ test('planilla de gastos compartidos (CSV de Google Sheets): elegir quién sos y
   await quien.getByRole('button', { name: 'Leo' }).click();
   await expect(page.getByTestId('planilla-resumen')).toContainText('332.500,25');
   await page.getByRole('button', { name: 'Incorporar gastos' }).click();
-  await expect(page.locator('.topbar h1')).toHaveText('Gastos compartidos');
+  await expect(page.locator('.topbar h1')).toHaveText('Compartidos');
   await expect(page.locator('.content')).toContainText('Caro');
   const alquiler = page.locator('tr', { hasText: 'Alquiler' });
   await expect(alquiler).toContainText('310.000,00');

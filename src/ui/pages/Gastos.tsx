@@ -21,7 +21,7 @@ function HalfButton({ e, partner }: { e: Expense; partner: string }) {
   const { toast } = useApp();
   const pareja = usePareja();
   const on = isHalf(e);
-  // Los gastos del modo pareja se manejan en Gastos → Pareja (ahí está "No es compartido").
+  // Los gastos del modo pareja se manejan en Gastos → Compartidos (ahí está "No es compartido").
   if (esDePareja(e)) return <Badge tone="info">Con {pareja?.yo ? pareja.doc.nombres[pareja.yo === 'a' ? 'b' : 'a'] : partner}</Badge>;
   if (e.kind === 'hogar' && !on) return null;
   const toggle = async () => {

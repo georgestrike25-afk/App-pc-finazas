@@ -450,7 +450,7 @@ function Principal({ st }: { st: ParejaEstado }) {
       <div className="pj-qr">
         <QrCode text={code} label={`QR para conectar a ${el}`} />
         <p className="small muted">
-          En el celular de {el}: Brote → Gastos → Pareja → <strong>Escanear QR</strong>. Tienen que estar en el mismo Wi-Fi. Es privado: no lo compartas con nadie más.
+          En el celular de {el}: Brote → Gastos → Compartidos → <strong>Escanear QR</strong>. Tienen que estar en el mismo Wi-Fi. Es privado: no lo compartas con nadie más.
         </p>
       </div>
       <details className="more-opts small">
@@ -598,7 +598,7 @@ export function ParejaResumen() {
   const el = st.doc.nombres[otro(st.yo)];
   const s = saldo(st.doc, st.yo);
   return (
-    <a className="card link-card pj-mini" href="#/pareja">
+    <a className="card link-card pj-mini" href="#/compartidos">
       <span className="pj-pair"><Users aria-hidden size={18} />Con {el}</span>
       <strong>{s.neto === 0 ? 'Están a mano' : s.neto < 0 ? `Le debés ${formatARS(-s.neto)}` : `Te debe ${formatARS(s.neto)}`}</strong>
       <span className="card-link">Ver gastos compartidos</span>

@@ -352,7 +352,7 @@ Desde el celular use la dirección de la PC en la red local, por ejemplo `http:/
 
 ## Modo pareja (gastos compartidos entre dos celulares)
 
-En **Gastos → Pareja**. Uno lo activa y el otro escanea el QR (o pega el código `BROTE2-…`).
+En **Gastos → Compartidos** (antes "Pareja": ahora es una sola pestaña). Uno lo activa y el otro escanea el QR (o pega el código `BROTE2-…`).
 
 - **Sin depender de la PC:** cada celular recibe la sincronización del otro por el Wi-Fi (o el hotspot de uno), con un servidor chico dentro de la app de Android (puerto 8797). Sigue respondiendo con Brote cerrado mientras esté activada la lectura de notificaciones. Lo anotado sin conexión queda guardado y se manda al volver a estar en la misma red. La PC es opcional: si está prendida con Brote abierto también guarda los compartidos (y se ven en Windows).
 - **Qué viaja:** solo la planilla de gastos fijos, los gastos marcados como compartidos y los pagos entre los dos; cifrado (AES-GCM) con una frase aleatoria que va en el código. El espacio queda atado a su token: con el código de pareja no se pueden leer ni tocar los datos personales de la PC.

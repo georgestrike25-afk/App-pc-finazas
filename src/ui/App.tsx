@@ -1,4 +1,4 @@
-import { ArrowDownToLine, CalendarClock, HeartHandshake, CircleHelp, CreditCard, History, Landmark, ListChecks, Menu, PiggyBank, Plane, Receipt, RefreshCw, Settings, Upload, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { ArrowDownToLine, CalendarClock, CircleHelp, CreditCard, History, Landmark, ListChecks, Menu, PiggyBank, Plane, Receipt, RefreshCw, Settings, Upload, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost, Help } from './components/ui';
@@ -13,7 +13,6 @@ import { AyudaPage } from './pages/Ayuda';
 import { IngresosPage } from './pages/Ingresos';
 import { GastosPage } from './pages/Gastos';
 import { CompartidosPage } from './pages/Compartidos';
-import { ParejaPage } from './pages/Pareja';
 import { onNovedades } from '../sync/pareja';
 import { DeudasPage } from './pages/Deudas';
 import { CuotasPage } from './pages/Cuotas';
@@ -64,19 +63,18 @@ export const ROUTES: RouteDef[] = [
   { path: 'cuotas', label: 'Cuotas futuras', icon: CalendarClock, el: CuotasPage, nav: 'hidden', group: 'deudas', help: 'Cuánto vas a pagar de cuotas cada mes que viene, y si quedó alguna cuota vencida sin pagar.' },
   { path: 'deudas', label: 'Tarjetas y deudas', icon: CreditCard, el: DeudasPage, nav: 'hidden', group: 'deudas', help: 'Cada préstamo, compra en cuotas o plan, y los resúmenes de tarjeta. Tocá "Ver cuotas" para ver en qué cuota vas o corregir una cuota marcada por error.' },
   { path: 'ingresos', label: 'Ingresos', icon: ArrowDownToLine, el: IngresosPage, nav: 'hidden', group: 'plata', help: 'Tu sueldo y otros ingresos de cada mes. Si subís la captura de los movimientos del banco, el sueldo se carga solo.' },
-  { path: 'compartidos', label: 'Gastos compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con tu pareja (alquiler, luz, súper…). Solo se cuenta tu parte. También el cargo de Sancor Salud y lo que te devuelve.' },
-  { path: 'pareja', label: 'Modo pareja', short: 'Pareja', icon: HeartHandshake, el: ParejaPage, nav: 'hidden', group: 'plata', help: 'Gastos compartidos con tu pareja en las dos apps: la planilla de gastos fijos del mes, lo que anotan como compartido y quién le debe a quién. Con "Pagado" se salda.' },
+  { path: 'compartidos', label: 'Compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Todo lo que compartís con tu pareja: los gastos fijos del mes, lo que anotan como compartido, quién le debe a quién (con "Pagado" se salda) y el cargo de Sancor del resumen. Con el modo pareja, se ve igual en los dos celulares.' },
   { path: 'presupuesto', label: 'Presupuesto mensual', icon: PiggyBank, el: PresupuestoPage, nav: 'hidden', group: 'plata', help: 'Cuánto querés gastar como máximo en el día a día (comida, transporte, salidas) y cuánto llevás.' },
   { path: 'resumen', label: 'Detalle del mes', icon: ListChecks, el: ResumenPage, nav: 'hidden', help: 'La cuenta completa del mes, línea por línea: de dónde sale el número de "Te quedan".' },
 ];
 
 const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
   deudas: [['entidades', 'Por entidad'], ['cuotas', 'Cuotas por mes'], ['deudas', 'Préstamos y tarjetas']],
-  plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['pareja', 'Pareja'], ['presupuesto', 'Presupuesto']],
+  plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['presupuesto', 'Presupuesto']],
 };
 /** Menú lateral (escritorio): las secciones de uso diario a la vista. */
-const SIDE_MAIN = ['inicio', 'gastos', 'ingresos', 'compartidos', 'pareja', 'presupuesto', 'entidades', 'viaje', 'resumen', 'importar'];
-const SIDE_LABEL: Record<string, string> = { inicio: 'Este mes', compartidos: 'Compartidos', pareja: 'Pareja', presupuesto: 'Presupuesto', entidades: 'Deudas', viaje: 'Viaje', importar: 'Subir documento' };
+const SIDE_MAIN = ['inicio', 'gastos', 'ingresos', 'compartidos', 'presupuesto', 'entidades', 'viaje', 'resumen', 'importar'];
+const SIDE_LABEL: Record<string, string> = { inicio: 'Este mes', compartidos: 'Compartidos', presupuesto: 'Presupuesto', entidades: 'Deudas', viaje: 'Viaje', importar: 'Subir documento' };
 /** Navegación inferior (celular). "Subir" queda arriba, en el encabezado. */
 const BOTTOM = ['inicio', 'gastos', 'entidades', 'viaje'];
 const SUBTITLES: Record<string, string> = {
@@ -88,14 +86,18 @@ const SUBTITLES: Record<string, string> = {
   resumen: 'La cuenta completa del mes',
   configuracion: 'Preferencias de este dispositivo',
   copias: 'Tus datos, a salvo y en tus equipos',
-  pareja: 'Lo que comparten, en las dos apps',
+  compartidos: 'Lo que comparten, en las dos apps',
 };
 const LOGO = `${import.meta.env.BASE_URL}icons/brote-mark.png`;
 
 const tourId = (p: string) => `nav-${p === 'entidades' ? 'deudas' : p}`;
 
 function useHashRoute(): string {
-  const get = () => (window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'inicio');
+  // "Pareja" pasó a ser parte de Compartidos: los enlaces viejos llevan ahí.
+  const get = () => {
+    const r = window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'inicio';
+    return r === 'pareja' ? 'compartidos' : r;
+  };
   const [r, setR] = useState(get);
   useEffect(() => {
     const h = () => {

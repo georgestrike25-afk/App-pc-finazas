@@ -54,6 +54,24 @@ async function savePareja(st: ParejaEstado | null, db: FinanzasDB = getDb()) {
   if (db === getDb()) listeners.forEach((l) => l(st));
 }
 
+/**
+ * Todos los cambios al estado de pareja pasan de a uno: la anotación rápida, la sincronización y
+ * el pasaje a Gastos corren a la vez al abrir Brote, y sin esto uno podía pisar lo que guardó otro
+ * (y se perdía, por ejemplo, un gasto anotado desde el widget).
+ */
+let cola: Promise<unknown> = Promise.resolve();
+async function mutar(db: FinanzasDB, fn: (cur: ParejaEstado | null) => ParejaEstado | null | undefined | Promise<ParejaEstado | null | undefined>): Promise<ParejaEstado | null> {
+  const paso = cola.then(async () => {
+    const cur = await loadPareja(db);
+    const next = await fn(cur);
+    if (next === undefined) return cur;
+    await savePareja(next, db);
+    return next;
+  });
+  cola = paso.catch(() => {});
+  return paso;
+}
+
 export function onPareja(l: (s: ParejaEstado | null) => void): () => void {
   listeners.add(l);
   return () => listeners.delete(l);
@@ -72,7 +90,7 @@ export async function crearPareja(p: { yo: string; otro: string; servidores?: st
     doc: nuevoDoc({ a: p.yo.trim() || 'Yo', b: p.otro.trim() || 'Pareja' }, nowIso()),
     vistos: [],
   };
-  await savePareja(st, db);
+  await mutar(db, () => st);
   await addAudit(db, 'crear', 'pareja', undefined, `Modo pareja con ${st.doc.nombres.b}`, await getDeviceId(db));
   return st;
 }
@@ -80,7 +98,7 @@ export async function crearPareja(p: { yo: string; otro: string; servidores?: st
 /** Se une con el código que mandó el otro. Después elige quién es. */
 export async function unirPareja(cfg: ParejaCfg, db: FinanzasDB = getDb()): Promise<ParejaEstado> {
   const st: ParejaEstado = { cfg: { ...cfg, servidores: cfg.servidores.map(normalizeServerUrl) }, doc: { ...nuevoDoc({ a: '', b: '' }, '1970-01-01T00:00:00.000Z'), items: [] }, vistos: [] };
-  await savePareja(st, db);
+  await mutar(db, () => st);
   return st;
 }
 
@@ -91,28 +109,30 @@ export function codigoDe(st: ParejaEstado, host: HostInfo = {}): string {
 }
 
 export async function elegirYo(yo: Miembro, db: FinanzasDB = getDb()) {
-  const st = await loadPareja(db);
+  const st = await mutar(db, (cur) => {
+    if (!cur) return undefined;
+    // Lo que ya estaba no se avisa como nuevo.
+    return { ...cur, yo, vistos: [...cur.doc.gastos.map((g) => g.id), ...cur.doc.pagos.map((p) => p.id)] };
+  });
   if (!st) return;
-  // Lo que ya estaba no se avisa como nuevo.
-  const vistos = [...st.doc.gastos.map((g) => g.id), ...st.doc.pagos.map((p) => p.id)];
-  await savePareja({ ...st, yo, vistos }, db);
   await aplicarEspejo(db);
   notify();
 }
 
 export async function salirPareja(db: FinanzasDB = getDb()) {
-  await savePareja(null, db);
+  await mutar(db, () => null);
   await detenerHost();
   notify();
 }
 
 /** Cambia el documento compartido en este dispositivo y lo lleva a los gastos; se sube en la próxima sincronización. */
 export async function cambiarPareja(fn: (doc: ParejaDoc, yo: Miembro) => ParejaDoc, db: FinanzasDB = getDb()) {
-  const st = await loadPareja(db);
-  if (!st?.yo) throw new Error('El modo pareja no está activado.');
-  const doc = fn(structuredClone(st.doc), st.yo);
-  const propios = [...doc.gastos.map((g) => g.id), ...doc.pagos.map((p) => p.id)].filter((id) => !st.vistos.includes(id));
-  await savePareja({ ...st, doc, vistos: [...st.vistos, ...propios].slice(-3000) }, db);
+  await mutar(db, (st) => {
+    if (!st?.yo) throw new Error('El modo pareja no está activado.');
+    const doc = fn(structuredClone(st.doc), st.yo);
+    const propios = [...doc.gastos.map((g) => g.id), ...doc.pagos.map((p) => p.id)].filter((id) => !st.vistos.includes(id));
+    return { ...st, doc, vistos: [...st.vistos, ...propios].slice(-3000) };
+  });
   await aplicarEspejo(db);
   notify();
   scheduleSync(1500);
@@ -133,9 +153,9 @@ export async function aplicarEspejo(db: FinanzasDB = getDb()): Promise<boolean> 
     if (plan.categorias.length) await db.settings.put({ ...settings, categories: [...settings.categories, ...plan.categorias], updatedAt: now });
   });
   if (plan.gastos.length || plan.nuevos.length) {
-    const cambios = new Map([...plan.nuevos, ...plan.gastos].map((g) => [g.id, g]));
-    const doc = { ...st.doc, gastos: [...st.doc.gastos.filter((g) => !cambios.has(g.id)), ...cambios.values()] };
-    await savePareja({ ...st, doc, vistos: [...st.vistos, ...plan.nuevos.map((g) => g.id)] }, db);
+    // Se aplica sobre el estado de ahora (pudo cambiar mientras se calculaba): gana lo más nuevo.
+    const cambios = [...plan.nuevos, ...plan.gastos];
+    await mutar(db, (cur) => (cur ? { ...cur, doc: { ...cur.doc, gastos: unirDocs(cur.doc, { ...cur.doc, gastos: cambios }).gastos }, vistos: [...cur.vistos, ...plan.nuevos.map((g) => g.id)] } : undefined));
     scheduleSync(1500);
   }
   return true;
@@ -146,13 +166,16 @@ export async function aplicarEspejo(db: FinanzasDB = getDb()): Promise<boolean> 
  * Ahora es todo de Jorge pero se lo paga a Antonella (suma a lo que le debe).
  */
 async function migrarConsultorio(db: FinanzasDB) {
-  const st = await loadPareja(db);
-  const it = st?.doc.items.find((i) => i.id === 'fijo-7' && !i.deleted && i.paga === 'a' && i.pctPaga === 100);
-  if (!st || st.yo !== 'a' || !it) return;
   const now = nowIso();
-  const items = st.doc.items.map((i) => (i === it ? { ...i, paga: 'b' as const, pctPaga: 0, updatedAt: now } : i));
-  await savePareja({ ...st, doc: { ...st.doc, items } }, db);
-  const viejos = (await db.expenses.toArray()).filter((e) => e.id.startsWith(`pareja-fijo-${it.id}-`) && !e.deleted);
+  let migrado = '';
+  await mutar(db, (st) => {
+    const it = st?.doc.items.find((i) => i.id === 'fijo-7' && !i.deleted && i.paga === 'a' && i.pctPaga === 100);
+    if (!st || st.yo !== 'a' || !it) return undefined;
+    migrado = it.id;
+    return { ...st, doc: { ...st.doc, items: st.doc.items.map((i) => (i.id === it.id ? { ...i, paga: 'b' as const, pctPaga: 0, updatedAt: now } : i)) } };
+  });
+  if (!migrado) return;
+  const viejos = (await db.expenses.toArray()).filter((e) => e.id.startsWith(`pareja-fijo-${migrado}-`) && !e.deleted);
   for (const e of viejos) await db.expenses.put({ ...e, deleted: true, updatedAt: now });
 }
 
@@ -333,11 +356,14 @@ export async function syncPareja(f: FetchLike = fetch, db: FinanzasDB = getDb(),
     error: errMsg,
   };
   // Si se anotó algo mientras se sincronizaba, se conserva (y se manda en la próxima).
-  const actual = await loadPareja(db);
-  if (!actual) return res;
-  const cambio = actual.doc !== inicio;
-  st = { ...st, yo: actual.yo, doc: cambio ? unirDocs(st.doc, actual.doc) : st.doc };
-  await savePareja(st, db);
+  const sinc = st;
+  let cambio = false;
+  const guardado = await mutar(db, (actual) => {
+    if (!actual) return undefined;
+    cambio = actual.doc !== inicio;
+    return { ...sinc, cfg: actual.cfg, yo: actual.yo, vistos: [...new Set([...actual.vistos, ...sinc.vistos])].slice(-3000), doc: cambio ? unirDocs(sinc.doc, actual.doc) : sinc.doc };
+  });
+  if (!guardado) return res;
   if (cambio) scheduleSync(1500);
   await aplicarEspejo(db);
   notify();
@@ -373,8 +399,7 @@ export async function runParejaSync(): Promise<ResultadoSync | null> {
       for (const viejo of r.sinRespuesta) {
         const nuevo = await findServer({ serverUrl: viejo, token: st.cfg.token });
         if (!nuevo) continue;
-        const cur = await loadPareja();
-        if (cur) await savePareja({ ...cur, cfg: { ...cur.cfg, servidores: [...new Set([nuevo, ...cur.cfg.servidores.filter((u) => u !== viejo)])] } });
+        await mutar(getDb(), (cur) => (cur ? { ...cur, cfg: { ...cur.cfg, servidores: [...new Set([nuevo, ...cur.cfg.servidores.filter((u) => u !== viejo)])] } } : undefined));
         const r2 = await syncPareja(fetch, getDb(), host);
         r.novedades.push(...r2.novedades);
         r.conectados.push(...r2.conectados);
@@ -384,8 +409,7 @@ export async function runParejaSync(): Promise<ResultadoSync | null> {
     if (r.novedades.length) novListeners.forEach((l) => l(r.novedades));
     return r;
   } catch (e) {
-    const cur = await loadPareja();
-    if (cur) await savePareja({ ...cur, error: (e as Error).message });
+    await mutar(getDb(), (cur) => (cur ? { ...cur, error: (e as Error).message } : undefined)).catch(() => {});
     return null;
   } finally {
     running = false;
