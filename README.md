@@ -9,8 +9,9 @@ Aplicación Android de clima, hora y widgets minimalistas con **transparencia re
 ## Qué incluye
 
 - **5 widgets** (Clock, Weather, Duo, Forecast, Night), cada uno con composición pequeña, mediana y grande.
-- **Fondos:** transparente, cristal, oscuro, claro o personalizado, opacidad 0–100 %.
-- **Personalización por widget:** colores de texto e iconos, iconos a color o monocromo, tamaño de hora y temperatura, 4 tipografías del sistema, alineación, espaciado, sombra, fecha/ubicación/máx.-mín., 12/24 h. Perfiles Aura Minimal, Glass, Dark, Light y Custom.
+- **Fondos:** transparente, escena del cielo según el clima, cristal, oscuro, claro o personalizado; opacidad 0–100 %.
+- **Iconos:** 3D con volumen, de línea o monocromo.
+- **Personalización por widget:** colores de texto e iconos, iconos a color o monocromo, tamaño de hora y temperatura, 8 tipografías del sistema, horas en negrita, color propio de la hora, alineación, espaciado, sombra, fecha/ubicación/máx.-mín., 12/24 h. Perfiles Aura Minimal, Glass, Dark, Light, Custom y Sky.
 - **Vista previa interactiva** sobre fondos de prueba (incluidos los colores de tu fondo real) con aviso de contraste WCAG.
 - **App:** Inicio, Pronóstico (por horas y 6 días), Widgets, Personalizar, Ubicación (automática aproximada o ciudades) y Ajustes.
 - **Clima:** Open-Meteo, sin clave API ni suscripción; caché sin conexión con marca de datos desactualizados.

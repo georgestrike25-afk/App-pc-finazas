@@ -18,7 +18,16 @@ Se eligió **RemoteViews**: el reloj es lo más importante y `TextClock` permite
 - El panel opcional es un `ImageView` con una forma blanca que se tiñe (`setColorFilter`) y cuya opacidad se fija con `setImageAlpha` en 256 pasos, lo que cubre de 0 a 100 % en todas las versiones desde Android 8.
 - En modo Transparente el panel está en `GONE`: no es negro semitransparente ni una captura.
 - Modos: Transparente, Cristal (blanco translúcido + filo de 1 dp), Oscuro (`#101D2B`), Claro (`#F5F7F8`), Personalizado (color + opacidad).
-- **Limitación:** RemoteViews no permite desenfoque de fondo (*blur*). «Cristal» es translúcido, no esmerilado.
+- **Escena del clima:** ilustración del cielo que cambia sola con la condición real (despejado, parcialmente nublado, nublado, llovizna, lluvia, tormenta, nieve, niebla, viento; variantes de noche). Es un `ImageView` con `centerCrop` y opacidad 0–100 %; en Android 12+ se recorta con las esquinas del sistema.
+- **Limitación:** RemoteViews no permite desenfoque del fondo real (*blur*). «Cristal» es translúcido, no esmerilado.
+
+## Iconos 3D y hora
+
+- Estilos de icono: **3D** (ilustraciones con volumen, `drawable-nodpi/ic3d_*.webp`), **Línea** (vectorial con acentos de marca) y **Mono**. Los iconos 3D funcionan también sobre fondo transparente.
+- Tipografías del sistema: Fina, Ligera, Normal, Media, Negra, Estrecha, Serif y Mono.
+- **Horas en negrita:** dos `TextClock` (`HH` en negrita + `:mm` con la tipografía elegida), así la hora sigue avanzando sin despertar la app.
+- **Color de la hora** independiente del resto del texto.
+- Perfil **Aura Sky**: escena del clima + iconos 3D + horas en negrita + tipografía fina.
 
 ## Catálogo y composiciones
 
@@ -40,9 +49,9 @@ Aura Night muestra la variante nocturna del icono para cielos despejados o parci
 
 Por widget (clave `widget_<appWidgetId>` en DataStore): fondo y opacidad, color de texto y de iconos, iconos a color o monocromo, tamaño de hora y temperatura (70–140 %), tipografía, alineación, espaciado, sombra suave, fecha/ubicación/máx.-mín. visibles, formato horario. Las unidades son globales (Ajustes).
 
-RemoteViews no deja cambiar la familia tipográfica ni la sombra en ejecución, por eso `tools/aura_widgets.py` genera 120 layouts (5 widgets × 3 tamaños × 4 tipografías × con/sin sombra). El resto se aplica en ejecución.
+RemoteViews no deja cambiar la familia tipográfica ni la sombra en ejecución, por eso `tools/aura_widgets.py` genera 240 layouts (5 widgets × 3 tamaños × 8 tipografías × con/sin sombra). El resto se aplica en ejecución.
 
-Perfiles: Aura Minimal, Glass, Dark, Light y Custom (editables y restablecibles).
+Perfiles: Aura Minimal, Glass, Dark, Light, Custom y Sky (editables y restablecibles).
 
 ## Actualización
 

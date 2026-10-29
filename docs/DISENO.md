@@ -42,6 +42,8 @@ Solo fuentes del sistema (Roboto/SamsungOne según el teléfono), sin fuentes in
 
 Cada icono tiene **dos capas** (`ic_wx_*_base` neutra, `ic_wx_*_accent` color). En los widgets la capa base se tiñe con el color de icono elegido y el acento mantiene el dorado de marca, sin rasterizar nada. Las nubes que tapan al sol o a la luna se recortan con un *clip-path* complementario, de modo que no se cruzan líneas.
 
+**Variante 3D** (`tools/aura_3d.py`): el mismo catálogo con volumen (sol con degradado radial y halo, nubes con sombreado y brillos, gotas translúcidas, rayo luminoso, luna con cráteres), más 11 **escenas de cielo** con un velo oscuro del lado del texto para mantener el contraste. Se dibujan en SVG con filtros de desenfoque, se renderizan con Playwright y se exportan a WebP (≈260 KB en total). Fuentes SVG en `docs/assets/3d/`.
+
 Iconos de interfaz (`ic_ui_*`, 24 dp, trazo 1,8) siguen el mismo lenguaje de línea.
 
 ## Forma y espaciado
