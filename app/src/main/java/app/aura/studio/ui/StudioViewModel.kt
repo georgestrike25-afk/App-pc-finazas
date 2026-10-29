@@ -22,7 +22,9 @@ import app.aura.core.studio.StudioProject
 import app.aura.studio.mask.MaskRenderer
 import app.aura.studio.mask.SubjectSegmenter
 import app.aura.studio.render.ClockExtrasBuilder
+import app.aura.studio.render.ClockPainter
 import app.aura.studio.render.StudioCompositor
+import app.aura.studio.render.StudioFonts
 import app.aura.studio.wallpaper.WallpaperApplier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -46,7 +48,7 @@ import kotlin.math.roundToInt
 class StudioViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application.aura
     private val repo = app.studio
-    private val compositor = StudioCompositor(app.aura.studio.render.ClockPainter(app.aura.studio.render.StudioFonts.resolver(application)))
+    private val compositor = StudioCompositor(ClockPainter(StudioFonts.resolver(application)))
     private val segmenter = SubjectSegmenter()
     private val renderLock = Mutex()
 

@@ -13,7 +13,10 @@ import app.aura.aura
 import app.aura.core.studio.StudioProject
 import app.aura.studio.mask.MaskRenderer
 import app.aura.studio.render.ClockExtrasBuilder
+import app.aura.studio.render.Backdrop
+import app.aura.studio.render.ClockPainter
 import app.aura.studio.render.StudioCompositor
+import app.aura.studio.render.StudioFonts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,7 +41,7 @@ class AuraWallpaperService : WallpaperService() {
     inner class AuraEngine : Engine() {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         private val lock = Mutex()
-        private val compositor = StudioCompositor(app.aura.studio.render.ClockPainter(app.aura.studio.render.StudioFonts.resolver(this@AuraWallpaperService)))
+        private val compositor = StudioCompositor(ClockPainter(StudioFonts.resolver(this@AuraWallpaperService)))
         private var project: StudioProject? = null
         private var background: Bitmap? = null
         private var subject: Bitmap? = null
@@ -130,7 +133,7 @@ class AuraWallpaperService : WallpaperService() {
                             val extras = ClockExtrasBuilder.build(
                                 applicationContext, p.design, app.settings.current(), app.weather.cached(), LocalDateTime.now(),
                             )
-                            compositor.clock.draw(canvas, width, height, p.design, extras, app.aura.studio.render.Backdrop(bg, android.graphics.Matrix()))
+                            compositor.clock.draw(canvas, width, height, p.design, extras, Backdrop(bg, android.graphics.Matrix()))
                             subject?.let { canvas.drawBitmap(it, 0f, 0f, null) }
                         }
                     } finally {
