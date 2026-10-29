@@ -13,6 +13,8 @@ jobs:
   build:
     name: Compilar, probar y empaquetar
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +40,18 @@ jobs:
 
       - name: Lint
         run: ./gradlew :app:lintDebug
+
+      - name: Publicar APK en dist/
+        if: github.event_name == 'push'
+        run: |
+          mkdir -p dist
+          rm -f dist/*.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/Aura.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist
+          git commit -m "APK de Aura (${GITHUB_SHA::7}) [skip ci]" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done
 
       - uses: actions/upload-artifact@v4
         with:
