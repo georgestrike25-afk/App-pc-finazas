@@ -31,6 +31,10 @@ python3 tools/aura_widgets.py
 
 ## APK sin compilar nada
 
+Enlace fijo, siempre con la última compilación:
+**https://github.com/georgestrike25-afk/App-pc-finazas/releases/download/aura-latest/Aura.apk**
+(versión «Aura (última versión)» del repositorio; también queda en `dist/Aura.apk`).
+
 Cada push ejecuta `.github/workflows/android.yml`. En la pestaña **Actions** del repositorio, abrí la última ejecución de «Android» y descargá el artefacto **aura-apk** (`app-debug.apk` y `app-release.apk`). El artefacto **widget-screenshots** tiene las capturas del emulador.
 
 ## Instalar en el Galaxy S24+

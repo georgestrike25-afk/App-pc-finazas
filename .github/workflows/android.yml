@@ -53,6 +53,19 @@ jobs:
           git commit -m "APK de Aura (${GITHUB_SHA::7}) [skip ci]" || exit 0
           for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done
 
+      - name: Publicar APK en la versión «aura-latest»
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="APK release firmado de Aura. Rama ${GITHUB_REF_NAME}, commit ${GITHUB_SHA::7}, $(date -u '+%Y-%m-%d %H:%M UTC')."
+          if ! gh release view aura-latest > /dev/null 2>&1; then
+            gh release create aura-latest --title "Aura (última versión)" --notes "$notes" --prerelease --target "$GITHUB_SHA"
+          else
+            gh release edit aura-latest --notes "$notes"
+          fi
+          gh release upload aura-latest dist/Aura.apk --clobber
+
       - uses: actions/upload-artifact@v4
         with:
           name: aura-apk
