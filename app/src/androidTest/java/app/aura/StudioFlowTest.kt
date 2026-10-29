@@ -102,7 +102,8 @@ class StudioFlowTest {
 
         // Cada material produce una imagen distinta.
         val renders = ClockMaterial.entries.map { m ->
-            val p = project.copy(design = project.design.withMaterial(m))
+            // Sin máscara, para documentar cada acabado completo.
+            val p = project.copy(design = project.design.withMaterial(m), hasMask = false)
             Bitmap.createBitmap(screen.width / 2, screen.height / 2, Bitmap.Config.ARGB_8888).also {
                 compositor.render(it, photo, mask, p, extras)
                 save("studio_${m.name.lowercase()}", it)

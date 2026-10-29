@@ -24,6 +24,24 @@ Las capturas de cada ejecución se guardan automáticamente en [`docs/capturas/`
 
 **Nota sobre el launcher:** la captura `launcher_*.png` muestra la primera página; el launcher colocó los widgets de 4×2 en otra página por falta de hueco, así que en esa imagen no se ven. Su presencia se verificó con `dumpsys appwidget`. Los renders de `minimal_*`, `sky_*`, `opacity_*` y `profile_*` son los RemoteViews reales inflados sobre fondos de prueba.
 
+## Aura Studio (run `40888574483`, commit `4da82e3`)
+
+| Área | Cómo | Resultado |
+|---|---|---|
+| Compilación con Studio + ML Kit, lint, APK release | CI | ✅ |
+| Modelo de Studio (historial, encuadre, materiales, textos del reloj, JSON de proyectos) | 7 pruebas JVM en `StudioTest` | ✅ |
+| Importar foto, foto de trabajo reducida | `StudioFlowTest`: `ProjectRepository.create` con una foto real en el dispositivo | ✅ |
+| Sujeto delante del reloj | Luminancia de la franja del reloj sobre la silueta: baja con la máscara (el sujeto tapa el reloj) | ✅ `studio_with_mask.png` vs `studio_without_mask.png` |
+| Materiales metal, vidrio, neón, piedra y minimal | Renderizado de cada uno | ✅ `studio_*.png` |
+| Guardar, recargar, duplicar, máscara persistida | `ProjectRepository` | ✅ |
+| Exportar a Galería (MediaStore) y aplicar fondo estático | `WallpaperManager.setBitmap` | ✅ sin errores |
+| Fondo animado | Servicio declarado y selector del sistema con vista previa en vivo del diseño (hora real) | ✅ `studio_live_preview.png` |
+| Segmentación automática (ML Kit) | Ejecutada en el emulador | ⚠️ No disponible en la imagen del emulador (falta el módulo de Play Services); la app pasó a modo manual, que es el comportamiento previsto. **Pendiente de verificar en el S24+.** |
+| Pestaña Studio en la navegación | `AppScreensTest` | ✅ `app_studio.png` |
+| Funciones previas de Aura | Las mismas pruebas de widgets, clima, transparencia, opacidad y perfiles siguen pasando | ✅ |
+
+No probado de forma automática: el editor con gestos reales (arrastrar y pellizcar el reloj, pincel con el dedo) y el selector de fotos con la galería real. Requieren interacción manual en el teléfono.
+
 ## Defectos encontrados y corregidos gracias a las capturas
 
 - La escena de cielo traía su propio sol y se duplicaba con el icono 3D (y se cortaba en widgets altos) → las escenas son ahora solo cielo y luz.
