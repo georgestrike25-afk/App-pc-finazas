@@ -35,6 +35,24 @@ jobs:
       - name: Pruebas unitarias
         run: ./gradlew --stacktrace :core:test :app:testDebugUnitTest
 
+      - name: Clave de firma fija (secretos del repositorio)
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.AURA_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.AURA_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/aura-release.p12"
+            {
+              echo "AURA_STORE_FILE=$RUNNER_TEMP/aura-release.p12"
+              echo "AURA_STORE_PASSWORD=$KEYSTORE_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Faltan los secretos AURA_KEYSTORE_BASE64 / AURA_KEYSTORE_PASSWORD: el APK no se publica (su firma cambiaría en cada compilación)."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: APK debug y release
         run: ./gradlew --stacktrace :app:assembleDebug :app:assembleRelease
 
@@ -42,7 +60,7 @@ jobs:
         run: ./gradlew :app:lintDebug
 
       - name: Publicar APK en dist/
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.signing.outputs.signed == 'true'
         run: |
           mkdir -p dist
           rm -f dist/*.apk
@@ -54,7 +72,7 @@ jobs:
           for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done
 
       - name: Publicar APK en la versión «aura-latest»
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.signing.outputs.signed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

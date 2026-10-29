@@ -20,14 +20,28 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Clave fija de Aura, provista por CI desde secretos de GitHub (nunca se guarda en el repositorio).
+    // Sin ella, el release se firma con la clave de depuración local (útil solo para probar).
+    fun signingValue(name: String) = providers.gradleProperty("aura.$name")
+        .orElse(providers.environmentVariable("AURA_" + name.replace(Regex("([A-Z])"), "_$1").uppercase()))
+    val releaseStore = signingValue("storeFile").orNull?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (releaseStore != null) {
+            create("release") {
+                storeFile = releaseStore
+                storePassword = signingValue("storePassword").get()
+                keyAlias = signingValue("keyAlias").getOrElse("aura")
+                keyPassword = signingValue("keyPassword").orElse(signingValue("storePassword")).get()
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Firmado con la clave de depuración para que el APK de release sea instalable directamente.
-            // Para distribuirlo en una tienda, sustituilo por una clave propia (ver docs/COMPILACION.md).
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 

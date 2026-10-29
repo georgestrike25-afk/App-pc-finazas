@@ -49,6 +49,17 @@ Cada push ejecuta `.github/workflows/android.yml`. En la pestaña **Actions** de
 
 One UI puede restringir apps en segundo plano. Para que el clima se actualice con regularidad: Ajustes › Batería › Límites de uso en segundo plano › asegurate de que Aura no esté en «Apps en suspensión profunda». La hora de los widgets no se ve afectada (la dibuja el sistema).
 
-## Firmar para distribución
+## Firma
 
-`app/build.gradle.kts` firma el release con la clave de depuración para que sea instalable directamente. Para publicar, creá un keystore propio y definí un `signingConfigs { create("release") { … } }`; no subas el keystore al repositorio.
+Android solo instala una actualización si está firmada con la **misma clave** que la versión instalada. Por eso el release se firma con una clave fija de Aura que **no está en el repositorio**: CI la toma de dos secretos de GitHub Actions.
+
+| Secreto | Contenido |
+|---|---|
+| `AURA_KEYSTORE_BASE64` | El keystore PKCS12 (alias `aura`) codificado en base64 |
+| `AURA_KEYSTORE_PASSWORD` | Su contraseña |
+
+Se cargan en GitHub › repositorio › **Settings › Secrets and variables › Actions › New repository secret**.
+
+- Sin los secretos, CI compila igual pero **no publica** el APK, porque cambiaría de firma en cada compilación.
+- Localmente: `./gradlew assembleRelease -Paura.storeFile=/ruta/aura-release.p12 -Paura.storePassword=…`, o las variables `AURA_STORE_FILE` y `AURA_STORE_PASSWORD`.
+- Guardá una copia del keystore en un lugar seguro: si se pierde, la próxima versión no se podrá instalar como actualización.
