@@ -111,10 +111,12 @@ class StudioFlowTest {
             }
         }
         assertNotEquals(renders[0].getPixel(renders[0].width / 2 - 40, (renders[0].height * 0.27f).toInt() + 10), 0)
+        renders.drop(1).forEach { it.recycle() }
 
         // Persistencia: guardar, recargar, duplicar.
         repo.saveBaseMask(project.id, mask)
         repo.save(project, renders.first())
+        renders.first().recycle()
         val reloaded = repo.load(project.id)
         assertEquals(project.strokes, reloaded?.strokes)
         assertNotNull(repo.baseMask(project.id))
@@ -127,6 +129,7 @@ class StudioFlowTest {
         WallpaperApplier.applyStatic(context, withMask, WallpaperApplier.Target.HOME)
         repo.setActive(project.id)
         assertEquals(project.id, repo.activeIdBlocking())
+        listOf(withoutMask, withMask, mask, photo).forEach { it.recycle() }
     }
 
     @Test
@@ -159,6 +162,8 @@ class StudioFlowTest {
             n++
         }
         println("AURA_CHAMELEON diff=${diff / n}")
+        camo.recycle()
+        plain.recycle()
         assertTrue("el camuflaje no coincide con la foto: ${diff / n}", diff / n < 3.0)
 
         // Ejemplos visibles: camaleón con relieve, fuentes incluidas, ancho/alto y giro.
@@ -172,7 +177,9 @@ class StudioFlowTest {
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             compositor.render(bmp, photo, null, p.copy(design = design), extras)
             save(name, bmp)
+            bmp.recycle()
         }
+        photo.recycle()
     }
 
     @Test

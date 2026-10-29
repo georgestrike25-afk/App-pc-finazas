@@ -170,6 +170,7 @@ jobs:
             adb exec-out run-as app.aura tar c files/aura-shots > shots.tar || true
             tar xf shots.tar -C shots || true
             adb shell dumpsys appwidget | grep -i "app.aura" | head -20 || true
+            adb logcat -d -b crash | tail -60 || true
             ls -R shots || true
 
       - name: Guardar capturas en docs/capturas
