@@ -8,6 +8,11 @@
 | `ACCESS_NETWORK_STATE` | Que WorkManager espere a tener red | Sí (normal, sin diálogo) |
 | `ACCESS_COARSE_LOCATION` | «Usar mi ubicación» | No: solo si el usuario lo elige; se puede usar Aura solo con ciudades manuales |
 
+| `SET_WALLPAPER` | Aura Studio: aplicar el fondo creado | Normal (sin diálogo) |
+| `WRITE_EXTERNAL_STORAGE` (solo Android 8–9) | Guardar el fondo en la Galería | Solo en versiones antiguas; desde Android 10, MediaStore sin permiso |
+
+Las fotos se eligen con el selector oficial del sistema: Aura no pide acceso a la galería y nunca transmite imágenes.
+
 No se piden ubicación precisa, ubicación en segundo plano, almacenamiento, notificaciones ni contactos. La ubicación se lee solo con la app en primer plano, una vez, y se redondea a 0,01° (~1 km) antes de guardarse o enviarse.
 
 ## Datos
@@ -25,6 +30,6 @@ No se piden ubicación precisa, ubicación en segundo plano, almacenamiento, not
 
 Kotlin 2.1.0, kotlinx-coroutines 1.9.0, kotlinx-serialization 1.7.3, AndroidX Core 1.15.0, Activity Compose 1.9.3, Compose BOM 2024.12.01 (Material 3), Lifecycle 2.8.7, Navigation Compose 2.8.5, DataStore 1.1.1, WorkManager 2.10.0. Compilación: Android Gradle Plugin 8.7.3, Gradle 8.14.3. Pruebas: JUnit 4.13.2, AndroidX Test.
 
-No se usa Google Play Services: la ubicación va por `LocationManager` y el nombre del lugar por `Geocoder` del sistema.
+La ubicación va por `LocationManager` y el nombre del lugar por `Geocoder` del sistema. Google Play Services solo se usa para la segmentación local de Aura Studio (ML Kit Subject Segmentation, gratuita, en el dispositivo: `com.google.android.gms:play-services-mlkit-subject-segmentation`, términos de ML Kit). Sin Play Services, Studio funciona en modo manual.
 
 Iconos, icono de marca y layouts: diseño propio de este repositorio.
