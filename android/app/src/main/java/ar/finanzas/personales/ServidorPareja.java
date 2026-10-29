@@ -46,6 +46,8 @@ final class ServidorPareja {
     private static String token;
     private static String espacio;
     private static File dir;
+    private static Context app;
+    private static long ultimoAviso;
     private static final Object LOCK = new Object();
 
     static void configurar(Context c, String tok, String space) {
@@ -65,6 +67,7 @@ final class ServidorPareja {
         if (tok == null || sp == null || !sp.matches("pareja-[A-Za-z0-9_-]{3,56}")) return;
         token = tok;
         espacio = sp;
+        app = c.getApplicationContext();
         dir = new File(c.getFilesDir(), "pareja");
         if (socket != null && !socket.isClosed()) return;
         try {
@@ -189,10 +192,26 @@ final class ServidorPareja {
                 if (n < 0) break;
                 leido += n;
             }
+            // Lo que llega de otro dispositivo (no de este mismo celular) se avisa con una notificación.
+            if (!s.getInetAddress().isLoopbackAddress()) h.put("x-brote-remoto", "1");
             manejar(out, h, metodo, ruta, new String(cuerpo, 0, leido, StandardCharsets.UTF_8));
         } catch (Exception ignorada) {
             // conexión cortada
         }
+    }
+
+    /**
+     * El otro celular dejó cambios mientras Brote estaba cerrado: se avisa para abrir Brote (el contenido
+     * está cifrado; los detalles se ven al abrir la app). Como mucho un aviso cada 2 minutos.
+     */
+    private static void avisarLlegada() {
+        Context c = app;
+        long ahora = System.currentTimeMillis();
+        if (c == null || ahora - ultimoAviso < 120_000) return;
+        ultimoAviso = ahora;
+        String nombre = Brote.prefs(c).getString("parejaNombre", "");
+        if (nombre.isEmpty()) nombre = "Tu pareja";
+        Avisos.pareja(c, "llegada", nombre + " actualizó los gastos compartidos", "Abrí Brote para verlos: tu parte se suma sola.");
     }
 
     private static String valor(Map<String, String> h, String k, String def) {
@@ -279,6 +298,7 @@ final class ServidorPareja {
                 }
                 if (!tmp.renameTo(f)) throw new Exception("no se pudo guardar");
                 responder(out, h, 200, "{\"version\":" + (version + 1) + "}");
+                if (h.containsKey("x-brote-remoto")) avisarLlegada();
                 return;
             }
         }

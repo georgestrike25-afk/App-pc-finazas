@@ -10,6 +10,7 @@ import { desktop, isNative } from '../platform';
 interface Host {
   servidorPareja(o: { token: string; space: string }): Promise<{ urls: string[]; puerto: number }>;
   detenerPareja(): Promise<void>;
+  quitarAviso(o: { clave: string }): Promise<void>;
 }
 const Native = registerPlugin<Host>('Notificaciones');
 
@@ -41,4 +42,9 @@ export async function iniciarHost(token: string, space: string): Promise<HostInf
 
 export async function detenerHost() {
   if (isNative()) await Native.detenerPareja().catch(() => {});
+}
+
+/** Ya se abrió Brote: se saca el aviso "… actualizó los gastos compartidos" (los detalles llegan como avisos propios). */
+export async function quitarAvisoLlegada() {
+  if (isNative()) await Native.quitarAviso({ clave: 'parejallegada' }).catch(() => {});
 }

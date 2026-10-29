@@ -286,3 +286,22 @@ describe('compartir desde Gastos con el modo pareja activo', () => {
     expect((await loadPareja(db))!.doc.gastos.find((x) => x.concepto === 'Farmacia')).toMatchObject({ paga: 'b', pctPaga: 50 });
   });
 });
+
+describe('widget: "Con Jorge"', () => {
+  it('lo anotado como compartido en el widget va a la pareja (y lo demás sigue igual)', async () => {
+    const { compartidosAPareja } = await import('../../src/notifications/native');
+    const db = await freshDb();
+    await crearPareja({ yo: 'Jorge', otro: 'Antonella' }, db);
+    await elegirYo('b', db);
+    const resto = await compartidosAPareja([
+      { id: 'w1', accion: 'guardar', tipo: 'compartido', categoria: 'dia', monto: 12_000, descripcion: 'Día a día', fecha: Date.parse('2026-10-28T15:00:00') },
+      { id: 'w2', accion: 'guardar', tipo: 'compartido', categoria: 'dia', monto: 8_000, descripcion: 'Panadería', fecha: Date.parse('2026-10-28T16:00:00'), pagoPareja: true },
+      { id: 'w3', accion: 'guardar', tipo: 'gasto', categoria: 'dia', monto: 500, fecha: Date.parse('2026-10-28T16:00:00') },
+    ]);
+    expect(resto.map((q) => q.id)).toEqual(['w3']);
+    const gastos = (await loadPareja(db))!.doc.gastos;
+    expect(gastos.find((g) => g.id === 'w1')).toMatchObject({ autor: 'b', paga: 'b', total: 12_000, mes: '2026-10' });
+    expect(gastos.find((g) => g.id === 'w2')).toMatchObject({ paga: 'a', total: 8_000 });
+    expect((await db.expenses.get('pareja-w1'))).toMatchObject({ userPct: 50, paidBy: 'usuario' });
+  });
+});

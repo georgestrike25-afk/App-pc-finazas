@@ -7,7 +7,7 @@ import { codigoPareja, huellaDoc, nuevoDoc, otro, partes, planEspejo, unirDocs, 
 import { uid } from '../domain/text';
 import type { Expense } from '../domain/types';
 import { findServer, normalizeServerUrl } from './syncClient';
-import { detenerHost, iniciarHost, type HostInfo } from './parejaHost';
+import { detenerHost, iniciarHost, quitarAvisoLlegada, type HostInfo } from './parejaHost';
 
 /**
  * Modo pareja: el documento compartido viaja cifrado entre los dispositivos de los dos por el Wi-Fi.
@@ -366,6 +366,7 @@ export async function runParejaSync(): Promise<ResultadoSync | null> {
   try {
     const host = await iniciarHost(st.cfg.token, st.cfg.space);
     const r = await syncPareja(fetch, getDb(), host);
+    void quitarAvisoLlegada();
     // Un celular o la PC cambió de dirección en el Wi-Fi: se busca de nuevo (cada tanto, porque tarda).
     if (!r.conectados.length && r.sinRespuesta.length && Date.now() - lastSearch > 5 * 60_000) {
       lastSearch = Date.now();

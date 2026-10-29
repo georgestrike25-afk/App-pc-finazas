@@ -361,6 +361,15 @@ public class AnotarActivity extends Activity {
         Brote.resolverPendiente(this, clave);
         Avisos.quitar(this, clave);
         Brote.actualizarWidgets(this);
+        if (tipo.equals("compartido") && !pareja.isEmpty()) {
+            // Se abre Brote un momento para mandárselo a la pareja (el widget solo no puede mandarlo).
+            Toast.makeText(this, "Anotado. Mandándoselo a " + pareja + "…", Toast.LENGTH_SHORT).show();
+            Intent abrir = new Intent(this, MainActivity.class);
+            abrir.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(abrir);
+            finish();
+            return;
+        }
         Toast.makeText(this, "Anotado: " + Brote.pesos(c), Toast.LENGTH_SHORT).show();
         finish();
     }

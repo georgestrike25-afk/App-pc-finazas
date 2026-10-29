@@ -85,7 +85,7 @@ export async function ingestQuick(): Promise<number> {
  * Modo pareja: lo anotado como "Compartido" en el widget o en un aviso va a la pareja (y vuelve a tu
  * lista con tu parte). Si venía de un aviso que ya se había anotado solo, ese gasto se saca.
  */
-async function compartidosAPareja(items: QuickEntry[]): Promise<QuickEntry[]> {
+export async function compartidosAPareja(items: QuickEntry[]): Promise<QuickEntry[]> {
   const st = await loadPareja();
   if (!st?.yo) return items;
   const yo = st.yo;
