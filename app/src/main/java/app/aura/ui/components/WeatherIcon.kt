@@ -28,6 +28,7 @@ fun WeatherIcon(
     modifier: Modifier = Modifier,
     accentTint: Color? = null,
     contentDescription: String? = null,
+    realistic: Boolean = false,
 ) {
     val layers = WeatherIcons.layers(condition)
     Box(
@@ -35,6 +36,10 @@ fun WeatherIcon(
             .size(size)
             .then(if (contentDescription != null) Modifier.semantics { this.contentDescription = contentDescription } else Modifier),
     ) {
+        if (realistic) {
+            Image(painter = painterResource(layers.realistic), contentDescription = null, modifier = Modifier.fillMaxSize())
+            return@Box
+        }
         if (layers.hasBase) {
             Image(
                 painter = painterResource(layers.base),

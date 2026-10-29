@@ -17,7 +17,8 @@ KT = os.path.join(ROOT, "app", "src", "main", "java", "app", "aura", "widget", "
 TYPES = ["clock", "weather", "duo", "forecast", "night"]
 SIZES = ["small", "medium", "large"]
 FONTS = [("light", "sans-serif-light"), ("regular", "sans-serif"), ("medium", "sans-serif-medium"),
-         ("condensed", "sans-serif-condensed")]
+         ("condensed", "sans-serif-condensed"), ("thin", "sans-serif-thin"), ("black", "sans-serif-black"),
+         ("serif", "serif"), ("mono", "monospace")]
 SHADOWS = [False, True]
 
 NS = 'xmlns:android="http://schemas.android.com/apk/res/android"'
@@ -51,6 +52,15 @@ def clock_row(c, size):
             f' android:fontFamily="{c.font}" android:textSize="{size}sp" android:textColor="#FFFFFFFF" android:maxLines="1"'
             f' android:includeFontPadding="false" android:format12Hour="h:mm" android:format24Hour="HH:mm"'
             f' android:letterSpacing="-0.02"{c.shadow_attrs()} />'
+            # Variante «horas en negrita»: dos TextClock (horas / :minutos) que el renderizador alterna con w_time.
+            f'<TextClock android:id="@+id/w_time_h" android:layout_width="wrap_content" android:layout_height="wrap_content"'
+            f' android:fontFamily="sans-serif-medium" android:textStyle="bold" android:textSize="{size}sp" android:textColor="#FFFFFFFF"'
+            f' android:maxLines="1" android:includeFontPadding="false" android:format12Hour="h" android:format24Hour="HH"'
+            f' android:visibility="gone"{c.shadow_attrs()} />'
+            f'<TextClock android:id="@+id/w_time_m" android:layout_width="wrap_content" android:layout_height="wrap_content"'
+            f' android:fontFamily="{c.font}" android:textSize="{size}sp" android:textColor="#FFFFFFFF" android:maxLines="1"'
+            f' android:includeFontPadding="false" android:format12Hour=":mm" android:format24Hour=":mm"'
+            f' android:visibility="gone"{c.shadow_attrs()} />'
             f'<TextClock android:id="@+id/w_ampm" android:layout_width="wrap_content" android:layout_height="wrap_content"'
             f' android:layout_marginStart="4dp" android:fontFamily="sans-serif" android:textSize="{ampm}sp"'
             f' android:textColor="#FFFFFFFF" android:maxLines="1" android:includeFontPadding="false"'
@@ -71,6 +81,8 @@ def icon(prefix, dp, margin=""):
             f' android:importantForAccessibility="no" android:scaleType="fitCenter" android:src="@drawable/ic_wx_partly_cloudy_day_base" />'
             f'<ImageView android:id="@+id/{prefix}_accent" android:layout_width="match_parent" android:layout_height="match_parent"'
             f' android:importantForAccessibility="no" android:scaleType="fitCenter" android:src="@drawable/ic_wx_partly_cloudy_day_accent" />'
+            f'<ImageView android:id="@+id/{prefix}_3d" android:layout_width="match_parent" android:layout_height="match_parent"'
+            f' android:importantForAccessibility="no" android:scaleType="fitCenter" android:visibility="gone" />'
             f'</FrameLayout>')
 
 
@@ -223,6 +235,11 @@ def layout_xml(t, s, c):
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
+    <ImageView android:id="@+id/w_scene" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:importantForAccessibility="no" android:scaleType="centerCrop"
+        android:background="@drawable/widget_scene_outline" android:clipToOutline="true"
+        android:visibility="gone" />
 
     <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
         android:importantForAccessibility="no" android:scaleType="fitXY"

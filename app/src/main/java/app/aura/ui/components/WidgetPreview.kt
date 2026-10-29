@@ -3,6 +3,10 @@ package app.aura.ui.components
 import android.content.Context
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -172,6 +176,7 @@ fun WidgetPreview(
     val hero = WidgetSizing.heroSizes(type, size)
     val heroFamily = remember(s.font) { fontFamily(s.font) }
     val text = Color(ColorMath.opaque(s.textColor))
+    val timeColor = Color(ColorMath.opaque(s.effectiveTimeColor))
     val secondary = Color(ColorMath.withOpacity(s.textColor, 80))
     val shadow = if (s.textShadow) Shadow(Color(0x66000000), Offset(0f, 2f), 12f) else null
     val ink = Color(ColorMath.opaque(s.iconColor))
@@ -179,6 +184,8 @@ fun WidgetPreview(
     val format = if (s.hourFormat != HourFormat.SYSTEM) s.hourFormat else settings.hourFormat
     val is24 = ClockPatterns.is24(format, system24h)
     val time = now.format(DateTimeFormatter.ofPattern(if (is24) ClockPatterns.TIME_24 else ClockPatterns.TIME_12))
+    val hoursPart = now.format(DateTimeFormatter.ofPattern(if (is24) "HH" else "h"))
+    val minutesPart = now.format(DateTimeFormatter.ofPattern(":mm"))
     val ampm = if (is24) null else now.format(DateTimeFormatter.ofPattern(ClockPatterns.AM_PM, Locale.getDefault()))
     val dateSkeleton = if (size == SizeClass.LARGE) ClockPatterns.DATE_SKELETON_LONG else ClockPatterns.DATE_SKELETON_SHORT
     val date = now.format(DateTimeFormatter.ofPattern(android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), dateSkeleton), Locale.getDefault()))
@@ -208,7 +215,12 @@ fun WidgetPreview(
     @Composable
     fun Clock() {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(time, style = ts(timeSp, heroFamily), maxLines = 1)
+            if (s.boldHours) {
+                Text(hoursPart, style = ts(timeSp, FontFamily.SansSerif, timeColor).copy(fontWeight = FontWeight.Bold), maxLines = 1)
+                Text(minutesPart, style = ts(timeSp, heroFamily, timeColor), maxLines = 1)
+            } else {
+                Text(time, style = ts(timeSp, heroFamily, timeColor), maxLines = 1)
+            }
             if (ampm != null) Text(ampm, style = ts(maxOf(11f, timeSp * 0.28f), color = secondary), modifier = Modifier.padding(start = 4.dp, bottom = (timeSp * 0.12f).dp))
         }
     }
@@ -219,7 +231,8 @@ fun WidgetPreview(
     }
 
     @Composable
-    fun Icon(dp: Dp, c: WeatherCondition = condition) = WeatherIcon(c, dp, ink, accentTint = accent)
+    fun Icon(dp: Dp, c: WeatherCondition = condition) =
+        WeatherIcon(c, dp, ink, accentTint = accent, realistic = s.iconStyle == IconStyle.REALISTIC)
 
     @Composable
     fun Temp(sp: Float = tempSp) = Text(content.temperature, style = ts(sp, heroFamily), maxLines = 1)
@@ -256,6 +269,15 @@ fun WidgetPreview(
             .then(if (bg != null) Modifier.background(Color(bg)) else Modifier)
             .then(if (s.showsGlassEdge) Modifier.border(1.dp, Color(0x47FFFFFF), shape) else Modifier),
     ) {
+        if (s.usesScene) {
+            Image(
+                painter = painterResource(WeatherIcons.layers(condition).scene),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alpha = s.opacity / 100f,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         val inner = Modifier.fillMaxSize().padding(pad)
         when (type) {
             WidgetType.CLOCK -> Column(inner, verticalArrangement = Arrangement.Center, horizontalAlignment = horizontal) {

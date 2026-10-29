@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="384" viewBox="0 0 100 100"><defs>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+<filter id="blur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
+<filter id="blur4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="6"/></filter>
+<radialGradient id="sun" cx="0.38" cy="0.34" r="0.75">
+  <stop offset="0" stop-color="#FFFBE0"/><stop offset="0.28" stop-color="#FFE27A"/>
+  <stop offset="0.7" stop-color="#FFC233"/><stop offset="1" stop-color="#F29A0E"/>
+</radialGradient>
+<radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#FFD25A" stop-opacity="0.85"/><stop offset="0.55" stop-color="#FFC233" stop-opacity="0.35"/>
+  <stop offset="1" stop-color="#FFB21E" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="moon" cx="0.35" cy="0.3" r="0.8">
+  <stop offset="0" stop-color="#FFFBEA"/><stop offset="0.5" stop-color="#F6E3A8"/><stop offset="1" stop-color="#D7B565"/>
+</radialGradient>
+<radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#F6E3A8" stop-opacity="0.55"/><stop offset="1" stop-color="#F6E3A8" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="cloudLight" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#EEF3F8"/><stop offset="1" stop-color="#B7C4D4"/>
+</linearGradient>
+<linearGradient id="cloudGrey" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#E4EAF0"/><stop offset="0.5" stop-color="#B9C5D2"/><stop offset="1" stop-color="#8694A6"/>
+</linearGradient>
+<linearGradient id="cloudDark" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#A9B5C3"/><stop offset="0.5" stop-color="#6F7D90"/><stop offset="1" stop-color="#465366"/>
+</linearGradient>
+<linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#D6F0FF"/><stop offset="1" stop-color="#2F8FDB"/>
+</linearGradient>
+<linearGradient id="bolt" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0" stop-color="#FFF6C2"/><stop offset="0.45" stop-color="#FFC857"/><stop offset="1" stop-color="#F08A0A"/>
+</linearGradient>
+<linearGradient id="wind" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.95"/>
+  <stop offset="1" stop-color="#DCE8F2"/>
+</linearGradient>
+</defs><circle cx="50" cy="50" r="41.8" fill="url(#sunGlow)"/><line x1="50.00" y1="21.84" x2="50.00" y2="14.36" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="64.08" y1="25.61" x2="67.82" y2="19.13" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="74.39" y1="35.92" x2="80.87" y2="32.18" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="78.16" y1="50.00" x2="85.64" y2="50.00" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="74.39" y1="64.08" x2="80.87" y2="67.82" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="64.08" y1="74.39" x2="67.82" y2="80.87" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="50.00" y1="78.16" x2="50.00" y2="85.64" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="35.92" y1="74.39" x2="32.18" y2="80.87" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="25.61" y1="64.08" x2="19.13" y2="67.82" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="21.84" y1="50.00" x2="14.36" y2="50.00" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="25.61" y1="35.92" x2="19.13" y2="32.18" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><line x1="35.92" y1="25.61" x2="32.18" y2="19.13" stroke="#FFC233" stroke-width="3.52" stroke-linecap="round" opacity="0.9"/><circle cx="50" cy="50" r="22" fill="url(#sun)"/><ellipse cx="42.96" cy="41.64" rx="9.24" ry="5.720000000000001" fill="#FFFFFF" opacity="0.55" filter="url(#blur2)"/></svg>

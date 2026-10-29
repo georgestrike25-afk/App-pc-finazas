@@ -4,10 +4,22 @@ import app.aura.core.time.HourFormat
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class BackgroundMode { TRANSPARENT, GLASS, DARK, LIGHT, CUSTOM }
+enum class BackgroundMode {
+    TRANSPARENT, GLASS, DARK, LIGHT, CUSTOM,
+
+    /** Ilustración del cielo según la condición actual (despejado, lluvia, tormenta…). */
+    SCENE,
+}
 
 @Serializable
-enum class IconStyle { COLOR, MONO }
+enum class IconStyle {
+    /** Línea fina con acentos de marca (vectorial). */
+    COLOR,
+    MONO,
+
+    /** Ilustraciones con volumen: sol brillante, nubes sombreadas, gotas, rayo. */
+    REALISTIC,
+}
 
 /** Familias tipográficas del sistema que los widgets pueden usar sin incrustar fuentes. */
 @Serializable
@@ -16,6 +28,10 @@ enum class FontChoice(val androidFamily: String) {
     REGULAR("sans-serif"),
     MEDIUM("sans-serif-medium"),
     CONDENSED("sans-serif-condensed"),
+    THIN("sans-serif-thin"),
+    BLACK("sans-serif-black"),
+    SERIF("serif"),
+    MONO("monospace"),
 }
 
 @Serializable
@@ -54,11 +70,19 @@ data class WidgetStyle(
     val showLocation: Boolean = true,
     val showHighLow: Boolean = true,
     val hourFormat: HourFormat = HourFormat.SYSTEM,
+    /** Horas en negrita y minutos con la tipografía elegida (p. ej. **02**:45). */
+    val boldHours: Boolean = false,
+    /** Color propio de la hora; null = el mismo que el texto. */
+    val timeColor: Int? = null,
 ) {
+    val usesScene: Boolean get() = background == BackgroundMode.SCENE && opacity > 0
+
+    val effectiveTimeColor: Int get() = timeColor ?: textColor
+
     /** Color ARGB final del fondo, o null si el widget es completamente transparente. */
     fun backgroundArgb(): Int? {
         val rgb = when (background) {
-            BackgroundMode.TRANSPARENT -> return null
+            BackgroundMode.TRANSPARENT, BackgroundMode.SCENE -> return null
             BackgroundMode.GLASS -> Brand.WHITE
             BackgroundMode.DARK -> Brand.NIGHT
             BackgroundMode.LIGHT -> Brand.PAPER
@@ -84,7 +108,7 @@ data class WidgetStyle(
 }
 
 @Serializable
-enum class ProfileId { MINIMAL, GLASS, DARK, LIGHT, CUSTOM }
+enum class ProfileId { MINIMAL, GLASS, DARK, LIGHT, CUSTOM, SKY }
 
 object Profiles {
     val MINIMAL = WidgetStyle()
@@ -123,12 +147,23 @@ object Profiles {
         alignment = Alignment.CENTER,
     )
 
+    /** Cielo ilustrado según el clima, iconos 3D y hora con horas en negrita. */
+    val SKY = WidgetStyle(
+        background = BackgroundMode.SCENE,
+        opacity = 100,
+        iconStyle = IconStyle.REALISTIC,
+        font = FontChoice.THIN,
+        boldHours = true,
+        textShadow = true,
+    )
+
     fun preset(id: ProfileId): WidgetStyle = when (id) {
         ProfileId.MINIMAL -> MINIMAL
         ProfileId.GLASS -> GLASS
         ProfileId.DARK -> DARK
         ProfileId.LIGHT -> LIGHT
         ProfileId.CUSTOM -> CUSTOM
+        ProfileId.SKY -> SKY
     }
 
     fun displayName(id: ProfileId): String = when (id) {
@@ -137,6 +172,7 @@ object Profiles {
         ProfileId.DARK -> "Aura Dark"
         ProfileId.LIGHT -> "Aura Light"
         ProfileId.CUSTOM -> "Aura Custom"
+        ProfileId.SKY -> "Aura Sky"
     }
 }
 

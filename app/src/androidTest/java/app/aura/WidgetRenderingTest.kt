@@ -185,6 +185,27 @@ class WidgetRenderingTest {
     }
 
     @Test
+    fun skyProfileShowsWeatherSceneRealisticIconsAndBoldHours() {
+        listOf(WidgetType.DUO to (320 to 190), WidgetType.WEATHER to (320 to 110), WidgetType.FORECAST to (320 to 340), WidgetType.CLOCK to (320 to 180)).forEach { (type, d) ->
+            val (view, bmp) = inflate(type, SizeClass.LARGE, Profiles.SKY, d.first, d.second)
+            save("sky_${type.name.lowercase()}", bmp)
+            assertEquals(View.VISIBLE, view.findViewById<ImageView>(R.id.w_scene).visibility)
+            if (type.showsClock) {
+                assertEquals(View.GONE, view.findViewById<TextClock>(R.id.w_time).visibility)
+                assertEquals(View.VISIBLE, view.findViewById<TextClock>(R.id.w_time_h).visibility)
+            }
+            if (type.showsWeather) {
+                assertEquals(View.VISIBLE, view.findViewById<ImageView>(R.id.w_icon_3d).visibility)
+                assertEquals(View.GONE, view.findViewById<ImageView>(R.id.w_icon_base).visibility)
+            }
+        }
+        // Iconos 3D sin fondo (transparente), como alternativa a la escena.
+        val (_, bmp) = inflate(WidgetType.DUO, SizeClass.LARGE, Profiles.SKY.copy(background = BackgroundMode.TRANSPARENT, opacity = 0), 320, 190)
+        save("sky_transparent_duo", bmp)
+        assertTrue(transparentFraction(bmp) > 0.5)
+    }
+
+    @Test
     fun providersAreRegistered() {
         val providers = AppWidgetManager.getInstance(context).installedProviders.filter { it.provider.packageName == context.packageName }
         assertEquals(5, providers.size)

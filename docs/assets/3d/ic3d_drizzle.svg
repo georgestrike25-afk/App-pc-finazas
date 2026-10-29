@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="384" viewBox="0 0 100 100"><defs>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+<filter id="blur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
+<filter id="blur4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="6"/></filter>
+<radialGradient id="sun" cx="0.38" cy="0.34" r="0.75">
+  <stop offset="0" stop-color="#FFFBE0"/><stop offset="0.28" stop-color="#FFE27A"/>
+  <stop offset="0.7" stop-color="#FFC233"/><stop offset="1" stop-color="#F29A0E"/>
+</radialGradient>
+<radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#FFD25A" stop-opacity="0.85"/><stop offset="0.55" stop-color="#FFC233" stop-opacity="0.35"/>
+  <stop offset="1" stop-color="#FFB21E" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="moon" cx="0.35" cy="0.3" r="0.8">
+  <stop offset="0" stop-color="#FFFBEA"/><stop offset="0.5" stop-color="#F6E3A8"/><stop offset="1" stop-color="#D7B565"/>
+</radialGradient>
+<radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#F6E3A8" stop-opacity="0.55"/><stop offset="1" stop-color="#F6E3A8" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="cloudLight" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#EEF3F8"/><stop offset="1" stop-color="#B7C4D4"/>
+</linearGradient>
+<linearGradient id="cloudGrey" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#E4EAF0"/><stop offset="0.5" stop-color="#B9C5D2"/><stop offset="1" stop-color="#8694A6"/>
+</linearGradient>
+<linearGradient id="cloudDark" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#A9B5C3"/><stop offset="0.5" stop-color="#6F7D90"/><stop offset="1" stop-color="#465366"/>
+</linearGradient>
+<linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#D6F0FF"/><stop offset="1" stop-color="#2F8FDB"/>
+</linearGradient>
+<linearGradient id="bolt" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0" stop-color="#FFF6C2"/><stop offset="0.45" stop-color="#FFC857"/><stop offset="1" stop-color="#F08A0A"/>
+</linearGradient>
+<linearGradient id="wind" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.95"/>
+  <stop offset="1" stop-color="#DCE8F2"/>
+</linearGradient>
+</defs><path d="M21.37,58A12,12 0 0,1 30,36.17A18,18 0 0,1 65.81,33.4A13,13 0 0,1 74,58Z" fill="#0B1622" opacity="0.28" transform="translate(1.5 4)" filter="url(#blur4)"/><path d="M21.37,58A12,12 0 0,1 30,36.17A18,18 0 0,1 65.81,33.4A13,13 0 0,1 74,58Z" fill="url(#cloudGrey)"/><path d="M21.37,58A12,12 0 0,1 30,36.17A18,18 0 0,1 65.81,33.4A13,13 0 0,1 74,58Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.8"/><clipPath id="cc5"><path d="M21.37,58A12,12 0 0,1 30,36.17A18,18 0 0,1 65.81,33.4A13,13 0 0,1 74,58Z"/></clipPath><g clip-path="url(#cc5)"><ellipse cx="43.50" cy="27.90" rx="9.90" ry="5.76" fill="#FFFFFF" opacity="0.75" filter="url(#blur2)"/><ellipse cx="25.00" cy="42.60" rx="6.60" ry="3.84" fill="#FFFFFF" opacity="0.75" filter="url(#blur2)"/></g><path d="M34,72C35.56,74.4 36.04,75.6 36.04,76.56A3.4,3.4 0 0,1 31.96,76.56C31.96,75.6 32.44,74.4 34,72Z" fill="url(#drop)"/><ellipse cx="33.34" cy="75.96" rx="0.48" ry="0.84" fill="#FFFFFF" opacity="0.7"/><path d="M50,76C51.56,78.4 52.04,79.6 52.04,80.56A3.4,3.4 0 0,1 47.96,80.56C47.96,79.6 48.44,78.4 50,76Z" fill="url(#drop)"/><ellipse cx="49.34" cy="79.96" rx="0.48" ry="0.84" fill="#FFFFFF" opacity="0.7"/><path d="M66,72C67.56,74.4 68.04,75.6 68.04,76.56A3.4,3.4 0 0,1 63.96,76.56C63.96,75.6 64.44,74.4 66,72Z" fill="url(#drop)"/><ellipse cx="65.34" cy="75.96" rx="0.48" ry="0.84" fill="#FFFFFF" opacity="0.7"/><path d="M42,86C43.56,88.4 44.04,89.6 44.04,90.56A3.4,3.4 0 0,1 39.96,90.56C39.96,89.6 40.44,88.4 42,86Z" fill="url(#drop)"/><ellipse cx="41.34" cy="89.96" rx="0.48" ry="0.84" fill="#FFFFFF" opacity="0.7"/><path d="M58,86C59.56,88.4 60.04,89.6 60.04,90.56A3.4,3.4 0 0,1 55.96,90.56C55.96,89.6 56.44,88.4 58,86Z" fill="url(#drop)"/><ellipse cx="57.34" cy="89.96" rx="0.48" ry="0.84" fill="#FFFFFF" opacity="0.7"/></svg>

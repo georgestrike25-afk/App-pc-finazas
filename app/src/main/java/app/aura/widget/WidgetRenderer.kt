@@ -84,6 +84,7 @@ class WidgetRenderer(private val context: Context) {
         val style = r.style.normalized()
         val views = RemoteViews(context.packageName, WidgetLayouts.layout(r.type, size, style.font, style.textShadow))
         applyPanel(views, style)
+        applyScene(views, r, style)
         applyLayout(views, style, size)
         applyColors(views, style)
         if (r.type.showsClock) applyClock(views, r, style, size)
@@ -105,6 +106,22 @@ class WidgetRenderer(private val context: Context) {
         v.setViewVisibility(R.id.w_edge, if (style.showsGlassEdge) View.VISIBLE else View.GONE)
     }
 
+    /**
+     * Escena ilustrada del cielo según la condición actual. Sin datos todavía se usa la de nublado,
+     * que es neutra. La opacidad del estilo se aplica a la imagen (0–100 %).
+     */
+    private fun applyScene(v: RemoteViews, r: Request, style: WidgetStyle) {
+        if (!style.usesScene) {
+            v.setViewVisibility(R.id.w_scene, View.GONE)
+            return
+        }
+        val current = r.snapshot?.data?.current?.condition ?: WeatherCondition.CLOUDY
+        val condition = if (r.type == WidgetType.NIGHT) nightVariant(current) else current
+        v.setViewVisibility(R.id.w_scene, View.VISIBLE)
+        v.setImageViewResource(R.id.w_scene, WeatherIcons.layers(condition).scene)
+        v.setInt(R.id.w_scene, "setImageAlpha", ColorMath.alphaFromPercent(style.opacity))
+    }
+
     private fun applyLayout(v: RemoteViews, style: WidgetStyle, size: SizeClass) {
         val paddingDp = if (size == SizeClass.SMALL) minOf(style.spacing.paddingDp, 10) else style.spacing.paddingDp
         val p = px(paddingDp)
@@ -122,6 +139,8 @@ class WidgetRenderer(private val context: Context) {
         val primary = ColorMath.opaque(style.textColor)
         val secondary = ColorMath.withOpacity(style.textColor, 80)
         PRIMARY_TEXT.forEach { v.setTextColor(it, primary) }
+        val time = ColorMath.opaque(style.effectiveTimeColor)
+        TIME_TEXT.forEach { v.setTextColor(it, time) }
         SECONDARY_TEXT.forEach { v.setTextColor(it, secondary) }
         HOUR_TIME.forEach { v.setTextColor(it, secondary) }
         HOUR_TEMP.forEach { v.setTextColor(it, primary) }
@@ -151,9 +170,21 @@ class WidgetRenderer(private val context: Context) {
                 v.setViewVisibility(R.id.w_ampm, View.VISIBLE)
             }
         }
+        val is24 = when (format) {
+            HourFormat.SYSTEM -> null
+            HourFormat.H12 -> false
+            HourFormat.H24 -> true
+        }
+        // Horas en negrita: «HH» + «:mm» en dos TextClock; ambos siguen avanzando solos.
+        setClockFormat(v, R.id.w_time_h, if (is24 == true) "HH" else "h", if (is24 == false) "h" else "HH")
+        setClockFormat(v, R.id.w_time_m, ":mm", ":mm")
+        v.setViewVisibility(R.id.w_time, if (style.boldHours) View.GONE else View.VISIBLE)
+        v.setViewVisibility(R.id.w_time_h, if (style.boldHours) View.VISIBLE else View.GONE)
+        v.setViewVisibility(R.id.w_time_m, if (style.boldHours) View.VISIBLE else View.GONE)
+
         val hero = WidgetSizing.heroSizes(r.type, size)
         val timeSp = WidgetSizing.scaled(hero.time, style.timeScale)
-        v.setTextViewTextSize(R.id.w_time, TypedValue.COMPLEX_UNIT_SP, timeSp)
+        TIME_TEXT.forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, timeSp) }
         v.setTextViewTextSize(R.id.w_ampm, TypedValue.COMPLEX_UNIT_SP, maxOf(11f, timeSp * 0.28f))
 
         val skeleton = if (size == SizeClass.LARGE) ClockPatterns.DATE_SKELETON_LONG else ClockPatterns.DATE_SKELETON_SHORT
@@ -185,7 +216,7 @@ class WidgetRenderer(private val context: Context) {
         val current = snap.data.current
         val condition = if (r.type == WidgetType.NIGHT) nightVariant(current.condition) else current.condition
         val label = WeatherText.condition(context, condition)
-        setIcon(v, R.id.w_icon, R.id.w_icon_base, R.id.w_icon_accent, condition, style)
+        setIcon(v, R.id.w_icon, R.id.w_icon_base, R.id.w_icon_accent, R.id.w_icon_3d, condition, style)
         v.setContentDescription(R.id.w_icon, label)
 
         val freshness = Freshness.of(snap.fetchedAtMillis, r.nowMillis, r.settings.refreshIntervalMinutes)
@@ -236,7 +267,7 @@ class WidgetRenderer(private val context: Context) {
             else hourFormatter.format(Instant.ofEpochSecond(point.time).atZone(zone))
             v.setTextViewText(HOUR_TIME[i], label)
             v.setTextViewText(HOUR_TEMP[i], TemperatureFormatter.short(point.temperatureC, unit))
-            setIcon(v, HOUR_ICON[i], HOUR_BASE[i], HOUR_ACCENT[i], point.condition, style)
+            setIcon(v, HOUR_ICON[i], HOUR_BASE[i], HOUR_ACCENT[i], HOUR_3D[i], point.condition, style)
             v.setContentDescription(HOUR_ICON[i], WeatherText.condition(context, point.condition))
         }
 
@@ -255,16 +286,24 @@ class WidgetRenderer(private val context: Context) {
             else dayFormatter.format(date).replaceFirstChar { it.titlecase(Locale.getDefault()) }
             v.setTextViewText(DAY_NAME[i], name)
             v.setTextViewText(DAY_RANGE[i], TemperatureFormatter.range(day.maxC, day.minC, unit))
-            setIcon(v, DAY_ICON[i], DAY_BASE[i], DAY_ACCENT[i], day.condition, style)
+            setIcon(v, DAY_ICON[i], DAY_BASE[i], DAY_ACCENT[i], DAY_3D[i], day.condition, style)
             v.setContentDescription(DAY_ICON[i], WeatherText.condition(context, day.condition))
         }
         v.setViewVisibility(R.id.w_days, if (days.isEmpty() || dayCount == 0) View.GONE else View.VISIBLE)
         v.setViewVisibility(R.id.w_divider, if (days.isEmpty() || dayCount == 0) View.GONE else View.VISIBLE)
     }
 
-    private fun setIcon(v: RemoteViews, container: Int, base: Int, accent: Int, condition: WeatherCondition, style: WidgetStyle) {
+    private fun setIcon(v: RemoteViews, container: Int, base: Int, accent: Int, realistic: Int, condition: WeatherCondition, style: WidgetStyle) {
         val layers = WeatherIcons.layers(condition)
         v.setViewVisibility(container, View.VISIBLE)
+        if (style.iconStyle == IconStyle.REALISTIC) {
+            v.setViewVisibility(base, View.GONE)
+            v.setViewVisibility(accent, View.GONE)
+            v.setViewVisibility(realistic, View.VISIBLE)
+            v.setImageViewResource(realistic, layers.realistic)
+            return
+        }
+        v.setViewVisibility(realistic, View.GONE)
         v.setImageViewResource(base, layers.base)
         v.setImageViewResource(accent, layers.accent)
         v.setViewVisibility(base, if (layers.hasBase) View.VISIBLE else View.GONE)
@@ -320,7 +359,8 @@ class WidgetRenderer(private val context: Context) {
             else -> c
         }
 
-        private val PRIMARY_TEXT = intArrayOf(R.id.w_time, R.id.w_temp)
+        private val PRIMARY_TEXT = intArrayOf(R.id.w_temp)
+        private val TIME_TEXT = intArrayOf(R.id.w_time, R.id.w_time_h, R.id.w_time_m)
         private val SECONDARY_TEXT = intArrayOf(
             R.id.w_ampm, R.id.w_date, R.id.w_place, R.id.w_hilo, R.id.w_condition, R.id.w_meta, R.id.w_status,
         )
@@ -334,6 +374,10 @@ class WidgetRenderer(private val context: Context) {
         private val HOUR_ACCENT = intArrayOf(
             R.id.w_h0_icon_accent, R.id.w_h1_icon_accent, R.id.w_h2_icon_accent, R.id.w_h3_icon_accent, R.id.w_h4_icon_accent, R.id.w_h5_icon_accent,
         )
+        private val HOUR_3D = intArrayOf(
+            R.id.w_h0_icon_3d, R.id.w_h1_icon_3d, R.id.w_h2_icon_3d, R.id.w_h3_icon_3d, R.id.w_h4_icon_3d, R.id.w_h5_icon_3d,
+        )
+        private val DAY_3D = intArrayOf(R.id.w_d0_icon_3d, R.id.w_d1_icon_3d, R.id.w_d2_icon_3d, R.id.w_d3_icon_3d, R.id.w_d4_icon_3d)
         private val DAY_ROW = intArrayOf(R.id.w_d0, R.id.w_d1, R.id.w_d2, R.id.w_d3, R.id.w_d4)
         private val DAY_NAME = intArrayOf(R.id.w_d0_name, R.id.w_d1_name, R.id.w_d2_name, R.id.w_d3_name, R.id.w_d4_name)
         private val DAY_RANGE = intArrayOf(R.id.w_d0_range, R.id.w_d1_range, R.id.w_d2_range, R.id.w_d3_range, R.id.w_d4_range)

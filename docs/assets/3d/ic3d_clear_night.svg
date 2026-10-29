@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="384" viewBox="0 0 100 100"><defs>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+<filter id="blur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
+<filter id="blur4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="6"/></filter>
+<radialGradient id="sun" cx="0.38" cy="0.34" r="0.75">
+  <stop offset="0" stop-color="#FFFBE0"/><stop offset="0.28" stop-color="#FFE27A"/>
+  <stop offset="0.7" stop-color="#FFC233"/><stop offset="1" stop-color="#F29A0E"/>
+</radialGradient>
+<radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#FFD25A" stop-opacity="0.85"/><stop offset="0.55" stop-color="#FFC233" stop-opacity="0.35"/>
+  <stop offset="1" stop-color="#FFB21E" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="moon" cx="0.35" cy="0.3" r="0.8">
+  <stop offset="0" stop-color="#FFFBEA"/><stop offset="0.5" stop-color="#F6E3A8"/><stop offset="1" stop-color="#D7B565"/>
+</radialGradient>
+<radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#F6E3A8" stop-opacity="0.55"/><stop offset="1" stop-color="#F6E3A8" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="cloudLight" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#EEF3F8"/><stop offset="1" stop-color="#B7C4D4"/>
+</linearGradient>
+<linearGradient id="cloudGrey" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#E4EAF0"/><stop offset="0.5" stop-color="#B9C5D2"/><stop offset="1" stop-color="#8694A6"/>
+</linearGradient>
+<linearGradient id="cloudDark" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#A9B5C3"/><stop offset="0.5" stop-color="#6F7D90"/><stop offset="1" stop-color="#465366"/>
+</linearGradient>
+<linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#D6F0FF"/><stop offset="1" stop-color="#2F8FDB"/>
+</linearGradient>
+<linearGradient id="bolt" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0" stop-color="#FFF6C2"/><stop offset="0.45" stop-color="#FFC857"/><stop offset="1" stop-color="#F08A0A"/>
+</linearGradient>
+<linearGradient id="wind" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.95"/>
+  <stop offset="1" stop-color="#DCE8F2"/>
+</linearGradient>
+</defs><circle cx="46" cy="52" r="46.800000000000004" fill="url(#moonGlow)"/><path d="M71.2,58.38A26,26 0 1,1 43.26,26.14A22.1,22.1 0 0,0 71.2,58.38Z" fill="url(#moon)"/><circle cx="34.3" cy="58.5" r="3.12" fill="#C9A85A" opacity="0.45"/><circle cx="40.8" cy="68.12" r="2.08" fill="#C9A85A" opacity="0.4"/><path d="M76,19Q76.9,23.1 81,24Q76.9,24.9 76,29Q75.1,24.9 71,24Q75.1,23.1 76,19Z" fill="#FFF6D6" opacity="0.9"/><path d="M84,43Q84.54,45.46 87,46Q84.54,46.54 84,49Q83.46,46.54 81,46Q83.46,45.46 84,43Z" fill="#FFF6D6" opacity="0.7"/><path d="M22,19Q22.54,21.46 25,22Q22.54,22.54 22,25Q21.46,22.54 19,22Q21.46,21.46 22,19Z" fill="#FFF6D6" opacity="0.6"/></svg>

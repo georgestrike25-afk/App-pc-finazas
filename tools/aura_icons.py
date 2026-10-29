@@ -409,6 +409,10 @@ def main():
           "    val hasAccent: Boolean,",
           "    /** Tono del acento para superficies claras, donde el dorado pálido perdería contraste. */",
           "    val accentOnLight: Int,",
+          "    /** Ilustración con volumen (WebP generado por tools/aura_3d.py). */",
+          "    val realistic: Int,",
+          "    /** Escena de fondo del cielo para esta condición. */",
+          "    val scene: Int,",
           ")", "",
           "object WeatherIcons {",
           "    fun layers(condition: WeatherCondition): WeatherIconLayers = when (condition) {"]
@@ -416,7 +420,8 @@ def main():
         enum = name.upper()
         kt.append(f"        WeatherCondition.{enum} -> WeatherIconLayers(R.drawable.ic_wx_{name}_base, "
                   f"R.drawable.ic_wx_{name}_accent, hasBase = {str(bool(layers['base'])).lower()}, "
-                  f"hasAccent = {str(bool(layers['accent'])).lower()}, accentOnLight = {on_light(layers)})")
+                  f"hasAccent = {str(bool(layers['accent'])).lower()}, accentOnLight = {on_light(layers)}, "
+                  f"realistic = R.drawable.ic3d_{name}, scene = R.drawable.scene_{name})")
     kt += ["    }", "}", ""]
     write(os.path.join(ROOT, "app", "src", "main", "java", "app", "aura", "ui", "icons", "WeatherIcons.kt"), "\n".join(kt))
     print(f"{len(all_icons)} iconos meteorológicos + icono adaptativo generados")

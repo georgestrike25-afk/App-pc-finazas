@@ -87,6 +87,17 @@ class StyleTest {
     }
 
     @Test
+    fun `scene backgrounds are images, not a tinted panel`() {
+        val sky = Profiles.SKY
+        assertNull(sky.backgroundArgb())
+        assertTrue(sky.usesScene)
+        assertFalse(sky.copy(opacity = 0).usesScene)
+        assertTrue(Legibility.evaluate(sky, 0xFFF2F2F2.toInt()).passes)
+        assertEquals(Brand.SOLAR, sky.copy(timeColor = Brand.SOLAR).effectiveTimeColor)
+        assertEquals(sky.textColor, sky.effectiveTimeColor)
+    }
+
+    @Test
     fun `every profile has a preset and a name`() {
         ProfileId.entries.forEach {
             Profiles.preset(it)

@@ -215,25 +215,33 @@ fun CustomizeScreen(
             }
 
             SectionTitle("Fondo")
-            Segmented(
+            ChipChoice(
                 listOf(
-                    BackgroundMode.TRANSPARENT to "Transp.", BackgroundMode.GLASS to "Cristal", BackgroundMode.DARK to "Oscuro",
-                    BackgroundMode.LIGHT to "Claro", BackgroundMode.CUSTOM to "Propio",
+                    BackgroundMode.TRANSPARENT to "Transparente", BackgroundMode.SCENE to "Escena del clima", BackgroundMode.GLASS to "Cristal",
+                    BackgroundMode.DARK to "Oscuro", BackgroundMode.LIGHT to "Claro", BackgroundMode.CUSTOM to "Propio",
                 ),
                 style.background,
-                { mode ->
+            ) { mode ->
                     edit {
                         it.copy(
                             background = mode,
                             opacity = when {
                                 mode == BackgroundMode.TRANSPARENT -> 0
+                                mode == BackgroundMode.SCENE -> 100
                                 it.opacity == 0 -> defaultOpacity(mode)
                                 else -> it.opacity
                             },
                         )
                     }
-                },
-            )
+            }
+            if (style.background == BackgroundMode.SCENE) {
+                Text(
+                    "El fondo cambia solo según el tiempo real: sol, nubes, lluvia, tormenta, nieve, niebla o noche.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Aura.tokens.mutedText,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
             Spacer(Modifier.height(10.dp))
             LabeledRow("Opacidad", supporting = if (style.background == BackgroundMode.TRANSPARENT) "Sin fondo: se ve tu fondo de pantalla" else null) {
                 Text("${style.opacity} %", style = MaterialTheme.typography.titleSmall)
@@ -259,13 +267,29 @@ fun CustomizeScreen(
             Spacer(Modifier.height(8.dp))
             ColorPicker(style.iconColor, INK_COLORS) { c -> edit { it.copy(iconColor = c) } }
             Spacer(Modifier.height(12.dp))
-            Segmented(listOf(IconStyle.COLOR to "Iconos a color", IconStyle.MONO to "Monocromo"), style.iconStyle, { s -> edit { it.copy(iconStyle = s) } })
+            Segmented(
+                listOf(IconStyle.REALISTIC to "3D", IconStyle.COLOR to "Línea", IconStyle.MONO to "Mono"),
+                style.iconStyle, { s -> edit { it.copy(iconStyle = s) } },
+            )
 
             SectionTitle("Tipografía y tamaños")
-            Segmented(
-                listOf(FontChoice.LIGHT to "Ligera", FontChoice.REGULAR to "Normal", FontChoice.MEDIUM to "Media", FontChoice.CONDENSED to "Estrecha"),
-                style.font, { f -> edit { it.copy(font = f) } },
-            )
+            ChipChoice(
+                listOf(
+                    FontChoice.THIN to "Fina", FontChoice.LIGHT to "Ligera", FontChoice.REGULAR to "Normal", FontChoice.MEDIUM to "Media",
+                    FontChoice.BLACK to "Negra", FontChoice.CONDENSED to "Estrecha", FontChoice.SERIF to "Serif", FontChoice.MONO to "Mono",
+                ),
+                style.font,
+            ) { f -> edit { it.copy(font = f) } }
+            LabeledRow("Horas en negrita", supporting = "Horas gruesas y minutos finos, p. ej. 02:45") {
+                Switch(checked = style.boldHours, onCheckedChange = { v -> edit { it.copy(boldHours = v) } })
+            }
+            Text("Color de la hora", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(8.dp))
+            ColorPicker(style.effectiveTimeColor, INK_COLORS) { c -> edit { it.copy(timeColor = c) } }
+            if (style.timeColor != null) {
+                TextButton(onClick = { edit { it.copy(timeColor = null) } }) { Text("Igual que el texto") }
+            }
+            Spacer(Modifier.height(6.dp))
             Spacer(Modifier.height(10.dp))
             ScaleSlider("Tamaño de la hora", style.timeScale) { v -> edit { it.copy(timeScale = v) } }
             ScaleSlider("Tamaño de la temperatura", style.temperatureScale) { v -> edit { it.copy(temperatureScale = v) } }
@@ -363,6 +387,21 @@ private fun defaultOpacity(mode: BackgroundMode) = when (mode) {
     BackgroundMode.DARK -> Profiles.DARK.opacity
     BackgroundMode.LIGHT -> Profiles.LIGHT.opacity
     BackgroundMode.CUSTOM -> Profiles.CUSTOM.opacity
+    BackgroundMode.SCENE -> Profiles.SKY.opacity
+}
+
+@Composable
+private fun <T> ChipChoice(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { (value, label) ->
+            FilterChip(
+                selected = value == selected,
+                onClick = { onSelect(value) },
+                label = { Text(label) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Aura.tokens.accent.copy(alpha = 0.25f)),
+            )
+        }
+    }
 }
 
 private val INK_COLORS = listOf(Brand.WHITE, Brand.MIST, Brand.SOLAR, Brand.PETROL, Brand.NIGHT)

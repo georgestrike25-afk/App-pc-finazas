@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid slice"><defs>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+<filter id="blur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
+<filter id="blur4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="6"/></filter>
+<radialGradient id="sun" cx="0.38" cy="0.34" r="0.75">
+  <stop offset="0" stop-color="#FFFBE0"/><stop offset="0.28" stop-color="#FFE27A"/>
+  <stop offset="0.7" stop-color="#FFC233"/><stop offset="1" stop-color="#F29A0E"/>
+</radialGradient>
+<radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#FFD25A" stop-opacity="0.85"/><stop offset="0.55" stop-color="#FFC233" stop-opacity="0.35"/>
+  <stop offset="1" stop-color="#FFB21E" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="moon" cx="0.35" cy="0.3" r="0.8">
+  <stop offset="0" stop-color="#FFFBEA"/><stop offset="0.5" stop-color="#F6E3A8"/><stop offset="1" stop-color="#D7B565"/>
+</radialGradient>
+<radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#F6E3A8" stop-opacity="0.55"/><stop offset="1" stop-color="#F6E3A8" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="cloudLight" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#EEF3F8"/><stop offset="1" stop-color="#B7C4D4"/>
+</linearGradient>
+<linearGradient id="cloudGrey" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#E4EAF0"/><stop offset="0.5" stop-color="#B9C5D2"/><stop offset="1" stop-color="#8694A6"/>
+</linearGradient>
+<linearGradient id="cloudDark" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#A9B5C3"/><stop offset="0.5" stop-color="#6F7D90"/><stop offset="1" stop-color="#465366"/>
+</linearGradient>
+<linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#D6F0FF"/><stop offset="1" stop-color="#2F8FDB"/>
+</linearGradient>
+<linearGradient id="bolt" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0" stop-color="#FFF6C2"/><stop offset="0.45" stop-color="#FFC857"/><stop offset="1" stop-color="#F08A0A"/>
+</linearGradient>
+<linearGradient id="wind" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.95"/>
+  <stop offset="1" stop-color="#DCE8F2"/>
+</linearGradient>
+</defs><linearGradient id="sky" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0" stop-color="#8995A2"/><stop offset="0.6" stop-color="#B4BDC6"/><stop offset="1" stop-color="#D5DBE0"/></linearGradient><rect width="200" height="100" fill="url(#sky)"/><rect x="-20" y="30" width="150" height="9" rx="4.5" fill="#FFFFFF" opacity="0.5" filter="url(#blur4)"/><rect x="70" y="48" width="160" height="9" rx="4.5" fill="#FFFFFF" opacity="0.55" filter="url(#blur4)"/><rect x="-10" y="66" width="170" height="9" rx="4.5" fill="#FFFFFF" opacity="0.6" filter="url(#blur4)"/><rect x="60" y="84" width="160" height="9" rx="4.5" fill="#FFFFFF" opacity="0.65" filter="url(#blur4)"/><linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0B1622" stop-opacity="0.45"/><stop offset="0.6" stop-color="#0B1622" stop-opacity="0.1575"/><stop offset="1" stop-color="#0B1622" stop-opacity="0"/></linearGradient><rect width="200" height="100" fill="url(#scrim)"/></svg>

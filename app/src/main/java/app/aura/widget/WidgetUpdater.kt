@@ -39,7 +39,8 @@ class WidgetUpdater(
     suspend fun update(type: WidgetType, appWidgetIds: IntArray) {
         if (appWidgetIds.isEmpty()) return
         val appSettings = settings.current()
-        val snapshot = if (type.showsWeather) weather.cached() else null
+        // Aura Clock también lo necesita cuando usa la escena del cielo como fondo.
+        val snapshot = weather.cached()
         val now = System.currentTimeMillis()
         appWidgetIds.forEach { id ->
             val config = settings.widgetConfig(id, type)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_widgets.py (clock · medium). No editar a mano. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView android:id="@+id/w_scene" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:importantForAccessibility="no" android:scaleType="centerCrop"
+        android:background="@drawable/widget_scene_outline" android:clipToOutline="true"
+        android:visibility="gone" />
+
+    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:importantForAccessibility="no" android:scaleType="fitXY"
+        android:src="@drawable/widget_panel"
+        android:visibility="gone" />
+
+    <ImageView android:id="@+id/w_edge" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:importantForAccessibility="no" android:scaleType="fitXY" android:src="@drawable/widget_panel_edge"
+        android:visibility="gone" />
+
+    <LinearLayout android:id="@+id/w_content" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical" android:gravity="center_vertical|start" android:padding="14dp">
+        <LinearLayout android:id="@+id/w_time_row" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="true"><TextClock android:id="@+id/w_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-black" android:textSize="58sp" android:textColor="#FFFFFFFF" android:maxLines="1" android:includeFontPadding="false" android:format12Hour="h:mm" android:format24Hour="HH:mm" android:letterSpacing="-0.02" android:shadowColor="#66000000" android:shadowDy="1" android:shadowRadius="6" /><TextClock android:id="@+id/w_time_h" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:textStyle="bold" android:textSize="58sp" android:textColor="#FFFFFFFF" android:maxLines="1" android:includeFontPadding="false" android:format12Hour="h" android:format24Hour="HH" android:visibility="gone" android:shadowColor="#66000000" android:shadowDy="1" android:shadowRadius="6" /><TextClock android:id="@+id/w_time_m" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-black" android:textSize="58sp" android:textColor="#FFFFFFFF" android:maxLines="1" android:includeFontPadding="false" android:format12Hour=":mm" android:format24Hour=":mm" android:visibility="gone" android:shadowColor="#66000000" android:shadowDy="1" android:shadowRadius="6" /><TextClock android:id="@+id/w_ampm" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:fontFamily="sans-serif" android:textSize="16sp" android:textColor="#FFFFFFFF" android:maxLines="1" android:includeFontPadding="false" android:format12Hour="a" android:format24Hour="" android:visibility="gone" android:shadowColor="#66000000" android:shadowDy="1" android:shadowRadius="6" /></LinearLayout>
+        <TextClock android:id="@+id/w_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:fontFamily="sans-serif" android:textSize="14sp" android:textColor="#FFFFFFFF" android:maxLines="1" android:includeFontPadding="false" android:format12Hour="EEE d MMM" android:format24Hour="EEE d MMM" android:shadowColor="#66000000" android:shadowDy="1" android:shadowRadius="6" />
+    </LinearLayout>
+</FrameLayout>
