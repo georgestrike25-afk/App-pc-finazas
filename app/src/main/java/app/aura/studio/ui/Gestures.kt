@@ -15,7 +15,8 @@ fun Modifier.transformGesture(
     key: Any?,
     onTransform: (pan: Offset, zoom: Float, rotation: Float) -> Unit,
     onEnd: () -> Unit,
-): Modifier = pointerInput(key) {
+    enabled: Boolean = true,
+): Modifier = if (!enabled) this else pointerInput(key) {
     awaitEachGesture {
         awaitFirstDown(requireUnconsumed = false)
         do {

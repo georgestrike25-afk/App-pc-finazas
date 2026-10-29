@@ -37,6 +37,16 @@ data class ClockDesign(
     val stretchY: Float = 1f,
     /** Giro del reloj en grados (−45 a 45), para alinearlo con la foto. */
     val rotation: Float = 0f,
+    /**
+     * Separación desde el centro (0–1): las horas se alejan hacia el borde izquierdo y los minutos
+     * hacia el derecho. 1 = cada grupo llega a su borde de la pantalla.
+     */
+    val spread: Float = 0f,
+    /**
+     * Deformación libre por esquinas: desplazamiento de las 4 esquinas del reloj (arriba-izq.,
+     * arriba-der., abajo-der., abajo-izq.) en fracciones de la pantalla, como pares x,y. Vacía = sin deformar.
+     */
+    val warp: List<Float> = emptyList(),
     val material: ClockMaterial = ClockMaterial.METAL,
     /** Dirección desde la que llega la luz, en grados (0 = derecha, 90 = abajo; 225 = arriba a la izquierda). */
     val lightAngle: Int = 225,
@@ -68,6 +78,8 @@ data class ClockDesign(
         stretchX = stretchX.coerceIn(MIN_STRETCH, MAX_STRETCH),
         stretchY = stretchY.coerceIn(MIN_STRETCH, MAX_STRETCH),
         rotation = rotation.coerceIn(-MAX_ROTATION, MAX_ROTATION),
+        spread = spread.coerceIn(0f, 1f),
+        warp = if (warp.size == 8 && warp.any { it != 0f }) warp.map { it.coerceIn(-1f, 1f) } else emptyList(),
         lightAngle = Math.floorMod(lightAngle, 360),
         shadow = shadow.coerceIn(0, 100),
         depth = depth.coerceIn(0, 100),
@@ -95,6 +107,21 @@ data class ClockDesign(
         const val MIN_STRETCH = 0.5f
         const val MAX_STRETCH = 2.5f
         const val MAX_ROTATION = 45f
+
+        /** Desplazamiento de una esquina de la deformación (índice 0–3), creando la lista si hace falta. */
+        fun movedCorner(warp: List<Float>, corner: Int, dx: Float, dy: Float): List<Float> {
+            val w = if (warp.size == 8) warp.toMutableList() else MutableList(8) { 0f }
+            w[corner * 2] += dx
+            w[corner * 2 + 1] += dy
+            return w
+        }
+
+        /** Perspectiva rápida: un lado más chico que el otro (sentido −1 izquierda, 1 derecha). */
+        fun perspective(side: Int, amount: Float = 0.06f): List<Float> = if (side < 0) {
+            listOf(0f, amount, 0f, 0f, 0f, 0f, 0f, -amount)
+        } else {
+            listOf(0f, 0f, 0f, amount, 0f, -amount, 0f, 0f)
+        }
 
         /** Paso del ajuste fino de posición: 0,25 % del lienzo (≈3 px en un S24+). */
         const val NUDGE = 0.0025f

@@ -12,6 +12,8 @@ Mockups previos a la implementación: [`docs/mockups/`](mockups/).
 | Recortar y encuadrar | Ajuste «cubrir» a la resolución real de la pantalla + zoom (1–5×) y desplazamiento con gestos; nunca deja bordes vacíos (`Framing`) |
 | Fuentes para números | 20 tipografías abiertas incluidas (Bebas Neue, Anton, Oswald, Teko, Rajdhani, Orbitron, Audiowide, Michroma, Russo One, Black Ops, Monoton, Bungee, Righteous, Share Tech, Major Mono, Poiret One, Comfortaa, Abril Fatface, Playfair, Pacifico), recortadas a los caracteres del reloj (≈100 KB en total), más las 8 del sistema |
 | Ancho, alto y rotación | Estiramiento independiente (50–250 %), giro de −45° a 45° (deslizador, botones de 0,5° o dos dedos) |
+| Separar desde el centro | Las horas se alejan hacia el borde izquierdo y los minutos hacia el derecho (0–100 %); botón «Llenar el ancho» |
+| Deformación libre | Pestaña Deformar: 4 esquinas arrastrables (perspectiva, inclinación); atajos de perspectiva; el camaleón sigue la deformación |
 | Ajuste fino | Posición con deslizadores y flechas de 0,25 % de la pantalla, para encajar los números en la foto |
 | Modo camaleón | La cara de los números toma la foto que tienen detrás, alineada píxel a píxel aunque el reloj esté girado o estirado; el canto toma el tono medio del fondo. Intensidad y aclarar/oscurecer ajustables. Se adapta solo al mover el reloj |
 | Reloj editable | Paramétrico (no hay imágenes prediseñadas): 8 tipografías del sistema de Aura, horas en negrita, color, tamaño, espaciado, opacidad, posición con arrastre y pellizco |
@@ -48,7 +50,10 @@ Memoria: la segmentación trabaja a 1024 px de lado mayor; la máscara se guarda
 
 `AuraWallpaperService` muestra el diseño activo con la hora en tiempo real:
 
-- Sin bucle de animación: redibuja una vez por minuto **en el cambio exacto de minuto del reloj del sistema** (temporizador propio alineado; `ACTION_TIME_TICK` queda como respaldo, porque algunos fabricantes retrasan esa difusión) y ante cambios de hora o zona horaria.
+- **Una activación por minuto**, programada para el instante exacto del cambio de minuto del reloj del sistema. Unos 2,5 s antes se compone el fotograma siguiente fuera de pantalla; en el cambio solo se copia a la superficie, sin destellos y en sincronía. Si el sistema lo despierta antes de tiempo, se reprograma en lugar de mostrar la hora vieja.
+- Cuando Android pide la imagen (al crear o mostrar el fondo), se entrega de forma síncrona: nunca queda la pantalla en negro.
+- Foto encuadrada y sujeto se guardan en caché en disco por diseño y resolución, así recrear el fondo (p. ej. al encender la pantalla) no vuelve a procesar la foto.
+- Todo el dibujo ocurre en un hilo propio; cambios manuales de hora o zona horaria redibujan al instante.
 - Solo mientras es visible: al ocultarse se desregistra y no procesa nada.
 - La foto y la capa del sujeto se componen una vez y se reutilizan; cada minuto solo se pinta el reloj.
 

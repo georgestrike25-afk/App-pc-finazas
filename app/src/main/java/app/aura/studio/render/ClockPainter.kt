@@ -52,7 +52,19 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
             postScale(d.stretchX, d.stretchY, cx, cy)
             postRotate(d.rotation, cx, cy)
         }
-        val camo = if (d.chameleon > 0 && backdrop != null) chameleonShader(backdrop, transform, d) else null
+        val total0 = run {
+            // Ancho total para la caja de la deformación (mismo cálculo que más abajo).
+            var t = 0f
+            listOf(extras.hours to hoursFace, extras.minutes to family).forEach { (txt, face) ->
+                paint.reset(textSize, face, d.letterSpacing); t += paint.measureText(txt)
+            }
+            t
+        }
+        val spreadPx = d.spread * width * 0.5f
+        val warpMatrix = warpMatrix(d, transform, cx - total0 / 2f - spreadPx, cy, total0 + 2 * spreadPx, textSize, width, height)
+        // Transformación completa del reloj en pantalla: deformación ∘ (giro + estiramiento).
+        val full = android.graphics.Matrix(transform).apply { warpMatrix?.let { postConcat(it) } }
+        val camo = if (d.chameleon > 0 && backdrop != null) chameleonShader(backdrop, full, d) else null
         val camoTone = if (camo != null) averageBehind(backdrop!!, cx, cy, textSize * d.stretchX * 2.2f, textSize * d.stretchY) else null
 
         val runs = listOf(Run(extras.hours, hoursFace), Run(extras.minutes, family))
@@ -70,10 +82,10 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         val ly = sin(a).toFloat()
 
         val outer = canvas.save()
-        canvas.concat(transform)
+        canvas.concat(full)
         val layer = canvas.saveLayerAlpha(null, (d.opacity * 255 / 100f).roundToInt())
-        var x = startX
-        val positions = runs.map { r -> (x).also { x += r.width } }
+        // Separación: las horas se alejan hacia la izquierda y los minutos hacia la derecha.
+        val positions = listOf(startX - spreadPx, startX + runs[0].width + spreadPx)
 
         fun eachRun(block: (Run, Float) -> Unit) = runs.forEachIndexed { i, r -> block(r, positions[i]) }
 
@@ -182,6 +194,45 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
             paint.color = withAlpha(d.color, (d.opacity * 2.4f).roundToInt().coerceIn(0, 240))
             canvas.drawText(sub, d.centerX * width - sw / 2f, sy, paint)
         }
+    }
+
+    /**
+     * Esquinas del reloj en pantalla (arriba-izq., arriba-der., abajo-der., abajo-izq.; pares x,y),
+     * ya giradas, estiradas y deformadas: son los tiradores del modo «Deformar».
+     */
+    fun quad(width: Int, height: Int, rawDesign: ClockDesign, extras: ClockExtras): FloatArray {
+        val d = rawDesign.normalized()
+        val textSize = d.size * width
+        val custom = d.customFont?.let(fonts)
+        val family = custom ?: Typeface.create(d.font.androidFamily, Typeface.NORMAL)
+        val hoursFace = if (d.boldHours) (custom?.let { Typeface.create(it, Typeface.BOLD) } ?: Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)) else family
+        var total = 0f
+        listOf(extras.hours to hoursFace, extras.minutes to family).forEach { (t, f) -> paint.reset(textSize, f, d.letterSpacing); total += paint.measureText(t) }
+        val cx = d.centerX * width
+        val cy = d.centerY * height
+        val spreadPx = d.spread * width * 0.5f
+        val transform = android.graphics.Matrix().apply { postScale(d.stretchX, d.stretchY, cx, cy); postRotate(d.rotation, cx, cy) }
+        val pts = boxCorners(cx - total / 2f - spreadPx, cy, total + 2 * spreadPx, textSize)
+        transform.mapPoints(pts)
+        if (d.warp.size == 8) for (i in 0 until 8) pts[i] += d.warp[i] * (if (i % 2 == 0) width else height)
+        return pts
+    }
+
+    /** Caja de los números (sin transformar): arriba-izq., arriba-der., abajo-der., abajo-izq. */
+    private fun boxCorners(left: Float, cy: Float, w: Float, textSize: Float): FloatArray {
+        val baseline = cy + textSize * 0.36f
+        val top = baseline - textSize * 0.80f
+        val bottom = baseline + textSize * 0.08f
+        return floatArrayOf(left, top, left + w, top, left + w, bottom, left, bottom)
+    }
+
+    /** Deformación por esquinas en coordenadas de pantalla (después del giro y el estiramiento). */
+    private fun warpMatrix(d: ClockDesign, transform: android.graphics.Matrix, left: Float, cy: Float, w: Float, textSize: Float, width: Int, height: Int): android.graphics.Matrix? {
+        if (d.warp.size != 8) return null
+        val src = boxCorners(left, cy, w, textSize)
+        transform.mapPoints(src)
+        val dst = FloatArray(8) { i -> src[i] + d.warp[i] * (if (i % 2 == 0) width else height) }
+        return android.graphics.Matrix().takeIf { it.setPolyToPoly(src, 0, dst, 0, 4) }
     }
 
     /** Caja del reloj en el lienzo, para tocarlo y moverlo en el editor. */

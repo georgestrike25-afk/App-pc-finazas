@@ -90,6 +90,19 @@ class StudioTest {
     }
 
     @Test
+    fun `corner warp and spread are clamped and empty when neutral`() {
+        val moved = ClockDesign.movedCorner(emptyList(), 2, 0.1f, -0.05f)
+        assertEquals(8, moved.size)
+        assertEquals(0.1f, moved[4])
+        assertEquals(-0.05f, moved[5])
+        assertEquals(moved, ClockDesign(warp = moved).normalized().warp)
+        assertTrue(ClockDesign(warp = List(8) { 0f }).normalized().warp.isEmpty())
+        assertEquals(1f, ClockDesign(warp = ClockDesign.movedCorner(emptyList(), 0, 5f, 0f)).normalized().warp[0])
+        assertEquals(1f, ClockDesign(spread = 3f).normalized().spread)
+        assertEquals(8, ClockDesign.perspective(-1).size)
+    }
+
+    @Test
     fun `older projects without the new fields still load`() {
         val old = """{"id":"a","name":"x","createdAt":1,"updatedAt":2,"design":{"font":"LIGHT","size":0.3}}"""
         val p = Json { ignoreUnknownKeys = true }.decodeFromString<StudioProject>(old)

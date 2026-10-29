@@ -55,6 +55,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,7 +79,7 @@ import app.aura.ui.theme.Aura
 import kotlin.math.roundToInt
 
 private enum class EditorTab(val label: String) {
-    FRAME("Encuadre"), CLOCK("Reloj"), ADJUST("Ajuste"), EFFECTS("Efectos"), DEPTH("Profundidad"), EXPORT("Exportar")
+    FRAME("Encuadre"), CLOCK("Reloj"), ADJUST("Ajuste"), WARP("Deformar"), EFFECTS("Efectos"), DEPTH("Profundidad"), EXPORT("Exportar")
 }
 
 @Composable
@@ -121,10 +125,11 @@ fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: ()
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.Black)
                         .onSizeChanged { area = it }
+                        .then(if (tab == EditorTab.WARP) Modifier.cornerDrag(viewModel, area) else Modifier)
                         .transformGesture(
                             key = tab,
                             onTransform = { pan, zoom, rotation ->
-                                if (area.width == 0) return@transformGesture
+                                if (area.width == 0 || tab == EditorTab.WARP) return@transformGesture
                                 when (tab) {
                                     EditorTab.FRAME -> viewModel.frameLive {
                                         it.copy(zoom = it.zoom * zoom, offsetX = it.offsetX + pan.x / area.width, offsetY = it.offsetY + pan.y / area.height)
@@ -141,9 +146,11 @@ fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: ()
                                 }
                             },
                             onEnd = viewModel::commit,
+                            enabled = tab != EditorTab.WARP,
                         ),
                 ) {
                     preview?.let { Image(it, contentDescription = "Vista previa del fondo", modifier = Modifier.fillMaxSize()) }
+                    if (tab == EditorTab.WARP && preview != null) WarpHandles(viewModel, area)
                     if (preview == null || busy != null) {
                         Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = Aura.tokens.accent)
@@ -155,6 +162,7 @@ fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: ()
                             when (tab) {
                                 EditorTab.FRAME -> "Arrastrá y pellizcá para encuadrar la foto"
                                 EditorTab.ADJUST -> "Dos dedos: mover, escalar y girar el reloj"
+                                EditorTab.WARP -> "Arrastrá las esquinas doradas para deformar los números"
                                 else -> "Arrastrá y pellizcá para mover y escalar el reloj"
                             },
                             color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -188,6 +196,7 @@ fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: ()
                         EditorTab.FRAME -> FramePanel(viewModel, project)
                         EditorTab.CLOCK -> ClockPanel(viewModel, project)
                         EditorTab.ADJUST -> AdjustPanel(viewModel, project)
+                        EditorTab.WARP -> WarpPanel(viewModel, project)
                         EditorTab.EFFECTS -> EffectsPanel(viewModel, project)
                         EditorTab.DEPTH -> DepthPanel(viewModel, project, onEditMask)
                         EditorTab.EXPORT -> ExportPanel(viewModel, onLive = { intent ->
@@ -293,6 +302,11 @@ private fun ColumnScope.AdjustPanel(vm: StudioViewModel, p: StudioProject) {
     StudioSlider("Ancho", d.stretchX, 0.5f..2.5f, "${(d.stretchX * 100).roundToInt()} %", { v -> vm.designLive { it.copy(stretchX = v) } }, vm::commit)
     StudioSlider("Alto", d.stretchY, 0.5f..2.5f, "${(d.stretchY * 100).roundToInt()} %", { v -> vm.designLive { it.copy(stretchY = v) } }, vm::commit)
     StudioSlider("Tamaño", d.size, 0.10f..0.50f, "${(d.size * 100).roundToInt()} %", { v -> vm.designLive { it.copy(size = v) } }, vm::commit)
+    StudioSlider("Separar desde el centro", d.spread, 0f..1f, "${(d.spread * 100).roundToInt()} %", { v -> vm.designLive { it.copy(spread = v) } }, vm::commit)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 6.dp)) {
+        OutlinedButton(onClick = vm::fillWidth) { Text("Llenar el ancho") }
+        OutlinedButton(onClick = { vm.design { it.copy(spread = 1f) } }) { Text("Hasta los bordes") }
+    }
     StudioSlider("Rotación", d.rotation, -45f..45f, "${"%.1f".format(d.rotation)}°", { v -> vm.designLive { it.copy(rotation = v) } }, vm::commit)
     StudioSlider("Posición horizontal", d.centerX, 0f..1f, "${"%.1f".format(d.centerX * 100)} %", { v -> vm.designLive { it.copy(centerX = v) } }, vm::commit)
     StudioSlider("Posición vertical", d.centerY, 0f..1f, "${"%.1f".format(d.centerY * 100)} %", { v -> vm.designLive { it.copy(centerY = v) } }, vm::commit)
@@ -313,6 +327,26 @@ private fun ColumnScope.AdjustPanel(vm: StudioViewModel, p: StudioProject) {
         "Usá estos controles para encajar los números exactamente en la foto: cada flecha mueve un 0,25 % de la pantalla.",
         style = MaterialTheme.typography.bodySmall, color = Aura.tokens.mutedText,
     )
+}
+
+@Composable
+private fun ColumnScope.WarpPanel(vm: StudioViewModel, p: StudioProject) {
+    val d = p.design
+    Text(
+        "Arrastrá cualquiera de las 4 esquinas doradas sobre la vista previa: así podés darle perspectiva, inclinarlo o " +
+            "apoyarlo sobre algo de la foto. El camaleón y los efectos siguen la deformación.",
+        style = MaterialTheme.typography.bodySmall, color = Aura.tokens.mutedText,
+    )
+    Text("Perspectiva rápida", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 10.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 6.dp)) {
+        OutlinedButton(onClick = { vm.design { it.copy(warp = app.aura.core.studio.ClockDesign.perspective(-1)) } }) { Text("◁ Izquierda") }
+        OutlinedButton(onClick = { vm.design { it.copy(warp = app.aura.core.studio.ClockDesign.perspective(1)) } }) { Text("Derecha ▷") }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = { vm.design { it.copy(warp = listOf(0.05f, 0f, -0.05f, 0f, 0f, 0f, 0f, 0f)) } }) { Text("Al fondo") }
+        OutlinedButton(onClick = { vm.design { it.copy(warp = listOf(0f, 0f, 0f, 0f, 0.05f, 0f, -0.05f, 0f)) } }) { Text("Hacia arriba") }
+    }
+    TextButton(onClick = { vm.design { it.copy(warp = emptyList()) } }, enabled = d.warp.isNotEmpty()) { Text("Quitar deformación") }
 }
 
 @Composable
@@ -400,4 +434,56 @@ private fun ColumnScope.ExportPanel(vm: StudioViewModel, onLive: (android.conten
             "puede no admitir fondos animados de otras apps: usá «Bloqueo» para una imagen estática.",
         style = MaterialTheme.typography.bodySmall, color = Aura.tokens.mutedText, modifier = Modifier.padding(top = 10.dp),
     )
+}
+
+
+/** Tiradores dorados en las 4 esquinas del reloj (modo «Deformar»). */
+@Composable
+private fun WarpHandles(vm: StudioViewModel, area: IntSize) {
+    val history by vm.history.collectAsStateWithLifecycle()
+    val preview by vm.preview.collectAsStateWithLifecycle()
+    val quad = remember(history?.current?.design, preview) { vm.clockQuad() } ?: return
+    val (pw, _) = vm.previewSize
+    val k = if (pw > 0) area.width / pw.toFloat() else 1f
+    val accent = Aura.tokens.accent
+    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(quad[0] * k, quad[1] * k)
+            for (i in 1 until 4) lineTo(quad[i * 2] * k, quad[i * 2 + 1] * k)
+            close()
+        }
+        drawPath(path, accent.copy(alpha = 0.8f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
+        for (i in 0 until 4) {
+            val c = androidx.compose.ui.geometry.Offset(quad[i * 2] * k, quad[i * 2 + 1] * k)
+            drawCircle(Color.Black.copy(alpha = 0.35f), radius = 13.dp.toPx(), center = c)
+            drawCircle(accent, radius = 10.dp.toPx(), center = c)
+        }
+    }
+}
+
+/** Arrastre de la esquina más cercana al dedo; un paso de deshacer por gesto. */
+private fun Modifier.cornerDrag(vm: StudioViewModel, area: IntSize): Modifier = pointerInput(area) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        val quad = vm.clockQuad() ?: return@awaitEachGesture
+        val (pw, ph) = vm.previewSize
+        val k = if (pw > 0) area.width / pw.toFloat() else 1f
+        val corner = (0 until 4).minByOrNull { i ->
+            val dx = quad[i * 2] * k - down.position.x
+            val dy = quad[i * 2 + 1] * k - down.position.y
+            dx * dx + dy * dy
+        } ?: return@awaitEachGesture
+        do {
+            val event = awaitPointerEvent()
+            val change = event.changes.firstOrNull() ?: break
+            val delta = change.positionChange()
+            if (delta != androidx.compose.ui.geometry.Offset.Zero && area.width > 0) {
+                vm.designLive {
+                    it.copy(warp = app.aura.core.studio.ClockDesign.movedCorner(it.warp, corner, delta.x / area.width, delta.y / area.height))
+                }
+                change.consume()
+            }
+        } while (event.changes.any { it.pressed })
+        vm.commit()
+    }
 }

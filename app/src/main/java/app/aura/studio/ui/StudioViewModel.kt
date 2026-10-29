@@ -83,6 +83,7 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
     private var subjectCache: Bitmap? = null
     private var subjectKey: Any? = null
     private var gestureBase: StudioProject? = null
+    @Volatile private var lastExtras: app.aura.studio.render.ClockExtras? = null
     private var savedVersion: StudioProject? = null
 
     val photoSize: Pair<Int, Int>? get() = photo?.let { it.width to it.height }
@@ -204,6 +205,27 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
     fun designLive(transform: (ClockDesign) -> ClockDesign) = live { it.copy(design = transform(it.design).normalized()) }
     fun frameLive(transform: (PhotoFrame) -> PhotoFrame) = live { it.copy(frame = transform(it.frame).normalized()) }
 
+    /** Tamaño de la vista previa (px), para convertir gestos en coordenadas del lienzo. */
+    val previewSize: Pair<Int, Int> get() = PREVIEW_WIDTH to (PREVIEW_WIDTH * screen.height / screen.width.toFloat()).roundToInt()
+
+    /** Esquinas actuales del reloj en la vista previa (px), para los tiradores de «Deformar». */
+    fun clockQuad(): FloatArray? {
+        val p = current ?: return null
+        val extras = lastExtras ?: return null
+        val (w, h) = previewSize
+        return compositor.clock.quad(w, h, p.design, extras)
+    }
+
+    /** Agranda (o achica) el reloj para que ocupe casi todo el ancho de la pantalla. */
+    fun fillWidth() {
+        val quad = clockQuad() ?: return
+        val (w, _) = previewSize
+        val xs = listOf(quad[0], quad[2], quad[4], quad[6])
+        val span = (xs.max() - xs.min()).takeIf { it > 1f } ?: return
+        val k = (w * 0.94f) / span
+        design { it.copy(size = it.size * k, centerX = 0.5f) }
+    }
+
     fun undo() { gestureBase = null; _history.value = _history.value?.undo() }
     fun redo() { gestureBase = null; _history.value = _history.value?.redo() }
 
@@ -321,6 +343,7 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             val extras = ClockExtrasBuilder.build(getApplication(), p.design, app.settings.current(), app.weather.cached(), _now.value)
+            lastExtras = extras
             compositor.render(out, src, m, p, extras, subject)
             if (!preview) subject?.recycle()
             out
