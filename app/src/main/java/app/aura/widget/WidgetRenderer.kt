@@ -217,6 +217,13 @@ class WidgetRenderer(private val context: Context) {
         val condition = if (r.type == WidgetType.NIGHT) nightVariant(current.condition) else current.condition
         val label = WeatherText.condition(context, condition)
         setIcon(v, R.id.w_icon, R.id.w_icon_base, R.id.w_icon_accent, R.id.w_icon_3d, condition, style)
+        // Las ilustraciones 3D piden más presencia: en Android 12+ el icono principal crece un 60 %.
+        val iconDp = WidgetLayouts.iconDp(r.type, size)
+        if (style.iconStyle == IconStyle.REALISTIC && iconDp > 0 && size != SizeClass.SMALL && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val big = iconDp * REALISTIC_ICON_SCALE
+            v.setViewLayoutWidth(R.id.w_icon, big, TypedValue.COMPLEX_UNIT_DIP)
+            v.setViewLayoutHeight(R.id.w_icon, big, TypedValue.COMPLEX_UNIT_DIP)
+        }
         v.setContentDescription(R.id.w_icon, label)
 
         val freshness = Freshness.of(snap.fetchedAtMillis, r.nowMillis, r.settings.refreshIntervalMinutes)
@@ -352,6 +359,7 @@ class WidgetRenderer(private val context: Context) {
         private const val REQUEST_CLOCK = -1
         private const val REQUEST_REFRESH = -2
         private const val DARK_INK_LUMINANCE = 0.35
+        const val REALISTIC_ICON_SCALE = 1.6f
 
         fun nightVariant(c: WeatherCondition) = when (c) {
             WeatherCondition.CLEAR_DAY -> WeatherCondition.CLEAR_NIGHT

@@ -220,13 +220,13 @@ def scene_svg(name):
     day = [(0, "#1F67C4"), (0.55, "#4F9BE6"), (1, "#A9D6F7")]
     night = [(0, "#050B18"), (0.6, "#0E2240"), (1, "#22406A")]
     if name == "clear_day":
-        body = sky(day) + sun3d(160, 26, 13) + soft_cloud(40, 82, 0.8, op=0.45, blur="blur4") + scrim(0.25)
+        body = sky(day) + '<circle cx="175" cy="8" r="60" fill="url(#sunGlow)" opacity="0.55"/>' + soft_cloud(40, 82, 0.8, op=0.45, blur="blur4") + scrim(0.25)
     elif name == "clear_night":
-        body = sky(night) + stars(7, 90) + moon3d(160, 28, 13) + scrim(0.2)
+        body = sky(night) + stars(7, 90) + '<circle cx="175" cy="10" r="45" fill="url(#moonGlow)" opacity="0.6"/>' + scrim(0.2)
     elif name == "partly_cloudy_day":
-        body = sky(day) + sun3d(150, 30, 14) + soft_cloud(160, 62, 1.25) + soft_cloud(60, 84, 1.0, op=0.85) + scrim(0.3)
+        body = sky(day) + '<circle cx="175" cy="8" r="60" fill="url(#sunGlow)" opacity="0.55"/>' + soft_cloud(160, 62, 1.25) + soft_cloud(60, 84, 1.0, op=0.85) + scrim(0.3)
     elif name == "partly_cloudy_night":
-        body = sky(night) + stars(11, 60) + moon3d(150, 28, 12) + soft_cloud(160, 64, 1.2, "#9FB0C6", 0.75) + soft_cloud(55, 86, 1.0, "#7F91A8", 0.6) + scrim(0.2)
+        body = sky(night) + stars(11, 60) + '<circle cx="175" cy="10" r="45" fill="url(#moonGlow)" opacity="0.6"/>' + soft_cloud(160, 64, 1.2, "#9FB0C6", 0.75) + soft_cloud(55, 86, 1.0, "#7F91A8", 0.6) + scrim(0.2)
     elif name == "cloudy":
         body = (sky([(0, "#5D6E83"), (0.6, "#8C9CAF"), (1, "#BCC7D3")]) + soft_cloud(150, 30, 1.6, "#E7EDF3", 0.95, "blur2") +
                 soft_cloud(60, 50, 1.4, "#D5DEE7", 0.9, "blur2") + soft_cloud(130, 86, 1.6, "#F2F5F8", 0.95) + scrim(0.35))

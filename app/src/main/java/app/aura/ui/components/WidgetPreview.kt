@@ -54,6 +54,7 @@ import app.aura.core.widget.WidgetSizing
 import app.aura.core.widget.WidgetType
 import app.aura.ui.WeatherText
 import app.aura.ui.icons.WeatherIcons
+import app.aura.widget.WidgetLayouts
 import app.aura.widget.WidgetRenderer
 import java.time.Instant
 import java.time.LocalDate
@@ -231,8 +232,12 @@ fun WidgetPreview(
     }
 
     @Composable
-    fun Icon(dp: Dp, c: WeatherCondition = condition) =
-        WeatherIcon(c, dp, ink, accentTint = accent, realistic = s.iconStyle == IconStyle.REALISTIC)
+    fun Icon(dp: Dp, c: WeatherCondition = condition) {
+        val realistic = s.iconStyle == IconStyle.REALISTIC
+        // Igual que el widget en Android 12+: el icono principal 3D crece; los de horas/días no.
+        val main = size != SizeClass.SMALL && c == condition && dp == WidgetLayouts.iconDp(type, size).dp
+        WeatherIcon(c, if (realistic && main) dp * WidgetRenderer.REALISTIC_ICON_SCALE else dp, ink, accentTint = accent, realistic = realistic)
+    }
 
     @Composable
     fun Temp(sp: Float = tempSp) = Text(content.temperature, style = ts(sp, heroFamily), maxLines = 1)

@@ -226,6 +226,13 @@ def composition(t, s, c):
     raise ValueError(t)
 
 
+def main_icon_dp(t, s):
+    import re
+    _, children = composition(t, s, Ctx("sans-serif", False))
+    m = re.search(r'android:id="@\+id/w_icon" android:layout_width="(\d+)dp"', "".join(children))
+    return int(m.group(1)) if m else 0
+
+
 def layout_xml(t, s, c):
     orientation, children = composition(t, s, c)
     body = "\n        ".join(children)
@@ -292,7 +299,10 @@ def main():
         "    private val TABLE = intArrayOf(",
     ]
     kt += [f"        R.layout.{n}," for n in names]
-    kt += ["    )", "}", ""]
+    kt += ["    )", ""]
+    kt += ["    /** Tamaño base (dp) del icono principal de cada composición; 0 si no tiene. */",
+           "    fun iconDp(type: WidgetType, size: SizeClass): Int = ICON_DP[type.ordinal * SizeClass.entries.size + size.ordinal]", "",
+           "    private val ICON_DP = intArrayOf(" + ", ".join(str(main_icon_dp(t, z)) for t in TYPES for z in SIZES) + ")", "}", ""]
     os.makedirs(os.path.dirname(KT), exist_ok=True)
     with open(KT, "w", encoding="utf-8") as fh:
         fh.write("\n".join(kt))
