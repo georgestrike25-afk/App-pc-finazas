@@ -25,9 +25,24 @@ export interface DesktopPairing {
   version: string;
 }
 
+export interface DatosPrueba {
+  codigo: string;
+  yo: 'a' | 'b';
+  nombre: string;
+}
+
 interface DesktopBridge {
   pairing(): Promise<DesktopPairing>;
   copy(text: string): Promise<boolean>;
+  /** Versiones anteriores de la app de escritorio no los tienen. */
+  abrirPrueba?(datos: DatosPrueba): Promise<boolean>;
+  datosPrueba?(): Promise<DatosPrueba | null>;
+  borrarPrueba?(): Promise<boolean>;
+}
+
+/** Ventana "celular de prueba" de la app de escritorio (datos separados de los tuyos). */
+export function esPrueba(): boolean {
+  return new URLSearchParams(window.location.search).get('prueba') === '1';
 }
 
 /** Puente con la app de escritorio de Windows (null en el navegador o el celular). */

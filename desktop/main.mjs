@@ -6,7 +6,7 @@
  *   por el Wi-Fi de la casa con el código de emparejamiento (FP1-…).
  * - Los datos quedan en esta PC (carpeta de datos del usuario). Nada sale a internet.
  */
-import { app, BrowserWindow, ipcMain, Menu, shell, clipboard, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, shell, clipboard, dialog, session } from 'electron';
 import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { networkInterfaces } from 'node:os';
@@ -121,8 +121,58 @@ function createWindow(url) {
     }
   });
   win.loadURL(`${url}/`);
+  // Si se cierra la ventana principal, se cierra también el celular de prueba.
+  win.on('closed', () => app.quit());
   return win;
 }
+
+// ----- Celular de prueba -----
+// Una segunda ventana con datos propios (otra "partición"), que hace de celular de la pareja para
+// probar el modo pareja sin tenerlo a mano. Se une con el código de pareja de esta PC.
+const PARTICION_PRUEBA = 'persist:celular-prueba';
+let prueba = null;
+let datosPrueba = null;
+
+function abrirPrueba() {
+  if (prueba && !prueba.isDestroyed()) {
+    prueba.focus();
+    return;
+  }
+  const base = pairing.localUrl;
+  prueba = new BrowserWindow({
+    width: 430,
+    height: 880,
+    minWidth: 360,
+    title: 'Brote · celular de prueba',
+    backgroundColor: '#0d1714',
+    autoHideMenuBar: true,
+    webPreferences: { preload: join(here, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false, partition: PARTICION_PRUEBA },
+  });
+  prueba.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  prueba.webContents.on('will-navigate', (e, u) => {
+    if (!u.startsWith(base)) e.preventDefault();
+  });
+  prueba.on('closed', () => {
+    prueba = null;
+  });
+  prueba.loadURL(`${base}/?prueba=1#/compartidos`);
+}
+
+ipcMain.handle('finanzas:abrirPrueba', (e, datos) => {
+  if (e.sender !== win?.webContents) return false;
+  if (!datos || typeof datos.codigo !== 'string' || datos.codigo.length > 4000 || !['a', 'b'].includes(datos.yo) || typeof datos.nombre !== 'string') return false;
+  datosPrueba = { codigo: datos.codigo, yo: datos.yo, nombre: datos.nombre.slice(0, 60) };
+  abrirPrueba();
+  return true;
+});
+// Solo la ventana de prueba recibe el código (para unirse sola al abrirse).
+ipcMain.handle('finanzas:datosPrueba', (e) => (prueba && e.sender === prueba.webContents ? datosPrueba : null));
+ipcMain.handle('finanzas:borrarPrueba', async (e) => {
+  if (e.sender !== win?.webContents) return false;
+  if (prueba && !prueba.isDestroyed()) prueba.close();
+  await session.fromPartition(PARTICION_PRUEBA).clearStorageData();
+  return true;
+});
 
 ipcMain.handle('finanzas:pairing', () => pairing);
 ipcMain.handle('finanzas:copy', (_e, text) => {

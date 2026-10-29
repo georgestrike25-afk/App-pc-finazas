@@ -335,3 +335,21 @@ describe('al abrir Brote todo corre a la vez', () => {
     expect(saldo(st.doc, 'a', '2026-10').pagasteVos).toBe(2_000_000 + 4_000);
   });
 });
+
+describe('Sincronizar mientras ya se está sincronizando', () => {
+  it('no se pierde: espera a la que está en curso y sincroniza otra vez', async () => {
+    const url = `http://127.0.0.1:${PORT}`;
+    const { runParejaSync } = await import('../../src/sync/pareja');
+    const jorge = await freshDb();
+    const st = await crearPareja({ yo: 'Jorge', otro: 'Antonella', servidores: [url] }, jorge);
+    const primera = runParejaSync();
+    await cambiarPareja((d, yo) => ({ ...d, gastos: [...d.gastos, gasto({ id: 'durante', paga: yo, autor: yo, total: 1_000 })] }), jorge);
+    const segunda = runParejaSync();
+    await Promise.all([primera, segunda]);
+    // Otro dispositivo lo ve en el servidor.
+    const anto = await freshDb();
+    await unirPareja({ ...st.cfg, servidores: [url] }, anto);
+    await syncPareja(fetch, anto);
+    expect((await loadPareja(anto))!.doc.gastos.map((g) => g.id)).toContain('durante');
+  });
+});

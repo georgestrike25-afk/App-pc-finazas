@@ -657,3 +657,4 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .pj-sancor { margin-top: 16px; }
 .pj-sancor > summary { font-weight: 600; cursor: pointer; }
 .pj-sancor .page { margin-top: 12px; }
+.banner.prueba { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); }

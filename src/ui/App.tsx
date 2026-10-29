@@ -4,6 +4,7 @@ import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost, Help } from './components/ui';
 import { applyTheme, watchSystemTheme } from './theme';
 import { syncWidget } from '../notifications/native';
+import { esPrueba } from '../platform';
 import { monthLabel } from '../domain/dates';
 import { Tour } from './components/Tour';
 import { getLock, verifyPin } from './lock';
@@ -239,6 +240,11 @@ function Shell() {
             Hay una nueva versión disponible.
             <button className="btn small primary" onClick={pwa.update}>Actualizar</button>
             <button className="btn small ghost" onClick={pwa.dismiss}>Más tarde</button>
+          </div>
+        )}
+        {esPrueba() && (
+          <div className="banner prueba" role="note">
+            <strong>Celular de prueba.</strong> Hace de celular de tu pareja con datos separados de los tuyos. Lo que anotes acá le llega a tu celular (y al de tu pareja de verdad cuando se sincronicen): borralo después con "No es compartido".
           </div>
         )}
         {pwa.offlineReady && <div className="banner ok">La aplicación quedó lista para usarse sin conexión.<button className="btn small ghost" onClick={pwa.dismiss}>Cerrar</button></div>}

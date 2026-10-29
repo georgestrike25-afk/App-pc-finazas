@@ -379,7 +379,6 @@ export async function syncPareja(f: FetchLike = fetch, db: FinanzasDB = getDb(),
 
 // ----- Sincronización automática -----
 
-let running = false;
 let started = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let lastSearch = 0;
@@ -391,11 +390,23 @@ export function onNovedades(l: (n: Novedad[]) => void): () => void {
   return () => novListeners.delete(l);
 }
 
-export async function runParejaSync(): Promise<ResultadoSync | null> {
-  if (running) return null;
+let enCurso: Promise<ResultadoSync | null> | null = null;
+
+/**
+ * Sincroniza ahora. Si ya había una sincronización en curso (la automática), espera a que termine
+ * y hace otra: así "Sincronizar" nunca se pierde y trae lo último.
+ */
+export function runParejaSync(): Promise<ResultadoSync | null> {
+  if (enCurso) return enCurso.then(() => runParejaSync());
+  enCurso = sincronizarAhora().finally(() => {
+    enCurso = null;
+  });
+  return enCurso;
+}
+
+async function sincronizarAhora(): Promise<ResultadoSync | null> {
   const st = await loadPareja();
   if (!st) return null;
-  running = true;
   try {
     const host = await iniciarHost(st.cfg.token, st.cfg.space);
     const r = await syncPareja(fetch, getDb(), host);
@@ -418,8 +429,6 @@ export async function runParejaSync(): Promise<ResultadoSync | null> {
   } catch (e) {
     await mutar(getDb(), (cur) => (cur ? { ...cur, error: (e as Error).message } : undefined)).catch(() => {});
     return null;
-  } finally {
-    running = false;
   }
 }
 

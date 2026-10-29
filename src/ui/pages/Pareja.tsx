@@ -1,7 +1,7 @@
 import { ArrowRightLeft, Check, ScanLine, Copy, Flame, HandCoins, HeartPulse, House, Info, Link2, Pencil, PiggyBank, Plus, RefreshCw, Settings2, Shapes, ShieldCheck, Stethoscope, Trash2, Users, Wifi, Zap, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
-import { desktop, isNative } from '../../platform';
+import { desktop, esPrueba, isNative } from '../../platform';
 import { iniciarHost, type HostInfo } from '../../sync/parejaHost';
 import { loadSyncConfig } from '../../sync/autoSync';
 import { cambiarPareja, codigoDe, compartirConPareja, crearPareja, noMandar, sinMandar, elegirYo, loadPareja, onPareja, runParejaSync, salirPareja, unirPareja, type ParejaEstado } from '../../sync/pareja';
@@ -430,6 +430,32 @@ function Poner({ g, yo, n }: { g: ParejaGasto; yo: Miembro; n: Record<Miembro, s
   );
 }
 
+/** En la PC: abre una ventana que hace de celular de la pareja, para probar sin tenerlo a mano. */
+function CelularDePrueba({ st, el, code }: { st: ParejaEstado; el: string; code: string }) {
+  const { toast } = useApp();
+  const d = desktop();
+  if (!d?.abrirPrueba || esPrueba()) return null;
+  const abrir = async () => {
+    if (!(await d.abrirPrueba!({ codigo: code, yo: otro(st.yo!), nombre: el }))) toast('No se pudo abrir el celular de prueba.', 'error');
+  };
+  const borrar = async () => {
+    if (!(await confirmDialog(`¿Borrar el celular de prueba?\nSe borran sus datos de esta PC. Lo que ya se haya sincronizado sigue en la pareja (borralo con "No es compartido").`, { danger: true, ok: 'Borrar' }))) return;
+    await d.borrarPrueba?.();
+    toast('Celular de prueba borrado.');
+  };
+  return (
+    <Card title={<span className="card-t"><Users aria-hidden size={18} />Probar sin el celular de {el}</span>} help={`Abre una ventana que hace de celular de ${el}, con datos separados de los tuyos. Anotá ahí como si fueras ${el} y fijate que en tu celular aparezca tu mitad. Tu celular y esta PC tienen que estar en el mismo Wi-Fi.`}>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Se une sola a este modo pareja como {el}. Ojo: lo que anotes ahí también le llega al celular de {el} de verdad cuando se sincronicen; borralo después con "No es compartido".
+      </p>
+      <div className="row-actions" style={{ justifyContent: 'flex-start' }}>
+        <button className="btn primary" onClick={abrir}>Abrir celular de prueba ({el})</button>
+        <button className="btn ghost danger" onClick={borrar}>Borrar celular de prueba</button>
+      </div>
+    </Card>
+  );
+}
+
 function Principal({ st }: { st: ParejaEstado }) {
   const { month, setMonth } = useApp();
   const yo = st.yo!;
@@ -596,6 +622,7 @@ function Principal({ st }: { st: ParejaEstado }) {
       </div>
 
       {st.ultima && conectar}
+      <CelularDePrueba st={st} el={el} code={code} />
 
       {fijo && <FijoSheet fila={fijo} mes={month} st={st} onClose={() => setFijo(null)} />}
       {anotar && <AnotarSheet st={st} mes={month} gasto={anotar.gasto} onClose={() => setAnotar(null)} />}

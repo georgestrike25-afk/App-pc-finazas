@@ -5,6 +5,7 @@ import { ensureInitialized } from './db/repo';
 import { registerPwa } from './ui/pwa';
 import { startAutoSync } from './sync/autoSync';
 import { startParejaSync } from './sync/pareja';
+import { iniciarPrueba } from './sync/prueba';
 import '@fontsource-variable/inter/wght.css';
 import './ui/styles.css';
 import { startNotificationIngest, startParejaAvisos } from './notifications/native';
@@ -38,5 +39,6 @@ async function start() {
   startParejaSync();
   startNotificationIngest();
   startParejaAvisos();
+  iniciarPrueba().catch(() => {});
 }
 start();
