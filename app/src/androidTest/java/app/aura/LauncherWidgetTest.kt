@@ -58,13 +58,19 @@ class LauncherWidgetTest {
             .setAction(WidgetActionReceiver.ACTION_PINNED)
             .putExtra(WidgetActionReceiver.EXTRA_CONFIG, Json.encodeToString(WidgetConfig(profile, Profiles.preset(profile))))
         val pending = PendingIntent.getBroadcast(context, 500 + type.ordinal, callback, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
-        val requested = manager.requestPinAppWidget(context.aura.widgets.component(type), null, pending)
-        if (!requested) return false
-        val add = device.wait(Until.findObject(By.text(Pattern.compile("(?i)(add to home screen|add automatically|add|añadir.*|agregar.*)"))), 8_000)
-        add?.click()
-        device.waitForIdle()
-        Thread.sleep(1500)
-        return add != null
+        repeat(2) {
+            device.findObject(By.text(Pattern.compile("(?i)wait|esperar")))?.click()
+            if (!manager.requestPinAppWidget(context.aura.widgets.component(type), null, pending)) return false
+            val add = device.wait(Until.findObject(By.text(Pattern.compile("(?i)(add to home screen|add automatically|add|añadir.*|agregar.*)"))), 20_000)
+            if (add != null) {
+                add.click()
+                device.waitForIdle()
+                Thread.sleep(2000)
+                return true
+            }
+            device.pressBack()
+        }
+        return false
     }
 
     @Test

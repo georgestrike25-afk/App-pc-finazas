@@ -91,7 +91,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             adb shell settings put system time_12_24 24
-            ./gradlew :app:connectedDebugAndroidTest || echo "AURA_TESTS_FAILED" > /tmp/aura_failed
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || echo "AURA_TESTS_FAILED" > /tmp/aura_failed
             mkdir -p shots
             adb exec-out run-as app.aura tar c files/aura-shots > shots.tar || true
             tar xf shots.tar -C shots || true

@@ -25,8 +25,14 @@ class AppScreensTest {
         device.takeScreenshot(File(out, "app_$name.png"))
     }
 
+    /** En emuladores recién arrancados puede aparecer «X no responde»: se descarta con «Esperar». */
+    private fun dismissSystemDialogs() {
+        device.findObject(By.text(java.util.regex.Pattern.compile("(?i)wait|esperar")))?.click()
+    }
+
     private fun tap(text: String) {
-        val node = device.wait(Until.findObject(By.text(text)), 5_000)
+        dismissSystemDialogs()
+        val node = device.wait(Until.findObject(By.text(text)), 15_000)
         assertNotNull("No se encontró «$text»", node)
         node.click()
     }
@@ -34,7 +40,8 @@ class AppScreensTest {
     @Test
     fun captureMainScreens() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            assertNotNull(device.wait(Until.findObject(By.text("Aura")), 8_000))
+            dismissSystemDialogs()
+            assertNotNull("La pantalla de inicio de Aura no apareció", device.wait(Until.findObject(By.text("Aura")), 30_000))
             shot("home")
             tap("Pronóstico"); shot("forecast")
             tap("Widgets"); shot("widgets")
