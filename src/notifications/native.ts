@@ -53,32 +53,41 @@ export async function ingestQuick(): Promise<number> {
   try {
     const { items: todas } = await Notificaciones.rapidas();
     if (!todas.length) return 0;
-    const items = await compartidosAPareja(todas);
-    const db = getDb();
-    const settings = await getSettings(db);
-    const deviceId = await getDeviceId(db);
-    const now = nowIso();
-    const plan = planQuick(items, { expenses: await db.expenses.toArray(), incomes: await db.incomes.toArray(), nowIso: now, deviceId, defaultUserPct: settings.defaultUserPct, categories: settings.categories });
-    await db.transaction('rw', [db.expenses, db.incomes, db.settings, db.meta, db.audit], async () => {
-      for (const e of plan.put) await db.expenses.put(e);
-      for (const e of plan.remove) await db.expenses.put({ ...e, deleted: true, updatedAt: now, deviceId });
-      for (const i of plan.incomes) await db.incomes.put(i);
-      if (plan.categories.length) await db.settings.put({ ...settings, categories: [...settings.categories, ...plan.categories], updatedAt: now });
-      if (plan.resolved.length) {
-        await setNotifReview((await getNotifReview()).filter((r) => !r.clave || !plan.resolved.includes(r.clave)));
-        const keys = new Set(await meta<string[]>('notifKeys', []));
-        plan.resolved.forEach((k) => keys.add(k));
-        await setMeta('notifKeys', [...keys].slice(-1000));
-      }
-      const n = plan.put.length + plan.incomes.length;
-      if (n || plan.remove.length) await addAudit(db, 'crear', 'gastos', undefined, `Anotación rápida: ${n} registro(s)${plan.remove.length ? `, ${plan.remove.length} deshecho(s)` : ''}`, deviceId);
-    });
+    const n = await registrarRapidas(todas);
     await Notificaciones.borrarRapidas({ cantidad: todas.length });
     notify();
-    return plan.put.length + plan.incomes.length;
+    return n;
   } finally {
     quickRunning = false;
   }
+}
+
+/**
+ * Registra anotaciones rápidas (las del widget y los avisos de Android, o las del widget de prueba
+ * de la PC): los compartidos van a la pareja y el resto a Gastos o Ingresos.
+ */
+export async function registrarRapidas(todas: QuickEntry[]): Promise<number> {
+  const items = await compartidosAPareja(todas);
+  const db = getDb();
+  const settings = await getSettings(db);
+  const deviceId = await getDeviceId(db);
+  const now = nowIso();
+  const plan = planQuick(items, { expenses: await db.expenses.toArray(), incomes: await db.incomes.toArray(), nowIso: now, deviceId, defaultUserPct: settings.defaultUserPct, categories: settings.categories });
+  await db.transaction('rw', [db.expenses, db.incomes, db.settings, db.meta, db.audit], async () => {
+    for (const e of plan.put) await db.expenses.put(e);
+    for (const e of plan.remove) await db.expenses.put({ ...e, deleted: true, updatedAt: now, deviceId });
+    for (const i of plan.incomes) await db.incomes.put(i);
+    if (plan.categories.length) await db.settings.put({ ...settings, categories: [...settings.categories, ...plan.categories], updatedAt: now });
+    if (plan.resolved.length) {
+      await setNotifReview((await getNotifReview()).filter((r) => !r.clave || !plan.resolved.includes(r.clave)));
+      const keys = new Set(await meta<string[]>('notifKeys', []));
+      plan.resolved.forEach((k) => keys.add(k));
+      await setMeta('notifKeys', [...keys].slice(-1000));
+    }
+    const n = plan.put.length + plan.incomes.length;
+    if (n || plan.remove.length) await addAudit(db, 'crear', 'gastos', undefined, `Anotación rápida: ${n} registro(s)${plan.remove.length ? `, ${plan.remove.length} deshecho(s)` : ''}`, deviceId);
+  });
+  return plan.put.length + plan.incomes.length;
 }
 
 /**

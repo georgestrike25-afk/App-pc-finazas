@@ -5,6 +5,7 @@ import { ConfirmHost, Help } from './components/ui';
 import { applyTheme, watchSystemTheme } from './theme';
 import { syncWidget } from '../notifications/native';
 import { esPrueba } from '../platform';
+import { WidgetPrueba } from './components/WidgetPrueba';
 import { monthLabel } from '../domain/dates';
 import { Tour } from './components/Tour';
 import { getLock, verifyPin } from './lock';
@@ -256,6 +257,7 @@ function Shell() {
               ))}
             </nav>
           )}
+          {esPrueba() && ctx?.data && <WidgetPrueba />}
           {ctx?.data ? <Page /> : <p className="muted">Cargando datos locales…</p>}
         </main>
         <nav className="bottom only-mobile" aria-label="Navegación principal">

@@ -661,3 +661,11 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .pj-sancor > summary { font-weight: 600; cursor: pointer; }
 .pj-sancor .page { margin-top: 12px; }
 .banner.prueba { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); }
+/* Celular de prueba (PC): imitación del widget de Android */
+.w-prueba { background: #1b2a24; color: #f1f7f0; border-radius: 22px; padding: 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+.w-prueba-h { display: flex; align-items: baseline; gap: 8px; }
+.w-prueba-h small { color: #b2c3b7; }
+.w-prueba-saldo { margin: 0; display: flex; align-items: center; gap: 8px; background: #22342c; border-radius: 12px; padding: 8px 12px; font-weight: 600; font-size: 0.9rem; }
+.w-prueba-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.w-prueba-btns .btn:not(.lime) { background: #22342c; color: #f1f7f0; border-color: #34483c; }
+.w-prueba-cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
