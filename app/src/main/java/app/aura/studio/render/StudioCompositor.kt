@@ -16,7 +16,7 @@ import app.aura.core.studio.StudioProject
  * Así parte del reloj queda detrás de la persona u objeto principal, como en los fondos con
  * «efecto de profundidad».
  */
-class StudioCompositor(private val painter: ClockPainter = ClockPainter()) {
+class StudioCompositor(private val painter: ClockPainter) {
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
     private val maskPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val srcIn = Paint(Paint.FILTER_BITMAP_FLAG).apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN) }
@@ -61,7 +61,7 @@ class StudioCompositor(private val painter: ClockPainter = ClockPainter()) {
     ) {
         val c = Canvas(out)
         drawPhoto(c, out.width, out.height, photo, project)
-        painter.draw(c, out.width, out.height, project.design, extras)
+        painter.draw(c, out.width, out.height, project.design, extras, Backdrop(photo, photoMatrix(out.width, out.height, photo, project)))
         subject?.let { c.drawBitmap(it, 0f, 0f, null) }
     }
 

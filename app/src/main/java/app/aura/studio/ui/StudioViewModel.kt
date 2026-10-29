@@ -46,7 +46,7 @@ import kotlin.math.roundToInt
 class StudioViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application.aura
     private val repo = app.studio
-    private val compositor = StudioCompositor()
+    private val compositor = StudioCompositor(app.aura.studio.render.ClockPainter(app.aura.studio.render.StudioFonts.resolver(application)))
     private val segmenter = SubjectSegmenter()
     private val renderLock = Mutex()
 

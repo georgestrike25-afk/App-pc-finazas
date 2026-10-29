@@ -21,6 +21,9 @@ import kotlin.random.Random
 /** Texto que acompaña a la hora (fecha y clima en caché), ya formateado por quien llama. */
 data class ClockExtras(val hours: String, val minutes: String, val subtitle: String?)
 
+/** Lo que hay detrás del reloj: imagen y su colocación en el lienzo (para el modo camaleón). */
+class Backdrop(val bitmap: Bitmap, val matrix: android.graphics.Matrix)
+
 /**
  * Pinta el reloj 3D paramétrico sobre un Canvas de software. Lo usan la vista previa, la exportación
  * y el fondo animado, así los tres muestran exactamente lo mismo.
@@ -28,15 +31,29 @@ data class ClockExtras(val hours: String, val minutes: String, val subtitle: Str
  * Capas (de atrás hacia adelante): sombra difusa → extrusión (profundidad) → brillo (neón) →
  * cara con el material → bisel (luz y sombra en el borde) → reflejo.
  */
-class ClockPainter {
+class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
     private var stoneTexture: Bitmap? = null
 
-    fun draw(canvas: Canvas, width: Int, height: Int, rawDesign: ClockDesign, extras: ClockExtras) {
+    fun draw(canvas: Canvas, width: Int, height: Int, rawDesign: ClockDesign, extras: ClockExtras, backdrop: Backdrop? = null) {
         val d = rawDesign.normalized()
         val textSize = d.size * width
-        val family = Typeface.create(d.font.androidFamily, Typeface.NORMAL)
-        val hoursFace = if (d.boldHours) Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD) else family
+        val custom = d.customFont?.let(fonts)
+        val family = custom ?: Typeface.create(d.font.androidFamily, Typeface.NORMAL)
+        val hoursFace = when {
+            !d.boldHours -> family
+            custom != null -> Typeface.create(custom, Typeface.BOLD)
+            else -> Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        val cx = d.centerX * width
+        val cy = d.centerY * height
+        // Transformación del reloj: giro y estiramiento alrededor de su centro.
+        val transform = android.graphics.Matrix().apply {
+            postScale(d.stretchX, d.stretchY, cx, cy)
+            postRotate(d.rotation, cx, cy)
+        }
+        val camo = if (d.chameleon > 0 && backdrop != null) chameleonShader(backdrop, transform, d) else null
+        val camoTone = if (camo != null) averageBehind(backdrop!!, cx, cy, textSize * d.stretchX * 2.2f, textSize * d.stretchY) else null
 
         val runs = listOf(Run(extras.hours, hoursFace), Run(extras.minutes, family))
         runs.forEach { r ->
@@ -52,7 +69,9 @@ class ClockPainter {
         val lx = cos(a).toFloat()
         val ly = sin(a).toFloat()
 
-        val layer = canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(), (d.opacity * 255 / 100f).roundToInt())
+        val outer = canvas.save()
+        canvas.concat(transform)
+        val layer = canvas.saveLayerAlpha(null, (d.opacity * 255 / 100f).roundToInt())
         var x = startX
         val positions = runs.map { r -> (x).also { x += r.width } }
 
@@ -73,7 +92,8 @@ class ClockPainter {
         val depthPx = textSize * 0.09f * d.depth / 100f
         if (depthPx >= 1f) {
             val steps = depthPx.roundToInt().coerceIn(1, 48)
-            val side = sideColor(d)
+            // En modo camaleón el canto toma el tono medio del fondo, más oscuro.
+            val side = camoTone?.let { mix(sideColor(d), shade(it, 0.6f), d.chameleon / 100f) } ?: sideColor(d)
             for (s in steps downTo 1) {
                 val t = s / steps.toFloat()
                 eachRun { r, px ->
@@ -104,6 +124,13 @@ class ClockPainter {
             paint.reset(textSize, r.face, d.letterSpacing)
             applyFace(paint, d, top, bottom, px, r.width)
             canvas.drawText(r.text, px, baseline, paint)
+            if (camo != null) {
+                paint.reset(textSize, r.face, d.letterSpacing)
+                paint.shader = camo
+                paint.alpha = (255 * d.chameleon / 100f).roundToInt()
+                paint.colorFilter = liftFilter(d.chameleonLift)
+                canvas.drawText(r.text, px, baseline, paint)
+            }
             if (d.material == ClockMaterial.GLASS) {
                 paint.reset(textSize, r.face, d.letterSpacing)
                 paint.style = Paint.Style.STROKE
@@ -141,12 +168,13 @@ class ClockPainter {
             }
         }
         canvas.restoreToCount(layer)
+        canvas.restoreToCount(outer)
 
-        // Subtítulo (fecha · clima), sobrio y legible.
+        // Subtítulo (fecha · clima), sobrio y legible; acompaña la posición y el alto del reloj.
         extras.subtitle?.takeIf { it.isNotBlank() }?.let { sub ->
             paint.reset(width * 0.042f, Typeface.create("sans-serif", Typeface.NORMAL), 0.02f)
             val sw = paint.measureText(sub)
-            val sy = baseline + textSize * 0.34f + width * 0.03f
+            val sy = cy + (baseline - cy + textSize * 0.34f) * d.stretchY + width * 0.03f
             paint.color = withAlpha(Color.BLACK, 120)
             paint.maskFilter = BlurMaskFilter(width * 0.006f, BlurMaskFilter.Blur.NORMAL)
             canvas.drawText(sub, d.centerX * width - sw / 2f, sy + width * 0.003f, paint)
@@ -165,6 +193,50 @@ class ClockPainter {
         val cx = n.centerX * width
         val cy = n.centerY * height
         return Rect((cx - w / 2).toInt(), (cy - textSize * 0.55f).toInt(), (cx + w / 2).toInt(), (cy + textSize * 0.75f).toInt())
+    }
+
+    /**
+     * La foto que queda detrás de los números, alineada píxel a píxel aunque el reloj esté girado o
+     * estirado: matriz local = transformación del reloj⁻¹ · colocación de la foto.
+     */
+    private fun chameleonShader(b: Backdrop, transform: android.graphics.Matrix, d: ClockDesign): Shader {
+        val inverse = android.graphics.Matrix()
+        transform.invert(inverse)
+        val local = android.graphics.Matrix(b.matrix).apply { postConcat(inverse) }
+        return BitmapShader(b.bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply { setLocalMatrix(local) }
+    }
+
+    /** Aclarar/oscurecer el camuflaje: escala y desplazamiento de luminancia. */
+    private fun liftFilter(lift: Int): android.graphics.ColorFilter? {
+        if (lift == 0) return null
+        val k = lift / 100f
+        val scale = if (k > 0) 1f - 0.35f * k else 1f + k * 0.6f
+        val offset = if (k > 0) 255f * 0.45f * k else 0f
+        val m = floatArrayOf(
+            scale, 0f, 0f, 0f, offset,
+            0f, scale, 0f, 0f, offset,
+            0f, 0f, scale, 0f, offset,
+            0f, 0f, 0f, 1f, 0f,
+        )
+        return android.graphics.ColorMatrixColorFilter(m)
+    }
+
+    /** Color medio del fondo en la zona del reloj (8×8 muestras). */
+    private fun averageBehind(b: Backdrop, cx: Float, cy: Float, w: Float, h: Float): Int {
+        val sample = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+        val m = android.graphics.Matrix(b.matrix).apply {
+            postTranslate(-(cx - w / 2f), -(cy - h / 2f))
+            postScale(8f / max(1f, w), 8f / max(1f, h))
+        }
+        Canvas(sample).drawBitmap(b.bitmap, m, Paint(Paint.FILTER_BITMAP_FLAG))
+        var r = 0
+        var g = 0
+        var bl = 0
+        val px = IntArray(64)
+        sample.getPixels(px, 0, 8, 0, 0, 8, 8)
+        px.forEach { r += Color.red(it); g += Color.green(it); bl += Color.blue(it) }
+        sample.recycle()
+        return Color.rgb(r / 64, g / 64, bl / 64)
     }
 
     private fun applyFace(p: Paint, d: ClockDesign, top: Float, bottom: Float, left: Float, width: Float) {

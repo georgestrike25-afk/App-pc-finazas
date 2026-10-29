@@ -26,8 +26,10 @@ import java.time.LocalDateTime
 /**
  * Fondo animado de Aura Studio: la hora del diseño activo en tiempo real.
  *
- * Consumo: no hay bucle de animación. Se redibuja solo con ACTION_TIME_TICK (una vez por minuto)
- * y al cambiar hora/zona horaria, y únicamente mientras el fondo es visible. La foto y la capa del
+ * Consumo: no hay bucle de animación. Se redibuja una vez por minuto, en el cambio exacto de minuto
+ * del reloj del sistema (temporizador propio alineado + ACTION_TIME_TICK como respaldo, porque
+ * algunos fabricantes retrasan esa difusión), al cambiar hora/zona horaria y al volver a verse.
+ * Mientras el fondo no se ve, no se procesa nada. La foto y la capa del
  * sujeto se componen una vez y se reutilizan; cada minuto solo se pinta el reloj.
  */
 class AuraWallpaperService : WallpaperService() {
@@ -36,13 +38,28 @@ class AuraWallpaperService : WallpaperService() {
     inner class AuraEngine : Engine() {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         private val lock = Mutex()
-        private val compositor = StudioCompositor()
+        private val compositor = StudioCompositor(app.aura.studio.render.ClockPainter(app.aura.studio.render.StudioFonts.resolver(this@AuraWallpaperService)))
         private var project: StudioProject? = null
         private var background: Bitmap? = null
         private var subject: Bitmap? = null
         private var width = 0
         private var height = 0
         private var registered = false
+        private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+        /** Programa el próximo redibujado justo después del cambio de minuto del sistema. */
+        private val minuteTick = object : Runnable {
+            override fun run() {
+                redraw(reload = false)
+                scheduleNextMinute()
+            }
+        }
+
+        private fun scheduleNextMinute() {
+            handler.removeCallbacks(minuteTick)
+            val now = System.currentTimeMillis()
+            handler.postDelayed(minuteTick, MINUTE - now % MINUTE + 40)
+        }
 
         private val ticker = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -60,14 +77,17 @@ class AuraWallpaperService : WallpaperService() {
         override fun onVisibilityChanged(visible: Boolean) {
             if (visible) {
                 register()
+                scheduleNextMinute()
                 // Al volver a verse se comprueba si el diseño activo cambió desde Aura Studio.
                 redraw(reload = true)
             } else {
+                handler.removeCallbacks(minuteTick)
                 unregister()
             }
         }
 
         override fun onDestroy() {
+            handler.removeCallbacks(minuteTick)
             unregister()
             scope.cancel()
             background?.recycle()
@@ -110,7 +130,7 @@ class AuraWallpaperService : WallpaperService() {
                             val extras = ClockExtrasBuilder.build(
                                 applicationContext, p.design, app.settings.current(), app.weather.cached(), LocalDateTime.now(),
                             )
-                            compositor.clock.draw(canvas, width, height, p.design, extras)
+                            compositor.clock.draw(canvas, width, height, p.design, extras, app.aura.studio.render.Backdrop(bg, android.graphics.Matrix()))
                             subject?.let { canvas.drawBitmap(it, 0f, 0f, null) }
                         }
                     } finally {
@@ -147,5 +167,6 @@ class AuraWallpaperService : WallpaperService() {
 
     companion object {
         private val EMPTY_COLOR = Color.rgb(0x10, 0x1D, 0x2B)
+        private const val MINUTE = 60_000L
     }
 }

@@ -17,6 +17,8 @@ enum class ClockMaterial { MINIMAL, METAL, GLASS, NEON, STONE }
 @Serializable
 data class ClockDesign(
     val font: FontChoice = FontChoice.THIN,
+    /** Fuente para números incluida en Aura (id de recurso, p. ej. "clock_bebas"); null = fuente del sistema [font]. */
+    val customFont: String? = null,
     val boldHours: Boolean = true,
     val color: Int = Brand.WHITE,
     /** Tinte del metal, brillo del neón y vetas de la piedra. */
@@ -30,6 +32,11 @@ data class ClockDesign(
     /** Centro del reloj, fracciones del lienzo (0–1). */
     val centerX: Float = 0.5f,
     val centerY: Float = 0.30f,
+    /** Estiramiento independiente a lo ancho y a lo alto (0,5–2,5). */
+    val stretchX: Float = 1f,
+    val stretchY: Float = 1f,
+    /** Giro del reloj en grados (−45 a 45), para alinearlo con la foto. */
+    val rotation: Float = 0f,
     val material: ClockMaterial = ClockMaterial.METAL,
     /** Dirección desde la que llega la luz, en grados (0 = derecha, 90 = abajo; 225 = arriba a la izquierda). */
     val lightAngle: Int = 225,
@@ -39,6 +46,13 @@ data class ClockDesign(
     val bevel: Int = 45,
     val reflection: Int = 35,
     val glow: Int = 0,
+    /**
+     * Modo camaleón (0–100): la cara de los números toma la foto que tienen detrás, así se
+     * mimetizan con el paisaje dondequiera que se muevan. 0 = desactivado.
+     */
+    val chameleon: Int = 0,
+    /** Aclara (+) u oscurece (−) el camuflaje para que los números se distingan (−100 a 100). */
+    val chameleonLift: Int = 25,
     val showDate: Boolean = true,
     val showWeather: Boolean = true,
     val hourFormat: HourFormat = HourFormat.SYSTEM,
@@ -51,12 +65,17 @@ data class ClockDesign(
         size = size.coerceIn(MIN_SIZE, MAX_SIZE),
         centerX = centerX.coerceIn(0f, 1f),
         centerY = centerY.coerceIn(0f, 1f),
+        stretchX = stretchX.coerceIn(MIN_STRETCH, MAX_STRETCH),
+        stretchY = stretchY.coerceIn(MIN_STRETCH, MAX_STRETCH),
+        rotation = rotation.coerceIn(-MAX_ROTATION, MAX_ROTATION),
         lightAngle = Math.floorMod(lightAngle, 360),
         shadow = shadow.coerceIn(0, 100),
         depth = depth.coerceIn(0, 100),
         bevel = bevel.coerceIn(0, 100),
         reflection = reflection.coerceIn(0, 100),
         glow = glow.coerceIn(0, 100),
+        chameleon = chameleon.coerceIn(0, 100),
+        chameleonLift = chameleonLift.coerceIn(-100, 100),
     )
 
     /** Cambia el acabado con valores de partida coherentes, conservando posición, tipografía y colores. */
@@ -73,6 +92,12 @@ data class ClockDesign(
         const val MAX_SIZE = 0.50f
         const val MIN_SPACING = -0.10f
         const val MAX_SPACING = 0.40f
+        const val MIN_STRETCH = 0.5f
+        const val MAX_STRETCH = 2.5f
+        const val MAX_ROTATION = 45f
+
+        /** Paso del ajuste fino de posición: 0,25 % del lienzo (≈3 px en un S24+). */
+        const val NUDGE = 0.0025f
     }
 }
 

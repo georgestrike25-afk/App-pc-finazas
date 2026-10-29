@@ -74,7 +74,9 @@ import app.aura.ui.components.Segmented
 import app.aura.ui.theme.Aura
 import kotlin.math.roundToInt
 
-private enum class EditorTab(val label: String) { FRAME("Encuadre"), CLOCK("Reloj"), EFFECTS("Efectos"), DEPTH("Profundidad"), EXPORT("Exportar") }
+private enum class EditorTab(val label: String) {
+    FRAME("Encuadre"), CLOCK("Reloj"), ADJUST("Ajuste"), EFFECTS("Efectos"), DEPTH("Profundidad"), EXPORT("Exportar")
+}
 
 @Composable
 fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: () -> Unit, onEditMask: () -> Unit) {
@@ -121,14 +123,20 @@ fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: ()
                         .onSizeChanged { area = it }
                         .transformGesture(
                             key = tab,
-                            onTransform = { pan, zoom ->
+                            onTransform = { pan, zoom, rotation ->
                                 if (area.width == 0) return@transformGesture
                                 when (tab) {
                                     EditorTab.FRAME -> viewModel.frameLive {
                                         it.copy(zoom = it.zoom * zoom, offsetX = it.offsetX + pan.x / area.width, offsetY = it.offsetY + pan.y / area.height)
                                     }
                                     else -> viewModel.designLive {
-                                        it.copy(size = it.size * zoom, centerX = it.centerX + pan.x / area.width, centerY = it.centerY + pan.y / area.height)
+                                        it.copy(
+                                            size = it.size * zoom,
+                                            centerX = it.centerX + pan.x / area.width,
+                                            centerY = it.centerY + pan.y / area.height,
+                                            // Giro con dos dedos (solo en Ajuste, para no girar sin querer).
+                                            rotation = if (tab == EditorTab.ADJUST) it.rotation + rotation else it.rotation,
+                                        )
                                     }
                                 }
                             },
@@ -144,7 +152,11 @@ fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: ()
                     }
                     Surface(color = Color(0x88000000), shape = RoundedCornerShape(8.dp), modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp)) {
                         Text(
-                            if (tab == EditorTab.FRAME) "Arrastrá y pellizcá para encuadrar la foto" else "Arrastrá y pellizcá para mover y escalar el reloj",
+                            when (tab) {
+                                EditorTab.FRAME -> "Arrastrá y pellizcá para encuadrar la foto"
+                                EditorTab.ADJUST -> "Dos dedos: mover, escalar y girar el reloj"
+                                else -> "Arrastrá y pellizcá para mover y escalar el reloj"
+                            },
                             color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         )
                     }
@@ -175,6 +187,7 @@ fun StudioEditorScreen(viewModel: StudioViewModel, projectId: String, onBack: ()
                     when (tab) {
                         EditorTab.FRAME -> FramePanel(viewModel, project)
                         EditorTab.CLOCK -> ClockPanel(viewModel, project)
+                        EditorTab.ADJUST -> AdjustPanel(viewModel, project)
                         EditorTab.EFFECTS -> EffectsPanel(viewModel, project)
                         EditorTab.DEPTH -> DepthPanel(viewModel, project, onEditMask)
                         EditorTab.EXPORT -> ExportPanel(viewModel, onLive = { intent ->
@@ -229,13 +242,35 @@ private fun ColumnScope.FramePanel(vm: StudioViewModel, p: StudioProject) {
 @Composable
 private fun ColumnScope.ClockPanel(vm: StudioViewModel, p: StudioProject) {
     val d = p.design
+    Text("Fuentes para números", style = MaterialTheme.typography.bodyMedium)
+    Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        app.aura.studio.render.StudioFonts.all.forEach { f ->
+            val on = d.customFont == f.id
+            Surface(
+                onClick = { vm.design { it.copy(customFont = f.id) } },
+                shape = RoundedCornerShape(12.dp),
+                color = if (on) Aura.tokens.accent.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = if (on) androidx.compose.foundation.BorderStroke(1.5.dp, Aura.tokens.accent) else null,
+            ) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "09:50",
+                        fontFamily = androidx.compose.ui.text.font.FontFamily(androidx.compose.ui.text.font.Font(f.res)),
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Text(f.label, style = MaterialTheme.typography.labelSmall, color = Aura.tokens.mutedText)
+                }
+            }
+        }
+    }
+    Text("Fuentes del sistema", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
     Chips(
         listOf(
             FontChoice.THIN to "Fina", FontChoice.LIGHT to "Ligera", FontChoice.REGULAR to "Normal", FontChoice.MEDIUM to "Media",
             FontChoice.BLACK to "Negra", FontChoice.CONDENSED to "Estrecha", FontChoice.SERIF to "Serif", FontChoice.MONO to "Mono",
         ),
-        d.font,
-    ) { f -> vm.design { it.copy(font = f) } }
+        if (d.customFont == null) d.font else null,
+    ) { f -> vm.design { it.copy(font = f!!, customFont = null) } }
     LabeledRow("Horas en negrita") { Switch(d.boldHours, { v -> vm.design { it.copy(boldHours = v) } }) }
     Text("Color", style = MaterialTheme.typography.bodyMedium)
     ColorSwatches(INKS.map { Color(it) }, Color(d.color), { c -> vm.design { it.copy(color = c.toArgb()) } }, Modifier.padding(vertical = 8.dp))
@@ -253,12 +288,51 @@ private fun ColumnScope.ClockPanel(vm: StudioViewModel, p: StudioProject) {
 }
 
 @Composable
+private fun ColumnScope.AdjustPanel(vm: StudioViewModel, p: StudioProject) {
+    val d = p.design
+    StudioSlider("Ancho", d.stretchX, 0.5f..2.5f, "${(d.stretchX * 100).roundToInt()} %", { v -> vm.designLive { it.copy(stretchX = v) } }, vm::commit)
+    StudioSlider("Alto", d.stretchY, 0.5f..2.5f, "${(d.stretchY * 100).roundToInt()} %", { v -> vm.designLive { it.copy(stretchY = v) } }, vm::commit)
+    StudioSlider("Tamaño", d.size, 0.10f..0.50f, "${(d.size * 100).roundToInt()} %", { v -> vm.designLive { it.copy(size = v) } }, vm::commit)
+    StudioSlider("Rotación", d.rotation, -45f..45f, "${"%.1f".format(d.rotation)}°", { v -> vm.designLive { it.copy(rotation = v) } }, vm::commit)
+    StudioSlider("Posición horizontal", d.centerX, 0f..1f, "${"%.1f".format(d.centerX * 100)} %", { v -> vm.designLive { it.copy(centerX = v) } }, vm::commit)
+    StudioSlider("Posición vertical", d.centerY, 0f..1f, "${"%.1f".format(d.centerY * 100)} %", { v -> vm.designLive { it.copy(centerY = v) } }, vm::commit)
+    Text("Ajuste fino", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+    val n = app.aura.core.studio.ClockDesign.NUDGE
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
+        OutlinedButton(onClick = { vm.design { it.copy(centerX = it.centerX - n) } }) { Text("←") }
+        OutlinedButton(onClick = { vm.design { it.copy(centerY = it.centerY - n) } }) { Text("↑") }
+        OutlinedButton(onClick = { vm.design { it.copy(centerY = it.centerY + n) } }) { Text("↓") }
+        OutlinedButton(onClick = { vm.design { it.copy(centerX = it.centerX + n) } }) { Text("→") }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedButton(onClick = { vm.design { it.copy(rotation = it.rotation - 0.5f) } }) { Text("↺ 0,5°") }
+        OutlinedButton(onClick = { vm.design { it.copy(rotation = it.rotation + 0.5f) } }) { Text("↻ 0,5°") }
+        TextButton(onClick = { vm.design { it.copy(rotation = 0f, stretchX = 1f, stretchY = 1f) } }) { Text("Restablecer forma") }
+    }
+    Text(
+        "Usá estos controles para encajar los números exactamente en la foto: cada flecha mueve un 0,25 % de la pantalla.",
+        style = MaterialTheme.typography.bodySmall, color = Aura.tokens.mutedText,
+    )
+}
+
+@Composable
 private fun ColumnScope.EffectsPanel(vm: StudioViewModel, p: StudioProject) {
     val d = p.design
     Chips(
         listOf(ClockMaterial.METAL to "Metal", ClockMaterial.GLASS to "Vidrio", ClockMaterial.NEON to "Neón", ClockMaterial.STONE to "Piedra", ClockMaterial.MINIMAL to "Minimal"),
         d.material,
     ) { m -> vm.design { it.withMaterial(m) } }
+    LabeledRow("Camaleón", supporting = "Los números toman los colores de la foto que tienen detrás") {
+        Switch(d.chameleon > 0, { v -> vm.design { it.copy(chameleon = if (v) 85 else 0) } })
+    }
+    if (d.chameleon > 0) {
+        StudioSlider("Mimetización", d.chameleon.toFloat(), 1f..100f, "${d.chameleon} %", { v -> vm.designLive { it.copy(chameleon = v.roundToInt()) } }, vm::commit)
+        StudioSlider(
+            "Aclarar / oscurecer", d.chameleonLift.toFloat(), -100f..100f,
+            if (d.chameleonLift > 0) "+${d.chameleonLift}" else "${d.chameleonLift}",
+            { v -> vm.designLive { it.copy(chameleonLift = v.roundToInt()) } }, vm::commit,
+        )
+    }
     if (d.material == ClockMaterial.METAL || d.material == ClockMaterial.NEON || d.material == ClockMaterial.STONE) {
         Text(if (d.material == ClockMaterial.NEON) "Color del neón" else "Tinte", style = MaterialTheme.typography.bodyMedium)
         ColorSwatches(INKS.map { Color(it) }, Color(d.accentColor), { c -> vm.design { it.copy(accentColor = c.toArgb()) } }, Modifier.padding(vertical = 8.dp))
@@ -298,6 +372,14 @@ private fun ColumnScope.DepthPanel(vm: StudioViewModel, p: StudioProject, onEdit
 
 @Composable
 private fun ColumnScope.ExportPanel(vm: StudioViewModel, onLive: (android.content.Intent) -> Unit) {
+    val context = LocalContext.current
+    val liveActive = remember { WallpaperApplier.isLiveWallpaperActive(context) }
+    Text(
+        if (liveActive) "✓ El fondo animado de Aura está activo: la hora avanza sola." else "Ahora no está activo el fondo animado de Aura.",
+        style = MaterialTheme.typography.bodySmall,
+        color = if (liveActive) Aura.tokens.accent else Aura.tokens.mutedText,
+        modifier = Modifier.padding(bottom = 8.dp),
+    )
     Button(
         onClick = { vm.prepareLive(onLive) },
         modifier = Modifier.fillMaxWidth().height(52.dp),

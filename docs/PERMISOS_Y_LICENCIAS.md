@@ -32,4 +32,6 @@ Kotlin 2.1.0, kotlinx-coroutines 1.9.0, kotlinx-serialization 1.7.3, AndroidX Co
 
 La ubicación va por `LocationManager` y el nombre del lugar por `Geocoder` del sistema. Google Play Services solo se usa para la segmentación local de Aura Studio (ML Kit Subject Segmentation, gratuita, en el dispositivo: `com.google.android.gms:play-services-mlkit-subject-segmentation`, términos de ML Kit). Sin Play Services, Studio funciona en modo manual.
 
+Fuentes para números de Aura Studio: 20 familias de Google Fonts bajo **SIL Open Font License 1.1**, recortadas a los caracteres del reloj; las licencias están en `docs/licencias/fuentes/`.
+
 Iconos, icono de marca y layouts: diseño propio de este repositorio.

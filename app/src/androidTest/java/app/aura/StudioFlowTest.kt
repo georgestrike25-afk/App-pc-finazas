@@ -30,6 +30,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import kotlin.math.abs
 
 /**
  * Flujo completo de Aura Studio en un dispositivo: importar foto → componer reloj 3D → máscara
@@ -74,7 +75,7 @@ class StudioFlowTest {
 
         // Reloj centrado sobre la cabeza del sujeto para comprobar la superposición.
         var project = created.copy(design = created.design.copy(centerY = 0.27f, size = 0.32f))
-        val compositor = StudioCompositor()
+        val compositor = StudioCompositor(app.aura.studio.render.ClockPainter(app.aura.studio.render.StudioFonts.resolver(context)))
 
         // Máscara manual: un trazo grueso sobre la silueta (coordenadas normalizadas de la foto).
         val strokes = listOf(
@@ -126,6 +127,52 @@ class StudioFlowTest {
         WallpaperApplier.applyStatic(context, withMask, WallpaperApplier.Target.HOME)
         repo.setActive(project.id)
         assertEquals(project.id, repo.activeIdBlocking())
+    }
+
+    @Test
+    fun chameleonBlendsWithThePhotoAndNewFontsStretchAndRotation() = runBlocking {
+        val repo = context.aura.studio
+        val p = repo.create(syntheticPhoto(), "Camaleón")
+        val photo = repo.photo(p.id)!!
+        val compositor = StudioCompositor(app.aura.studio.render.ClockPainter(app.aura.studio.render.StudioFonts.resolver(context)))
+        val w = screen.width / 2
+        val h = screen.height / 2
+
+        // Con camuflaje total y sin efectos, el reloj debe desaparecer en la foto (alineación exacta),
+        // aunque esté girado y estirado.
+        val invisible = p.copy(
+            design = p.design.withMaterial(ClockMaterial.MINIMAL).copy(
+                shadow = 0, chameleon = 100, chameleonLift = 0, showDate = false, showWeather = false,
+                rotation = 12f, stretchX = 1.4f, stretchY = 0.8f, customFont = "clock_bebas",
+            ),
+        )
+        val camo = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        compositor.render(camo, photo, null, invisible, extras)
+        val plain = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        compositor.drawPhoto(Canvas(plain), w, h, photo, invisible)
+        var diff = 0.0
+        var n = 0
+        for (y in 0 until h step 4) for (x in 0 until w step 4) {
+            val a = camo.getPixel(x, y)
+            val b = plain.getPixel(x, y)
+            diff += abs(Color.red(a) - Color.red(b)) + abs(Color.green(a) - Color.green(b)) + abs(Color.blue(a) - Color.blue(b))
+            n++
+        }
+        println("AURA_CHAMELEON diff=${diff / n}")
+        assertTrue("el camuflaje no coincide con la foto: ${diff / n}", diff / n < 3.0)
+
+        // Ejemplos visibles: camaleón con relieve, fuentes incluidas, ancho/alto y giro.
+        val samples = mapOf(
+            "studio_chameleon" to p.design.withMaterial(ClockMaterial.METAL).copy(chameleon = 90, chameleonLift = 30, customFont = "clock_anton"),
+            "studio_font_orbitron" to p.design.withMaterial(ClockMaterial.NEON).copy(customFont = "clock_orbitron", accentColor = 0xFF7FD6FF.toInt()),
+            "studio_font_bebas_tall" to p.design.withMaterial(ClockMaterial.GLASS).copy(customFont = "clock_bebas", stretchY = 1.8f, stretchX = 0.9f),
+            "studio_font_playfair_rotated" to p.design.withMaterial(ClockMaterial.STONE).copy(customFont = "clock_playfair", rotation = -8f),
+        )
+        samples.forEach { (name, design) ->
+            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            compositor.render(bmp, photo, null, p.copy(design = design), extras)
+            save(name, bmp)
+        }
     }
 
     @Test

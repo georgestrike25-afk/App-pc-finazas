@@ -83,6 +83,19 @@ class StudioTest {
         assertEquals(100, n.opacity)
         assertEquals(ClockDesign.MAX_SPACING, n.letterSpacing)
         assertEquals(0, n.glow)
+        val t = ClockDesign(stretchX = 9f, stretchY = 0.1f, rotation = 120f).normalized()
+        assertEquals(ClockDesign.MAX_STRETCH, t.stretchX)
+        assertEquals(ClockDesign.MIN_STRETCH, t.stretchY)
+        assertEquals(ClockDesign.MAX_ROTATION, t.rotation)
+    }
+
+    @Test
+    fun `older projects without the new fields still load`() {
+        val old = """{"id":"a","name":"x","createdAt":1,"updatedAt":2,"design":{"font":"LIGHT","size":0.3}}"""
+        val p = Json { ignoreUnknownKeys = true }.decodeFromString<StudioProject>(old)
+        assertEquals(1f, p.design.stretchX)
+        assertEquals(0f, p.design.rotation)
+        assertEquals(null, p.design.customFont)
     }
 
     @Test
