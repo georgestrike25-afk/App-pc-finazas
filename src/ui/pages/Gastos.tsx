@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord, softDelete } from '../../db/repo';
-import { occurrencesForMonth, FREQUENCY_LABEL } from '../../domain/expenses';
+import { occurrencesForMonth, FREQUENCY_LABEL, type ExpenseOccurrence } from '../../domain/expenses';
+import type { ParejaPago } from '../../domain/pareja';
+import { HandCoins } from 'lucide-react';
 import { formatDate, monthLabel } from '../../domain/dates';
 import { sum } from '../../domain/money';
 import type { Expense, ExpenseKind } from '../../domain/types';
@@ -43,12 +45,63 @@ function HalfButton({ e, partner }: { e: Expense; partner: string }) {
   );
 }
 
-export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; emptyText: string }) {
+/** Fecha de la ocurrencia del mes (los gastos que se repiten, el mismo día de ese mes). */
+const fechaEnMes = (e: Expense, month: string) => (e.month === month ? e.date : `${month}-${e.date.slice(8, 10)}`);
+
+type Fila = { k: 'g'; o: ExpenseOccurrence; f: string; c: string } | { k: 'p'; p: ParejaPago; f: string; c: string };
+
+/** Pago entre la pareja ("Pagado"): se ve en la lista pero no suma, porque tu parte ya está en los gastos. */
+function PagoFila({ p, yo, otro, narrow, shared }: { p: ParejaPago; yo: string; otro: string; narrow: boolean; shared: boolean }) {
+  const mio = p.de === yo;
+  const titulo = mio ? `Pago a ${otro}` : `${otro} te pasó`;
+  const nota = mio ? 'No suma: tu parte ya está en los gastos compartidos' : 'Entra a tu plata hasta cobrar; no es un gasto';
+  if (narrow) {
+    return (
+      <li className="exp-item pj-pago">
+        <span className="cat-ic pj-ok" aria-hidden><HandCoins /></span>
+        <div className="exp-main">
+          <div className="exp-top">
+            <span className="exp-concept">{titulo}</span>
+            <Money value={p.monto} className="exp-amount muted" />
+          </div>
+          <div className="exp-sub">{formatDate(p.fecha)} · {p.medio}</div>
+          <div className="exp-foot"><span className="exp-badges"><Badge tone="info">{nota}</Badge></span></div>
+        </div>
+      </li>
+    );
+  }
+  return (
+    <tr className="pj-pago">
+      <td>
+        <div className="concept-cell">
+          <span className="cat-ic pj-ok" aria-hidden><HandCoins /></span>
+          <div>
+            <strong>{titulo}</strong>
+            <div className="small muted">{formatDate(p.fecha)} · {p.medio}</div>
+          </div>
+        </div>
+      </td>
+      {shared && <td />}
+      {shared && <td />}
+      <td className="num muted"><Money value={p.monto} /></td>
+      <td><Badge tone="info">No suma</Badge></td>
+      <td className="small muted">{nota}</td>
+    </tr>
+  );
+}
+
+export function ExpenseTable({ kinds, emptyText, pagos }: { kinds: ExpenseKind[]; emptyText: string; pagos?: boolean }) {
   const { data, month } = useApp();
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   const [occ, setOcc] = useState<Expense | null>(null);
   const items = useMemo(() => occurrencesForMonth(data.expenses.filter((e) => kinds.includes(e.kind)), month), [data.expenses, kinds, month]);
   const byId = new Map(data.expenses.map((e) => [e.id, e]));
+  // Del más nuevo al más viejo (y lo anotado último primero, si es del mismo día).
+  const pa = data.pareja;
+  const filas: Fila[] = [
+    ...items.map((o): Fila => ({ k: 'g', o, f: fechaEnMes(byId.get(o.expenseId)!, month), c: byId.get(o.expenseId)!.createdAt })),
+    ...(pagos && pa ? pa.pagos.filter((p) => !p.deleted && p.mes === month).map((p): Fila => ({ k: 'p', p, f: p.fecha, c: p.createdAt })) : []),
+  ].sort((a, b) => b.f.localeCompare(a.f) || b.c.localeCompare(a.c));
   // Total y porcentaje solo aportan si este mes hay algún gasto compartido.
   const shared = kinds.includes('hogar') && items.some((o) => o.userPct !== 100);
   const canSplit = kinds.includes('hogar');
@@ -59,12 +112,14 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
     softDelete('expenses', e.id, `Eliminación de gasto "${e.concept}"`);
   return (
     <>
-      {items.length === 0 ? (
+      {filas.length === 0 ? (
         <Empty title={`Sin gastos en ${monthLabel(month)}`}>{emptyText}</Empty>
       ) : narrow ? (
         <>
           <ul className="exp-list" data-testid="gastos-lista">
-            {items.map((o) => {
+            {filas.map((fila) => {
+              if (fila.k === 'p') return <PagoFila key={fila.p.id} p={fila.p} yo={pa!.yo} otro={pa!.nombreOtro} narrow shared={shared} />;
+              const o = fila.o;
               const e = byId.get(o.expenseId)!;
               return (
                 <li key={o.expenseId} className="exp-item">
@@ -113,7 +168,9 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
               </tr>
             </thead>
             <tbody>
-              {items.map((o) => {
+              {filas.map((fila) => {
+                if (fila.k === 'p') return <PagoFila key={fila.p.id} p={fila.p} yo={pa!.yo} otro={pa!.nombreOtro} narrow={false} shared={shared} />;
+                const o = fila.o;
                 const e = byId.get(o.expenseId)!;
                 return (
                   <tr key={o.expenseId}>
@@ -224,7 +281,7 @@ export function GastosPage() {
       </div>
       <div className="cols cols-main">
       <Card title={`Gastos de ${monthLabel(month)}`} help={<><p>Todos tus gastos del mes: los que anotaste a mano y los que llegaron con los resúmenes. Si es compartido con tu pareja, se cuenta solo tu parte (botón ½).</p><p>Nada se cuenta dos veces: una compra con tarjeta se cuenta una sola vez; el pago del resumen no es un gasto nuevo; si anotaste algo que después llega en el resumen (mismo importe, ±5 días), se vincula; las cuotas se cuentan una por una en Deudas.</p></>}>
-        <ExpenseTable kinds={['cotidiano', 'personal', 'hogar']} emptyText="Anotá lo que pagás en efectivo o débito. Lo de la tarjeta llega solo cuando subís el resumen." />
+        <ExpenseTable pagos kinds={['cotidiano', 'personal', 'hogar']} emptyText="Anotá lo que pagás en efectivo o débito. Lo de la tarjeta llega solo cuando subís el resumen." />
       </Card>
       <ByCategory />
       </div>
