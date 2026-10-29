@@ -54,6 +54,7 @@ public class AnotarActivity extends Activity {
     private String pareja = "";
     private boolean pagoPareja;
     private LinearLayout quien;
+    private TextView mitad;
 
     private int color(int id) {
         return getColor(id);
@@ -177,6 +178,11 @@ public class AnotarActivity extends Activity {
         LinearLayout.LayoutParams pm = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         pm.topMargin = dp(12);
         hoja.addView(monto, pm);
+
+        // Modo pareja: cuánto le toca poner a cada uno (mitad y mitad)
+        mitad = texto("", 14, true, color(R.color.brote_texto2));
+        mitad.setGravity(Gravity.CENTER);
+        hoja.addView(mitad, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // Modo pareja: quién pagó el compartido
         quien = new LinearLayout(this);
@@ -310,7 +316,15 @@ public class AnotarActivity extends Activity {
             op.setSelected(on);
         }
         cats.setVisibility(tipo.equals("ingreso") ? View.GONE : View.VISIBLE);
-        quien.setVisibility(tipo.equals("compartido") && !pareja.isEmpty() ? View.VISIBLE : View.GONE);
+        boolean conPareja = tipo.equals("compartido") && !pareja.isEmpty();
+        quien.setVisibility(conPareja ? View.VISIBLE : View.GONE);
+        long total = centavos();
+        // La mitad de quien no pagó: como en la app, si el monto es impar el centavo de más queda para quien pagó.
+        long delOtro = total / 2;
+        mitad.setVisibility(conPareja && total > 0 ? View.VISIBLE : View.GONE);
+        mitad.setText(pagoPareja
+                ? "Le ponés a " + pareja + " " + Brote.pesos(delOtro) + " (la mitad)"
+                : pareja + " te pone " + Brote.pesos(delOtro) + " (la mitad)");
         for (int k = 0; k < quien.getChildCount(); k++) {
             TextView op = (TextView) quien.getChildAt(k);
             boolean on = pagoPareja == (Boolean) op.getTag();

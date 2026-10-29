@@ -145,8 +145,8 @@ function Mitades({ total, paga, pctPaga, yo, nombres }: { total: Cents; paga: Mi
   const p = partes({ total, paga, pctPaga });
   return (
     <div className="pj-halves">
-      <div><Av name={nombres[yo]} /><span>Tu parte<strong><Money value={p[yo]} /></strong></span></div>
-      <div><Av name={nombres[otro(yo)]} /><span>A {nombres[otro(yo)]} le aparece<strong><Money value={p[otro(yo)]} /></strong></span></div>
+      <div><Av name={nombres[yo]} /><span>{paga === yo ? 'Pagás vos' : 'Le ponés a ' + nombres[paga]}<strong><Money value={paga === yo ? total : p[yo]} /></strong></span></div>
+      <div><Av name={nombres[otro(yo)]} /><span>{paga === yo ? `${nombres[otro(yo)]} te pone` : `Pagó ${nombres[paga]}`}<strong><Money value={paga === yo ? p[otro(yo)] : total} /></strong></span></div>
     </div>
   );
 }
@@ -408,6 +408,18 @@ function SinMandar({ el }: { el: string }) {
   );
 }
 
+/** Lo que hay que ponerle al otro por un gasto: si pagó el otro, vos le ponés tu parte; si pagaste vos, te pone la suya. */
+function Poner({ g, yo, n }: { g: ParejaGasto; yo: Miembro; n: Record<Miembro, string> }) {
+  const p = partes(g);
+  const pagueYo = g.paga === yo;
+  return (
+    <span className="m">
+      <Money value={pagueYo ? p[otro(yo)] : p[yo]} />
+      <small>{pagueYo ? `${n[otro(yo)]} te pone` : `le ponés a ${n[g.paga]}`}</small>
+    </span>
+  );
+}
+
 function Principal({ st }: { st: ParejaEstado }) {
   const { month, setMonth } = useApp();
   const yo = st.yo!;
@@ -492,8 +504,8 @@ function Principal({ st }: { st: ParejaEstado }) {
           </div>
         </section>
         <div className="pj-split">
-          <div className="card"><span className="pj-l"><Av name={el} />Pagó {el} en {mesNombre(month)}</span><Money value={mes.pagoElOtro} className="amount" /><small className="muted">tu parte: {formatARS(mes.tuParteDeLoSuyo)}</small></div>
-          <div className="card"><span className="pj-l"><Av name={n[yo]} />Pagaste vos</span><Money value={mes.pagasteVos} className="amount" /><small className="muted">su parte: {formatARS(mes.suParteDeLoTuyo)}</small></div>
+          <div className="card"><span className="pj-l"><Av name={el} />Pagó {el} en {mesNombre(month)}</span><Money value={mes.pagoElOtro} className="amount" /><small className="muted">vos le ponés: {formatARS(mes.tuParteDeLoSuyo)}</small></div>
+          <div className="card"><span className="pj-l"><Av name={n[yo]} />Pagaste vos</span><Money value={mes.pagasteVos} className="amount" /><small className="muted">{el} te pone: {formatARS(mes.suParteDeLoTuyo)}</small></div>
         </div>
       </div>
 
@@ -519,13 +531,13 @@ function Principal({ st }: { st: ParejaEstado }) {
                       <span className="t">{f.item.nombre}</span>
                       <span className="s">
                         {solo ? `solo tuyo · fijo, se carga solo` : f.item.paga === 'ambos' ? 'los dos · ' : `${quien === yo ? 'lo pagás vos' : `lo paga ${n[quien]}`} · `}
-                        {!solo && (f.item.pctPaga === 0 ? `todo ${quien === yo ? `de ${n[otro(yo)]}` : 'tuyo'}${f.item.fijo ? ' · fijo, se carga solo' : ''}` : f.gasto ? (f.item.pctPaga === 50 ? 'mitad y mitad' : `${pct(f.item.pctPaga)} / ${pct(100 - f.item.pctPaga)}`) : f.item.opcional ? 'opcional' : 'falta el monto')}
+                        {!solo && (f.item.pctPaga === 0 ? `todo ${quien === yo ? `de ${n[otro(yo)]}` : 'tuyo'}${f.item.fijo ? ' · fijo, se carga solo' : ''}` : f.gasto ? `${formatARS(f.gasto.total)} en total · ${f.item.pctPaga === 50 ? 'mitad y mitad' : `${pct(f.item.pctPaga)} / ${pct(100 - f.item.pctPaga)}`}` : f.item.opcional ? 'opcional' : 'falta el monto')}
                       </span>
                     </span>
                     {solo ? (
                       <span className="m"><Money value={f.item.fijo} /></span>
                     ) : f.gasto ? (
-                      <span className="m"><Money value={partes(f.gasto)[yo]} /><small>de {formatARS(f.gasto.total)}</small></span>
+                      <Poner g={f.gasto} yo={yo} n={n} />
                     ) : puedo ? (
                       <span className="pj-falta"><Plus aria-hidden />Poner</span>
                     ) : (
@@ -554,7 +566,7 @@ function Principal({ st }: { st: ParejaEstado }) {
                       <button className="linklike" onClick={() => noEsCompartido(g)}>No es compartido</button>
                     </span>
                   </span>
-                  <span className="m"><Money value={partes(g)[yo]} /><small>tu parte</small></span>
+                  <Poner g={g} yo={yo} n={n} />
                 </li>
               ))}
               {pagos.map((x) => (

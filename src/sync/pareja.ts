@@ -222,7 +222,7 @@ export function novedades(st: ParejaEstado): Novedad[] {
     out.push({
       id: g.id,
       titulo: `${el} anotó ${g.concepto} ${formatARS(g.total).replace(/,00$/, '')}`,
-      texto: g.paga === yo ? `Lo pagaste vos: ${el} te debe ${formatARS(g.total - mia).replace(/,00$/, '')}.` : `Compartido: tu parte es ${formatARS(mia).replace(/,00$/, '')}. Ya se sumó a tus gastos.`,
+      texto: g.paga === yo ? `Lo pagaste vos: ${el} te pone ${formatARS(g.total - mia).replace(/,00$/, '')}.` : `Lo pagó ${el}: vos le ponés ${formatARS(mia).replace(/,00$/, '')} (tu mitad). Ya se sumó a tus gastos.`,
     });
   }
   for (const p of st.doc.pagos) {
