@@ -4,7 +4,7 @@ import { useApp } from '../store';
 import { desktop, isNative } from '../../platform';
 import { iniciarHost, type HostInfo } from '../../sync/parejaHost';
 import { loadSyncConfig } from '../../sync/autoSync';
-import { cambiarPareja, codigoDe, compartirConPareja, crearPareja, sinMandar, elegirYo, loadPareja, onPareja, runParejaSync, salirPareja, unirPareja, type ParejaEstado } from '../../sync/pareja';
+import { cambiarPareja, codigoDe, compartirConPareja, crearPareja, noMandar, sinMandar, elegirYo, loadPareja, onPareja, runParejaSync, salirPareja, unirPareja, type ParejaEstado } from '../../sync/pareja';
 import { fijosDelMes, leerCodigoPareja, otro, partes, saldo, type FilaFijo, type Miembro, type ParejaGasto, type ParejaItem, type ParejaPago } from '../../domain/pareja';
 import { addMonths, formatDate, monthLabel, monthOf, todayIso, type MonthKey } from '../../domain/dates';
 import { formatARS, type Cents } from '../../domain/money';
@@ -89,6 +89,12 @@ function Conectar() {
           <button className="btn" disabled={busy || !code.trim()} onClick={() => unir()}><Link2 aria-hidden />Unirme</button>
           {scan && <QrScanner onRead={leido} onClose={() => setScan(false)} />}
         </Card>
+        {desktop() && (
+          <p className="pj-note" style={{ gridColumn: '1 / -1' }}>
+            <Info aria-hidden />
+            <span><strong>En la PC:</strong> si ya activaste el modo pareja en tu celular, no lo crees acá. En tu celular: Gastos → Compartidos → "Mandar el código por WhatsApp (o para la PC)", copialo y pegalo en "Unirme con el código". Después elegí "Soy" con tu nombre.</span>
+          </p>
+        )}
         <Card title={<span className="card-t"><Users aria-hidden size={18} />Crear el modo pareja</span>} help="Lo crea uno de los dos; el otro se une con el código. Los celulares se sincronizan entre ellos cuando están en el mismo Wi-Fi (o con el hotspot de uno). La PC es opcional.">
           <div className="form-grid">
             <Field label="Tu nombre">{(id) => <input id={id} value={yo} onChange={(e) => setYo(e.target.value)} />}</Field>
@@ -381,9 +387,9 @@ function Diagnostico({ st, el }: { st: ParejaEstado; el: string }) {
 }
 
 /** Gastos marcados como compartidos en Gastos (½ o la tilde) que quedaron solo en este celular. */
-function SinMandar({ el }: { el: string }) {
+function SinMandar({ el, st }: { el: string; st: ParejaEstado }) {
   const { data, month, toast } = useApp();
-  const lista = sinMandar(data.expenses, month);
+  const lista = sinMandar(data.expenses, month, st.noMandar);
   if (!lista.length) return null;
   const mandar = async (ids: string[]) => {
     let n = 0;
@@ -391,7 +397,8 @@ function SinMandar({ el }: { el: string }) {
     toast(n === 1 ? `Mandado: a ${el} le aparece su parte.` : `${n} gastos mandados a ${el}.`);
   };
   return (
-    <Card title={`Compartidos que ${el} todavía no ve`} className="pj-pend" help="Son gastos que marcaste como compartidos en Gastos antes de usar el modo pareja (o con la tilde de compartido). Quedaron solo en tu celular: mandalos para que le aparezca su parte.">
+    <Card title={`Compartidos que ${el} todavía no ve`} className="pj-pend" help={`Son gastos que marcaste como compartidos antes de usar el modo pareja (con el botón ½, la tilde de compartido o la planilla que subías). Quedaron solo en tu app. "Mandar" se lo pasa a ${el} para que le aparezca su mitad. Si ${el} ya lo cargó (por ejemplo, el alquiler en la planilla del mes), tocá "No mandar" para no duplicarlo.`}>
+      <p className="small muted" style={{ marginTop: 0 }}>Están solo en tu app. Mandá los que {el} todavía no cargó; si ya los cargó, tocá "No mandar".</p>
       <ul className="pj-list">
         {lista.map((e) => (
           <li key={e.id} className="pj-item">
@@ -399,7 +406,10 @@ function SinMandar({ el }: { el: string }) {
               <span className="t">{e.concept}</span>
               <span className="s">{formatDate(e.date)} · {e.paidBy === 'pareja' ? `pagó ${el}` : 'pagaste vos'} · {formatARS(e.totalAmount)}</span>
             </span>
-            <button className="btn small" onClick={() => mandar([e.id])}>Mandar</button>
+            <span className="row-actions">
+              <button className="btn small ghost" onClick={() => noMandar([e.id])}>No mandar</button>
+              <button className="btn small" onClick={() => mandar([e.id])}>Mandar</button>
+            </span>
           </li>
         ))}
       </ul>
@@ -484,7 +494,7 @@ function Principal({ st }: { st: ParejaEstado }) {
   return (
     <div className="page pareja">
       <MonthNav month={month} setMonth={setMonth} />
-      <SinMandar el={el} />
+      <SinMandar el={el} st={st} />
       {!st.ultima && conectar}
       <div className="cols cols-main">
         <section className="cash-card pj-hero" aria-label={`Saldo con ${el}`}>

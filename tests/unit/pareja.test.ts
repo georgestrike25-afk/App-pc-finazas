@@ -8,7 +8,7 @@ import { getDb, setDb } from '../../src/db/db';
 import { loadDataSet, saveRecord, softDelete } from '../../src/db/repo';
 import { cashStatus } from '../../src/domain/cash';
 import { codigoPareja, fijosDelMes, leerCodigoPareja, nuevoDoc, partes, planEspejo, saldo, unirDocs, type ParejaDoc, type ParejaGasto } from '../../src/domain/pareja';
-import { aplicarEspejo, cambiarPareja, codigoDe, compartirConPareja, crearPareja, sinMandar, elegirYo, loadPareja, syncPareja, unirPareja } from '../../src/sync/pareja';
+import { aplicarEspejo, cambiarPareja, codigoDe, compartirConPareja, crearPareja, noMandar, sinMandar, elegirYo, loadPareja, syncPareja, unirPareja } from '../../src/sync/pareja';
 import type { Expense, Settings } from '../../src/domain/types';
 
 const T = '2026-01-02T10:00:00.000Z';
@@ -273,6 +273,10 @@ describe('compartir desde Gastos con el modo pareja activo', () => {
     await crearPareja({ yo: 'Antonella', otro: 'Jorge' }, db);
     const e = await saveRecord<Expense>('expenses', expense({ kind: 'hogar', month: '2026-10', date: '2026-10-25', totalAmount: 30_000, userPct: 50, paidBy: 'usuario', concept: 'Verdulería' }), 't', db);
     expect(sinMandar((await loadDataSet(db)).expenses, '2026-10').map((x) => x.id)).toEqual([e.id]);
+    await noMandar(['otro-id'], db);
+    expect(sinMandar((await loadDataSet(db)).expenses, '2026-10', (await loadPareja(db))!.noMandar).map((x) => x.id)).toEqual([e.id]);
+    await noMandar([e.id], db);
+    expect(sinMandar((await loadDataSet(db)).expenses, '2026-10', (await loadPareja(db))!.noMandar)).toEqual([]);
     expect(await compartirConPareja(e, db)).toBe(true);
     const st = (await loadPareja(db))!;
     const g = st.doc.gastos.find((x) => x.concepto === 'Verdulería')!;

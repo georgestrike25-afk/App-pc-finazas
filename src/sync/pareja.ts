@@ -28,6 +28,8 @@ export interface ParejaEstado {
   error?: string;
   /** Diagnóstico: cómo fue el último intento con cada dirección, y las de este dispositivo. */
   contactos?: Record<string, { ok: boolean; at: string; motivo?: string }>;
+  /** Gastos del hogar de antes que el usuario eligió no mandar a la pareja. */
+  noMandar?: string[];
   host?: HostInfo;
 }
 
@@ -199,9 +201,14 @@ export async function compartirConPareja(e: Expense, db: FinanzasDB = getDb()): 
 }
 
 /** Gastos compartidos anotados en este dispositivo que nunca se mandaron a la pareja (de este mes y el anterior). */
-export function sinMandar(expenses: Expense[], mes: string): Expense[] {
+export function sinMandar(expenses: Expense[], mes: string, excluir: string[] = []): Expense[] {
   const desde = `${Number(mes.slice(0, 4)) - (mes.slice(5) === '01' ? 1 : 0)}-${mes.slice(5) === '01' ? '12' : String(Number(mes.slice(5)) - 1).padStart(2, '0')}`;
-  return expenses.filter((e) => !e.deleted && e.kind === 'hogar' && e.frequency === 'unica' && !e.id.startsWith('pareja-') && e.month >= desde);
+  return expenses.filter((e) => !e.deleted && e.kind === 'hogar' && e.frequency === 'unica' && !e.id.startsWith('pareja-') && e.month >= desde && !excluir.includes(e.id));
+}
+
+/** "No mandar": el gasto queda solo en tu app y deja de aparecer en la lista. */
+export async function noMandar(ids: string[], db: FinanzasDB = getDb()) {
+  await mutar(db, (cur) => (cur ? { ...cur, noMandar: [...new Set([...(cur.noMandar ?? []), ...ids])].slice(-500) } : undefined));
 }
 
 export interface Novedad {
