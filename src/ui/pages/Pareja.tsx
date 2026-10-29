@@ -601,9 +601,6 @@ function Principal({ st }: { st: ParejaEstado }) {
   return (
     <div className="page pareja">
       <MonthNav month={month} setMonth={setMonth} />
-      <SinMandar el={el} st={st} />
-      <SegundoPlano el={el} />
-      {!st.ultima && conectar}
       <div className="cols cols-main">
         <section className="cash-card pj-hero" aria-label={`Saldo con ${el}`}>
           <span className="pj-pair"><Av name={n[yo]} /><ArrowRightLeft aria-hidden size={16} /><Av name={el} />Saldo con {el}</span>
@@ -626,6 +623,9 @@ function Principal({ st }: { st: ParejaEstado }) {
           <div className="card"><span className="pj-l"><Av name={n[yo]} />Pagaste vos</span><Money value={mes.pagasteVos} className="amount" /><small className="muted">{el} te pone: {formatARS(mes.suParteDeLoTuyo)}</small></div>
         </div>
       </div>
+      <SinMandar el={el} st={st} />
+      <SegundoPlano el={el} />
+      {!st.ultima && conectar}
 
       <div className="cols cols-main">
         <Card

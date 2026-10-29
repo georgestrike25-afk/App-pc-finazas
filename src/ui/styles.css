@@ -303,7 +303,8 @@ tr.dim { opacity: 0.5; }
 .calc-lines li, .list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
 .list li:last-child { border-bottom: 0; }
 .dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; margin: 0 0 12px; }
-.dl dt { color: var(--muted); font-size: 0.88rem; }
+.dl dt { color: var(--muted); font-size: 0.88rem; min-width: 0; overflow-wrap: normal; }
+.dl .dl-full { grid-column: 1 / -1; }
 .dl dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .dl.three { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr) minmax(110px, auto)); }
 .timeline { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; }

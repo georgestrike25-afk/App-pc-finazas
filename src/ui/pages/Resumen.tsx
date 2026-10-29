@@ -127,8 +127,7 @@ export function ResumenPage() {
             <dd><Money value={r.info.cardPaymentsTotal} /></dd>
             {data.pareja ? (
               <>
-                <dt>Sancor con tu pareja</dt>
-                <dd className="small">Con el modo pareja, su parte de Sancor está en el saldo de Compartidos y se salda con "Pagado".</dd>
+                <dt className="dl-full">Sancor con tu pareja: su parte está en el saldo de Compartidos y se salda con "Pagado".</dt>
               </>
             ) : (
               <>
