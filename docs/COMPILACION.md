@@ -51,15 +51,9 @@ One UI puede restringir apps en segundo plano. Para que el clima se actualice co
 
 ## Firma
 
-Android solo instala una actualización si está firmada con la **misma clave** que la versión instalada. Por eso el release se firma con una clave fija de Aura que **no está en el repositorio**: CI la toma de dos secretos de GitHub Actions.
+Android solo instala una actualización si está firmada con la **misma clave** que la versión instalada. Por eso el release se firma siempre con la misma clave de Aura, que **no está en el repositorio**:
 
-| Secreto | Contenido |
-|---|---|
-| `AURA_KEYSTORE_BASE64` | El keystore PKCS12 (alias `aura`) codificado en base64 |
-| `AURA_KEYSTORE_PASSWORD` | Su contraseña |
-
-Se cargan en GitHub › repositorio › **Settings › Secrets and variables › Actions › New repository secret**.
-
-- Sin los secretos, CI compila igual pero **no publica** el APK, porque cambiaría de firma en cada compilación.
-- Localmente: `./gradlew assembleRelease -Paura.storeFile=/ruta/aura-release.p12 -Paura.storePassword=…`, o las variables `AURA_STORE_FILE` y `AURA_STORE_PASSWORD`.
-- Guardá una copia del keystore en un lugar seguro: si se pierde, la próxima versión no se podrá instalar como actualización.
+- **Automática (por defecto):** la primera compilación genera la clave y la guarda en la caché de GitHub Actions (`aura-signing-v1`); las siguientes la reutilizan. No hay que configurar nada.
+- **Limitación:** GitHub borra una caché si pasan 7 días sin usarla. Si no se compila durante más de una semana, se genera una clave nueva y hay que **desinstalar Aura una vez** antes de instalar la versión nueva. Las cachés de una rama tampoco se comparten con otras ramas.
+- **Opcional, permanente:** si se cargan los secretos `AURA_KEYSTORE_BASE64` (keystore PKCS12 en base64, alias `aura`) y `AURA_KEYSTORE_PASSWORD`, tienen prioridad sobre la clave automática.
+- **Localmente:** `./gradlew assembleRelease -Paura.storeFile=/ruta/clave.p12 -Paura.storePassword=…`, o las variables `AURA_STORE_FILE` y `AURA_STORE_PASSWORD`. Sin clave, se firma con la de depuración.

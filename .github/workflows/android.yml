@@ -35,7 +35,33 @@ jobs:
       - name: Pruebas unitarias
         run: ./gradlew --stacktrace :core:test :app:testDebugUnitTest
 
-      - name: Clave de firma fija (secretos del repositorio)
+      # Firma automática: la clave se crea una sola vez y se reutiliza desde la caché de Actions,
+      # así cada APK se instala como actualización del anterior. Si existen los secretos
+      # AURA_KEYSTORE_BASE64 / AURA_KEYSTORE_PASSWORD, tienen prioridad.
+      - name: Recuperar clave de firma
+        id: keycache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.aura-signing
+          key: aura-signing-v1
+
+      - name: Crear clave de firma (solo la primera vez)
+        if: steps.keycache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.aura-signing
+          pw=$(openssl rand -base64 24 | tr -d '/+=')
+          keytool -genkeypair -keystore ~/.aura-signing/aura-release.p12 -storetype PKCS12 -alias aura \
+            -keyalg RSA -keysize 3072 -validity 10950 -storepass "$pw" -dname "CN=Aura, O=Aura, C=AR"
+          printf '%s' "$pw" > ~/.aura-signing/password
+
+      - name: Guardar clave de firma
+        if: steps.keycache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.aura-signing
+          key: aura-signing-v1
+
+      - name: Configurar firma
         id: signing
         env:
           KEYSTORE_B64: ${{ secrets.AURA_KEYSTORE_BASE64 }}
@@ -43,15 +69,16 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/aura-release.p12"
-            {
-              echo "AURA_STORE_FILE=$RUNNER_TEMP/aura-release.p12"
-              echo "AURA_STORE_PASSWORD=$KEYSTORE_PASSWORD"
-            } >> "$GITHUB_ENV"
-            echo "signed=true" >> "$GITHUB_OUTPUT"
+            echo "AURA_STORE_FILE=$RUNNER_TEMP/aura-release.p12" >> "$GITHUB_ENV"
+            echo "AURA_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "Firma: secretos del repositorio"
           else
-            echo "::warning::Faltan los secretos AURA_KEYSTORE_BASE64 / AURA_KEYSTORE_PASSWORD: el APK no se publica (su firma cambiaría en cada compilación)."
-            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::add-mask::$(cat ~/.aura-signing/password)"
+            echo "AURA_STORE_FILE=$HOME/.aura-signing/aura-release.p12" >> "$GITHUB_ENV"
+            echo "AURA_STORE_PASSWORD=$(cat ~/.aura-signing/password)" >> "$GITHUB_ENV"
+            echo "Firma: clave automática en caché"
           fi
+          echo "signed=true" >> "$GITHUB_OUTPUT"
 
       - name: APK debug y release
         run: ./gradlew --stacktrace :app:assembleDebug :app:assembleRelease
