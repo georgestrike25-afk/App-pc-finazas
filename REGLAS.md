@@ -60,10 +60,17 @@ Ejemplos:
 - Pasado de 7 días, cada día de más se paga a `monto fijo / 7`.
   - Ej.: si el fijo / 7 = $1.000 y en el mes hubo 9 días de pasiva → fijo + 2 × $1.000 = fijo + $2.000.
 - Las horas de pasiva (19–07 los martes, 14–07 los fines de semana) quedan registradas, pero no cambian el monto.
-- ❓ ¿Puede haber días de pasiva sin guardia activa? (Con 6–7 guardias por mes no se llega a 9 días.)
-- ❓ Con menos de 7 días en el mes, ¿se cobra igual el fijo completo?
+- Puede haber **días de pasiva sin guardia activa** (ocasional). Se anotan en Calendar como evento `Pasiva`.
+- Menos de 7 días solo ocurre por vacaciones o licencia (ver 7).
 
-## 7. Cuándo se cobra
+## 7. Vacaciones y licencias
+
+- En vacaciones o licencia se cobra **igual el básico**, aunque no se completen las 6 guardias.
+- Se anotan en Calendar como evento `Vacaciones` o `Licencia` (todo el día), para que la app no marque el mes como incompleto.
+- ❓ Plus por vacaciones: monto y forma de cálculo a confirmar con el recibo.
+- ❓ Pasiva en meses con vacaciones o licencia: ¿se cobra el fijo completo?
+
+## 8. Cuándo se cobra
 
 El sueldo se cobra el **día 4** de cada mes. Para algo hecho en el mes M:
 
@@ -81,7 +88,7 @@ Ejemplo, octubre:
 - Básico + pasivas de octubre → 4 de noviembre.
 - 7.ª guardia de octubre (cualquier día) → 4 de diciembre.
 
-## 8. Valores (configurables, con historial)
+## 9. Valores (configurables, con historial)
 
 Cada valor se carga con una **fecha de vigencia**, para no recalcular meses viejos cuando cambia:
 
@@ -92,13 +99,15 @@ Cada valor se carga con una **fecha de vigencia**, para no recalcular meses viej
 
 Mientras no haya valores, la app calcula **en horas y días**, que ya permite controlar el recibo.
 
-## 9. Anotación en Google Calendar
+## 10. Anotación en Google Calendar
 
 - `Guardia`: evento de 07:00 a 07:00. Los martes, como evento repetido; los fines de semana, a medida que se asignan.
 - La app cuenta las guardias del mes y marca la última como extra si hay más de 6 (se puede cambiar a mano).
 - Horas extra sueltas: evento `Extra` con su hora real de inicio y fin.
+- Días de pasiva sin guardia: evento `Pasiva`.
+- Vacaciones o licencia: evento `Vacaciones` / `Licencia` de todo el día.
 
-## 10. Recibo
+## 11. Recibo
 
 - Se descarga de la web (PDF u otro formato de oficina).
 - La app lo importa, reconoce los conceptos y los compara con lo calculado: debería cobrar / cobré / diferencia.
