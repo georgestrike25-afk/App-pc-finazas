@@ -36,7 +36,7 @@ Cada tamaño tiene su propia composición (no se encoge lo mismo):
 | Widget | Pequeño | Mediano | Grande |
 |---|---|---|---|
 | Clock | Hora | Hora + fecha | Hora grande + fecha larga |
-| Weather | Icono + temperatura | Icono, temperatura, ubicación, máx./mín. | + condición, estado y **mañana** |
+| Weather | Icono + temperatura | Icono, temperatura, ubicación, máx./mín. y **fecha** | **Fecha**, condición, ubicación · máx./mín., estado y **mañana** |
 | Duo | Hora + icono, temperatura, ubicación | Hora y fecha │ clima │ **mañana** | Hora grande, fecha, clima con condición y meta, **mañana** |
 | Forecast | Clima actual + 3 horas | Hora, clima, 4 horas + **mañana** | + 6 horas y 5 días |
 | Night | Hora + clima mínimo | Hora │ clima y fecha | Hora grande, fecha, condición |

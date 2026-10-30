@@ -156,6 +156,20 @@ class WidgetRenderingTest {
     }
 
     @Test
+    fun weatherWidgetShowsTodaysDate() {
+        listOf(SizeClass.MEDIUM to (220 to 96), SizeClass.LARGE to (360 to 110)).forEach { (size, d) ->
+            val (view, bmp) = inflate(WidgetType.WEATHER, size, Profiles.MINIMAL, d.first, d.second)
+            save("weather_date_${size.name.lowercase()}", bmp)
+            val date = view.findViewById<TextClock>(R.id.w_date)
+            assertNotNull("Weather $size sin fecha", date)
+            assertEquals(View.VISIBLE, date.visibility)
+            assertTrue("Weather $size: fecha vacía", date.text.isNotBlank())
+            val (hidden, _) = inflate(WidgetType.WEATHER, size, Profiles.MINIMAL.copy(showDate = false), d.first, d.second)
+            assertEquals(View.GONE, hidden.findViewById<TextClock>(R.id.w_date).visibility)
+        }
+    }
+
+    @Test
     fun tomorrowForecastIsShownWhereThereIsRoom() {
         listOf(
             Triple(WidgetType.FORECAST, SizeClass.MEDIUM, 320 to 190),

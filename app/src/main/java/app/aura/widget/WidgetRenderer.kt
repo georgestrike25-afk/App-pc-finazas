@@ -88,6 +88,7 @@ class WidgetRenderer(private val context: Context) {
         applyLayout(views, style, size)
         applyColors(views, style)
         if (r.type.showsClock) applyClock(views, r, style, size)
+        applyDate(views, style, size)
         if (r.type.showsWeather) applyWeather(views, r, style, size)
         applyClicks(views, r)
         return views
@@ -187,6 +188,10 @@ class WidgetRenderer(private val context: Context) {
         TIME_TEXT.forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, timeSp) }
         v.setTextViewTextSize(R.id.w_ampm, TypedValue.COMPLEX_UNIT_SP, maxOf(11f, timeSp * 0.28f))
 
+    }
+
+    /** Fecha (TextClock: el sistema la cambia sola a medianoche). Aplica a toda composición que la tenga. */
+    private fun applyDate(v: RemoteViews, style: WidgetStyle, size: SizeClass) {
         val skeleton = if (size == SizeClass.LARGE) ClockPatterns.DATE_SKELETON_LONG else ClockPatterns.DATE_SKELETON_SHORT
         val datePattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), skeleton)
         setClockFormat(v, R.id.w_date, datePattern, datePattern)

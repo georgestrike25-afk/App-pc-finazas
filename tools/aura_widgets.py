@@ -207,9 +207,10 @@ def composition(t, s, c):
         if s == "medium":
             # 2×1: ícono y temperatura más compactos para que entren ciudad y máx./mín. completas.
             return "horizontal", [icon("w_icon", 34), spacer_w(6), temp(c, 38),
-                                  col("w_col", [place(c, 12), hilo(c, 12, MT.format(2)), status(c)], extra=ML.format(8))]
+                                  col("w_col", [place(c, 12), hilo(c, 12, MT.format(2)), date(c, 12, 2), status(c)], extra=ML.format(8))]
         return "horizontal", [icon("w_icon", 52), spacer_w(12), temp(c, 52),
-                              col("w_col", [condition(c), place(c, 13, MT.format(2)), hilo(c, 13, MT.format(2)), status(c)],
+                              col("w_col", [date(c, 13, 0), condition(c, 13, MT.format(2)),
+                                            text(c, "w_meta", 12, default=c.sample("Madrid · 24° / 14°", ""), extra=MT.format(2)), status(c)],
                                   extra=ML.format(14), width="0dp", weight="1"),
                               tomorrow_cell(c, 11, 26, 12, weighted=False, margin=ML.format(8))]
     if t == "duo":

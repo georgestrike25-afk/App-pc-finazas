@@ -317,9 +317,15 @@ fun WidgetPreview(
                     Spacer(Modifier.width(if (size == SizeClass.LARGE) 12.dp else 6.dp))
                     Temp()
                     Column(Modifier.padding(start = if (size == SizeClass.LARGE) 14.dp else 8.dp)) {
-                        if (size == SizeClass.LARGE) Text(content.conditionLabel, style = ts(14f), maxLines = 1)
-                        Secondary(place, if (size == SizeClass.LARGE) 13f else 12f, if (size == SizeClass.LARGE) 2.dp else 0.dp)
-                        Secondary(hilo, if (size == SizeClass.LARGE) 13f else 12f, 2.dp)
+                        if (size == SizeClass.LARGE) {
+                            DateLine(13f, 0.dp)
+                            Text(content.conditionLabel, style = ts(13f), maxLines = 1, modifier = Modifier.padding(top = 2.dp))
+                            Secondary(listOfNotNull(place, hilo).joinToString(" · "), 12f, 2.dp)
+                        } else {
+                            Secondary(place, 12f, 0.dp)
+                            Secondary(hilo, 12f, 2.dp)
+                            DateLine(12f, 2.dp)
+                        }
                     }
                     if (size == SizeClass.LARGE) {
                         Spacer(Modifier.weight(1f))
