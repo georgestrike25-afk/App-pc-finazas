@@ -1,6 +1,7 @@
 package app.aura.core
 
 import app.aura.core.studio.ClockDesign
+import app.aura.core.studio.ClockLayout
 import app.aura.core.studio.ClockMaterial
 import app.aura.core.studio.ClockText
 import app.aura.core.studio.Framing
@@ -127,5 +128,19 @@ class StudioTest {
         )
         val json = Json.encodeToString(p)
         assertEquals(p, Json.decodeFromString<StudioProject>(json))
+    }
+
+    @Test
+    fun datePatternsAndClockLayoutDefaults() {
+        val loc: (String) -> String = { "skel:$it" }
+        assertEquals("dd/MM/yyyy", app.aura.core.time.ClockPatterns.datePattern(app.aura.core.time.DateStyle.NUMERIC, false, loc))
+        assertEquals("EEE dd/MM/yyyy", app.aura.core.time.ClockPatterns.datePattern(app.aura.core.time.DateStyle.WEEKDAY_NUMERIC, true, loc))
+        assertEquals("skel:EEEEdMMMM", app.aura.core.time.ClockPatterns.datePattern(app.aura.core.time.DateStyle.TEXT, true, loc))
+        val d = ClockDesign()
+        assertEquals(ClockLayout.HORIZONTAL, d.layout)
+        assertEquals(app.aura.core.time.DateStyle.TEXT, d.dateStyle)
+        // Proyectos guardados antes de estas opciones siguen cargando.
+        val old = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.decodeFromString(ClockDesign.serializer(), "{\"size\":0.3}")
+        assertEquals(ClockLayout.HORIZONTAL, old.layout)
     }
 }

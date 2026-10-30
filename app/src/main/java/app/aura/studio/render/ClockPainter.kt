@@ -8,9 +8,11 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import app.aura.core.studio.ClockDesign
+import app.aura.core.studio.ClockLayout
 import app.aura.core.studio.ClockMaterial
 import kotlin.math.cos
 import kotlin.math.max
@@ -37,44 +39,21 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
 
     fun draw(canvas: Canvas, width: Int, height: Int, rawDesign: ClockDesign, extras: ClockExtras, backdrop: Backdrop? = null) {
         val d = rawDesign.normalized()
-        val textSize = d.size * width
-        val custom = d.customFont?.let(fonts)
-        val family = custom ?: Typeface.create(d.font.androidFamily, Typeface.NORMAL)
-        val hoursFace = when {
-            !d.boldHours -> family
-            custom != null -> Typeface.create(custom, Typeface.BOLD)
-            else -> Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-        }
+        val lay = layout(d, extras, width, height)
+        val textSize = lay.textSize
         val cx = d.centerX * width
         val cy = d.centerY * height
-        // Transformación del reloj: giro y estiramiento alrededor de su centro.
-        val transform = android.graphics.Matrix().apply {
-            postScale(d.stretchX, d.stretchY, cx, cy)
-            postRotate(d.rotation, cx, cy)
-        }
-        val total0 = run {
-            // Ancho total para la caja de la deformación (mismo cálculo que más abajo).
-            var t = 0f
-            listOf(extras.hours to hoursFace, extras.minutes to family).forEach { (txt, face) ->
-                paint.reset(textSize, face, d.letterSpacing); t += paint.measureText(txt)
-            }
-            t
-        }
-        val (shiftH, shiftM) = spreadShifts(d, cx, total0, width)
-        val warpMatrix = warpMatrix(d, transform, cx - total0 / 2f - shiftH, cy, total0 + shiftH + shiftM, textSize, width, height)
+        val transform = lay.transform
+        val warpMatrix = warpMatrix(d, transform, lay.box, width, height)
         // Transformación completa del reloj en pantalla: deformación ∘ (giro + estiramiento).
         val full = android.graphics.Matrix(transform).apply { warpMatrix?.let { postConcat(it) } }
         val camo = if (d.chameleon > 0 && backdrop != null) chameleonShader(backdrop, full, d) else null
-        val camoTone = if (camo != null) averageBehind(backdrop!!, cx, cy, textSize * d.stretchX * 2.2f, textSize * d.stretchY) else null
-
-        val runs = listOf(Run(extras.hours, hoursFace), Run(extras.minutes, family))
-        runs.forEach { r ->
-            paint.reset(textSize, r.face, d.letterSpacing)
-            r.width = paint.measureText(r.text)
+        val camoTone = if (camo != null) {
+            averageBehind(backdrop!!, cx, cy, lay.box.width() * d.stretchX, lay.box.height() * d.stretchY)
+        } else {
+            null
         }
-        val total = runs.sumOf { it.width.toDouble() }.toFloat()
-        val startX = d.centerX * width - total / 2f
-        val baseline = d.centerY * height + textSize * 0.36f
+        val runs = lay.runs
 
         // Luz: vector unitario hacia donde llega; la sombra y la extrusión van al lado contrario.
         val a = Math.toRadians(d.lightAngle.toDouble())
@@ -84,19 +63,15 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         val outer = canvas.save()
         canvas.concat(full)
         val layer = canvas.saveLayerAlpha(null, (d.opacity * 255 / 100f).roundToInt())
-        // Separación: las horas se alejan hacia la izquierda y los minutos hacia la derecha.
-        val positions = listOf(startX - shiftH, startX + runs[0].width + shiftM)
-
-        fun eachRun(block: (Run, Float) -> Unit) = runs.forEachIndexed { i, r -> block(r, positions[i]) }
 
         // 1. Sombra difusa
         if (d.shadow > 0) {
             val dist = textSize * (0.03f + 0.07f * d.shadow / 100f)
-            eachRun { r, px ->
+            runs.forEach { r ->
                 paint.reset(textSize, r.face, d.letterSpacing)
                 paint.color = Color.argb((90 + 120 * d.shadow / 100f).roundToInt().coerceAtMost(220), 0, 0, 0)
                 paint.maskFilter = BlurMaskFilter(textSize * (0.02f + 0.06f * d.shadow / 100f), BlurMaskFilter.Blur.NORMAL)
-                canvas.drawText(r.text, px - lx * dist, baseline - ly * dist, paint)
+                canvas.drawText(r.text, r.x - lx * dist, r.baseline - ly * dist, paint)
             }
         }
 
@@ -108,10 +83,10 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
             val side = camoTone?.let { mix(sideColor(d), shade(it, 0.6f), d.chameleon / 100f) } ?: sideColor(d)
             for (s in steps downTo 1) {
                 val t = s / steps.toFloat()
-                eachRun { r, px ->
+                runs.forEach { r ->
                     paint.reset(textSize, r.face, d.letterSpacing)
                     paint.color = shade(side, 1f - 0.45f * t)
-                    canvas.drawText(r.text, px - lx * depthPx * t, baseline - ly * depthPx * t, paint)
+                    canvas.drawText(r.text, r.x - lx * depthPx * t, r.baseline - ly * depthPx * t, paint)
                 }
             }
         }
@@ -120,35 +95,35 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         if (d.glow > 0) {
             val glowColor = if (d.material == ClockMaterial.NEON) d.accentColor else d.color
             listOf(0.22f, 0.10f, 0.04f).forEach { k ->
-                eachRun { r, px ->
+                runs.forEach { r ->
                     paint.reset(textSize, r.face, d.letterSpacing)
                     paint.color = withAlpha(glowColor, (60 + 150 * d.glow / 100f).roundToInt().coerceAtMost(230))
                     paint.maskFilter = BlurMaskFilter(textSize * k * (0.4f + d.glow / 100f), BlurMaskFilter.Blur.NORMAL)
-                    canvas.drawText(r.text, px, baseline, paint)
+                    canvas.drawText(r.text, r.x, r.baseline, paint)
                 }
             }
         }
 
         // 4. Cara
-        val top = baseline - textSize * 0.74f
-        val bottom = baseline + textSize * 0.02f
-        eachRun { r, px ->
+        runs.forEach { r ->
+            val top = r.baseline - textSize * 0.74f
+            val bottom = r.baseline + textSize * 0.02f
             paint.reset(textSize, r.face, d.letterSpacing)
-            applyFace(paint, d, top, bottom, px, r.width)
-            canvas.drawText(r.text, px, baseline, paint)
+            applyFace(paint, d, top, bottom, r.x, r.width)
+            canvas.drawText(r.text, r.x, r.baseline, paint)
             if (camo != null) {
                 paint.reset(textSize, r.face, d.letterSpacing)
                 paint.shader = camo
                 paint.alpha = (255 * d.chameleon / 100f).roundToInt()
                 paint.colorFilter = liftFilter(d.chameleonLift)
-                canvas.drawText(r.text, px, baseline, paint)
+                canvas.drawText(r.text, r.x, r.baseline, paint)
             }
             if (d.material == ClockMaterial.GLASS) {
                 paint.reset(textSize, r.face, d.letterSpacing)
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = max(1f, textSize * 0.012f)
                 paint.color = withAlpha(Color.WHITE, 170)
-                canvas.drawText(r.text, px, baseline, paint)
+                canvas.drawText(r.text, r.x, r.baseline, paint)
             }
         }
 
@@ -156,27 +131,29 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         if (d.bevel > 0) {
             val w = max(1f, textSize * 0.018f * d.bevel / 100f)
             val off = w * 0.6f
-            eachRun { r, px ->
+            runs.forEach { r ->
                 paint.reset(textSize, r.face, d.letterSpacing)
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = w
                 paint.color = withAlpha(Color.WHITE, (60 + 140 * d.bevel / 100f).roundToInt())
-                canvas.drawText(r.text, px + lx * off, baseline + ly * off, paint)
+                canvas.drawText(r.text, r.x + lx * off, r.baseline + ly * off, paint)
                 paint.color = withAlpha(Color.BLACK, (40 + 110 * d.bevel / 100f).roundToInt())
-                canvas.drawText(r.text, px - lx * off, baseline - ly * off, paint)
+                canvas.drawText(r.text, r.x - lx * off, r.baseline - ly * off, paint)
             }
         }
 
-        // 6. Reflejo: brillo especular en la mitad superior.
+        // 6. Reflejo: brillo especular en la mitad superior de cada línea.
         if (d.reflection > 0) {
-            eachRun { r, px ->
+            runs.forEach { r ->
+                val top = r.baseline - textSize * 0.74f
+                val bottom = r.baseline + textSize * 0.02f
                 paint.reset(textSize, r.face, d.letterSpacing)
                 paint.shader = LinearGradient(
                     0f, top, 0f, top + (bottom - top) * 0.55f,
                     intArrayOf(withAlpha(Color.WHITE, (200 * d.reflection / 100f).roundToInt()), Color.TRANSPARENT),
                     null, Shader.TileMode.CLAMP,
                 )
-                canvas.drawText(r.text, px, baseline, paint)
+                canvas.drawText(r.text, r.x, r.baseline, paint)
             }
         }
         canvas.restoreToCount(layer)
@@ -186,7 +163,8 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         extras.subtitle?.takeIf { it.isNotBlank() }?.let { sub ->
             paint.reset(width * 0.042f, Typeface.create("sans-serif", Typeface.NORMAL), 0.02f)
             val sw = paint.measureText(sub)
-            val sy = cy + (baseline - cy + textSize * 0.34f) * d.stretchY + width * 0.03f
+            val sy = (cy + (lay.lastBaseline - cy + textSize * 0.34f) * d.stretchY + width * 0.03f)
+                .coerceAtMost(height - width * 0.03f)
             paint.color = withAlpha(Color.BLACK, 120)
             paint.maskFilter = BlurMaskFilter(width * 0.006f, BlurMaskFilter.Blur.NORMAL)
             canvas.drawText(sub, d.centerX * width - sw / 2f, sy + width * 0.003f, paint)
@@ -202,20 +180,81 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
      */
     fun quad(width: Int, height: Int, rawDesign: ClockDesign, extras: ClockExtras): FloatArray {
         val d = rawDesign.normalized()
+        val lay = layout(d, extras, width, height)
+        val pts = boxCorners(lay.box)
+        lay.transform.mapPoints(pts)
+        if (d.warp.size == 8) for (i in 0 until 8) pts[i] += d.warp[i] * (if (i % 2 == 0) width else height)
+        return pts
+    }
+
+    /**
+     * Dónde va cada grupo de cifras (sin girar ni estirar). En horizontal: horas, «:» y minutos en
+     * una línea; al separar desde el centro las horas van a la izquierda, los minutos a la derecha y
+     * los dos puntos quedan siempre en el medio del hueco. En vertical: horas arriba y minutos abajo,
+     * cada línea centrada; al separar se alejan hacia arriba y hacia abajo.
+     */
+    private fun layout(d: ClockDesign, extras: ClockExtras, width: Int, height: Int): Layout {
         val textSize = d.size * width
         val custom = d.customFont?.let(fonts)
         val family = custom ?: Typeface.create(d.font.androidFamily, Typeface.NORMAL)
-        val hoursFace = if (d.boldHours) (custom?.let { Typeface.create(it, Typeface.BOLD) } ?: Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)) else family
-        var total = 0f
-        listOf(extras.hours to hoursFace, extras.minutes to family).forEach { (t, f) -> paint.reset(textSize, f, d.letterSpacing); total += paint.measureText(t) }
+        val hoursFace = when {
+            !d.boldHours -> family
+            custom != null -> Typeface.create(custom, Typeface.BOLD)
+            else -> Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
         val cx = d.centerX * width
         val cy = d.centerY * height
+        // Transformación del reloj: giro y estiramiento alrededor de su centro.
+        val transform = android.graphics.Matrix().apply {
+            postScale(d.stretchX, d.stretchY, cx, cy)
+            postRotate(d.rotation, cx, cy)
+        }
+        fun measure(text: String, face: Typeface): Float {
+            paint.reset(textSize, face, d.letterSpacing)
+            return paint.measureText(text)
+        }
+        val hasColon = extras.minutes.startsWith(":")
+        val minutes = extras.minutes.removePrefix(":")
+        val hW = measure(extras.hours, hoursFace)
+        val mW = measure(minutes, family)
+
+        if (d.layout == ClockLayout.VERTICAL) {
+            // Distancia entre las dos líneas de base; el centro del reloj queda entre ambas.
+            val step = textSize * 0.86f
+            val bH0 = cy - step / 2f + textSize * 0.36f
+            val bM0 = cy + step / 2f + textSize * 0.36f
+            var up = 0f
+            var down = 0f
+            if (d.spread > 0f) {
+                val margin = width * 0.03f
+                val half = (step / 2f + textSize * 0.44f) * d.stretchY
+                up = d.spread * (cy - half - margin).coerceAtLeast(0f) / d.stretchY
+                down = d.spread * (height - margin - (cy + half)).coerceAtLeast(0f) / d.stretchY
+            }
+            val bH = bH0 - up
+            val bM = bM0 + down
+            val runs = listOf(
+                Run(extras.hours, hoursFace, cx - hW / 2f, bH, hW),
+                Run(minutes, family, cx - mW / 2f, bM, mW),
+            )
+            val w = max(hW, mW)
+            val box = RectF(cx - w / 2f, bH - textSize * 0.80f, cx + w / 2f, bM + textSize * 0.08f)
+            return Layout(runs, box, textSize, transform, bM)
+        }
+
+        val sW = if (hasColon) measure(":", family) else 0f
+        val total = hW + sW + mW
         val (shiftH, shiftM) = spreadShifts(d, cx, total, width)
-        val transform = android.graphics.Matrix().apply { postScale(d.stretchX, d.stretchY, cx, cy); postRotate(d.rotation, cx, cy) }
-        val pts = boxCorners(cx - total / 2f - shiftH, cy, total + shiftH + shiftM, textSize)
-        transform.mapPoints(pts)
-        if (d.warp.size == 8) for (i in 0 until 8) pts[i] += d.warp[i] * (if (i % 2 == 0) width else height)
-        return pts
+        val startX = cx - total / 2f
+        val baseline = cy + textSize * 0.36f
+        val runs = buildList {
+            add(Run(extras.hours, hoursFace, startX - shiftH, baseline, hW))
+            // Los dos puntos, centrados en el hueco entre horas y minutos.
+            if (hasColon) add(Run(":", family, startX + hW + (shiftM - shiftH) / 2f, baseline, sW))
+            add(Run(minutes, family, startX + hW + sW + shiftM, baseline, mW))
+        }
+        val box = RectF(startX - shiftH, baseline - textSize * 0.80f, startX + total + shiftM, baseline + textSize * 0.08f)
+        return Layout(runs, box, textSize, transform, baseline)
     }
 
     /**
@@ -231,18 +270,14 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         return d.spread * left to d.spread * right
     }
 
-    /** Caja de los números (sin transformar): arriba-izq., arriba-der., abajo-der., abajo-izq. */
-    private fun boxCorners(left: Float, cy: Float, w: Float, textSize: Float): FloatArray {
-        val baseline = cy + textSize * 0.36f
-        val top = baseline - textSize * 0.80f
-        val bottom = baseline + textSize * 0.08f
-        return floatArrayOf(left, top, left + w, top, left + w, bottom, left, bottom)
-    }
+    /** Esquinas de una caja: arriba-izq., arriba-der., abajo-der., abajo-izq. */
+    private fun boxCorners(b: RectF): FloatArray =
+        floatArrayOf(b.left, b.top, b.right, b.top, b.right, b.bottom, b.left, b.bottom)
 
     /** Deformación por esquinas en coordenadas de pantalla (después del giro y el estiramiento). */
-    private fun warpMatrix(d: ClockDesign, transform: android.graphics.Matrix, left: Float, cy: Float, w: Float, textSize: Float, width: Int, height: Int): android.graphics.Matrix? {
+    private fun warpMatrix(d: ClockDesign, transform: android.graphics.Matrix, box: RectF, width: Int, height: Int): android.graphics.Matrix? {
         if (d.warp.size != 8) return null
-        val src = boxCorners(left, cy, w, textSize)
+        val src = boxCorners(box)
         transform.mapPoints(src)
         val dst = FloatArray(8) { i -> src[i] + d.warp[i] * (if (i % 2 == 0) width else height) }
         if (!isConvex(dst)) return null // esquinas cruzadas: deformación imposible, se ignora
@@ -264,15 +299,12 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         return true
     }
 
-    /** Caja del reloj en el lienzo, para tocarlo y moverlo en el editor. */
+    /** Caja del reloj en el lienzo (girada y estirada), para tocarlo y moverlo en el editor. */
     fun bounds(width: Int, height: Int, d: ClockDesign, extras: ClockExtras): Rect {
-        val n = d.normalized()
-        val textSize = n.size * width
-        paint.reset(textSize, Typeface.create(n.font.androidFamily, Typeface.NORMAL), n.letterSpacing)
-        val w = paint.measureText(extras.hours + extras.minutes) * 1.08f
-        val cx = n.centerX * width
-        val cy = n.centerY * height
-        return Rect((cx - w / 2).toInt(), (cy - textSize * 0.55f).toInt(), (cx + w / 2).toInt(), (cy + textSize * 0.75f).toInt())
+        val lay = layout(d.normalized(), extras, width, height)
+        val r = RectF(lay.box).apply { inset(-lay.textSize * 0.08f, -lay.textSize * 0.15f) }
+        lay.transform.mapRect(r)
+        return Rect(r.left.toInt(), r.top.toInt(), r.right.toInt(), r.bottom.toInt())
     }
 
     /**
@@ -366,9 +398,11 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
         stoneTexture = bmp
     }
 
-    private class Run(val text: String, val face: Typeface) {
-        var width = 0f
-    }
+    /** Un grupo de cifras ya colocado: texto, tipografía, x izquierda, línea de base y ancho. */
+    private class Run(val text: String, val face: Typeface, val x: Float, val baseline: Float, val width: Float)
+
+    /** Disposición del reloj: grupos, caja que los contiene (para la deformación) y última línea de base. */
+    private class Layout(val runs: List<Run>, val box: RectF, val textSize: Float, val transform: android.graphics.Matrix, val lastBaseline: Float)
 
     companion object {
         private const val STONE_SIZE = 128

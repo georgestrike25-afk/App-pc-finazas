@@ -185,6 +185,51 @@ class StudioFlowTest {
     }
 
     @Test
+    fun spreadKeepsTheColonInTheMiddleAndVerticalStacksHoursOverMinutes() {
+        val painter = app.aura.studio.render.ClockPainter(app.aura.studio.render.StudioFonts.resolver(context))
+        val w = 1080
+        val h = 2340
+        val base = app.aura.core.studio.ClockDesign(centerX = 0.5f, centerY = 0.3f, size = 0.22f).withMaterial(ClockMaterial.MINIMAL).copy(shadow = 0)
+
+        // Separado al 100 %: las cifras van a los bordes y en el centro queda solo «:».
+        val spread = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        painter.draw(Canvas(spread), w, h, base.copy(spread = 1f), extras.copy(subtitle = null))
+        save("studio_spread_colon", spread)
+        val band = inkColumns(spread, (h * 0.2f).toInt(), (h * 0.4f).toInt())
+        val center = band.subList((w * 0.45f).toInt(), (w * 0.55f).toInt())
+        val colonCenter = band.indices.filter { it in (w * 0.35f).toInt()..(w * 0.65f).toInt() && band[it] }.average()
+        println("AURA_COLON center=$colonCenter")
+        assertTrue("los dos puntos deberían quedar en el medio", center.any { it } && abs(colonCenter - w / 2.0) < w * 0.03)
+        assertTrue("las horas tocan el borde izquierdo", band.subList(0, (w * 0.1f).toInt()).any { it })
+        assertTrue("los minutos tocan el borde derecho", band.subList((w * 0.9f).toInt(), w).any { it })
+
+        // Vertical: horas arriba y minutos abajo, sin dos puntos, cada línea más angosta que «09:50».
+        val horizontal = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        painter.draw(Canvas(horizontal), w, h, base, extras.copy(subtitle = null))
+        val vertical = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        painter.draw(Canvas(vertical), w, h, base.copy(layout = app.aura.core.studio.ClockLayout.VERTICAL), extras.copy(subtitle = null))
+        save("studio_vertical", vertical)
+        val hRows = inkRows(horizontal)
+        val vRows = inkRows(vertical)
+        assertTrue("el reloj vertical es más alto", vRows.second - vRows.first > (hRows.second - hRows.first) * 1.7)
+        val vWidth = inkColumns(vertical, vRows.first, vRows.second).count { it }
+        val hWidth = inkColumns(horizontal, hRows.first, hRows.second).count { it }
+        assertTrue("el reloj vertical es más angosto", vWidth < hWidth * 0.75)
+        listOf(spread, horizontal, vertical).forEach { it.recycle() }
+    }
+
+    /** Columnas con tinta (alfa visible) entre las filas indicadas. */
+    private fun inkColumns(b: Bitmap, top: Int, bottom: Int): List<Boolean> = List(b.width) { x ->
+        (top until bottom step 3).any { y -> Color.alpha(b.getPixel(x, y)) > 128 }
+    }
+
+    /** Primera y última fila con tinta en la mitad superior (el reloj, sin el subtítulo). */
+    private fun inkRows(b: Bitmap): Pair<Int, Int> {
+        val rows = (0 until b.height / 2).filter { y -> (0 until b.width step 3).any { x -> Color.alpha(b.getPixel(x, y)) > 128 } }
+        return rows.first() to rows.last()
+    }
+
+    @Test
     fun automaticSegmentationRunsLocallyOrReportsUnavailable() = runBlocking {
         val repo = context.aura.studio
         val p = repo.create(syntheticPhoto(), "Auto")

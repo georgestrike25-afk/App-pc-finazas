@@ -192,8 +192,9 @@ class WidgetRenderer(private val context: Context) {
 
     /** Fecha (TextClock: el sistema la cambia sola a medianoche). Aplica a toda composición que la tenga. */
     private fun applyDate(v: RemoteViews, style: WidgetStyle, size: SizeClass) {
-        val skeleton = if (size == SizeClass.LARGE) ClockPatterns.DATE_SKELETON_LONG else ClockPatterns.DATE_SKELETON_SHORT
-        val datePattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), skeleton)
+        val datePattern = ClockPatterns.datePattern(style.dateStyle, long = size == SizeClass.LARGE) {
+            DateFormat.getBestDateTimePattern(Locale.getDefault(), it)
+        }
         setClockFormat(v, R.id.w_date, datePattern, datePattern)
         v.setViewVisibility(R.id.w_date, if (style.showDate) View.VISIBLE else View.GONE)
     }

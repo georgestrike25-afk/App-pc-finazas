@@ -24,7 +24,7 @@ object ClockExtrasBuilder {
         val (h, m) = ClockText.parts(now.hour, now.minute, is24)
         val parts = mutableListOf<String>()
         if (design.showDate) {
-            val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), ClockPatterns.DATE_SKELETON_LONG)
+            val pattern = ClockPatterns.datePattern(design.dateStyle, long = true) { DateFormat.getBestDateTimePattern(Locale.getDefault(), it) }
             parts += now.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault())).replaceFirstChar { it.titlecase(Locale.getDefault()) }
         }
         if (design.showWeather && snapshot != null) {

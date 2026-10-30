@@ -1,5 +1,6 @@
 package app.aura.core.style
 
+import app.aura.core.time.DateStyle
 import app.aura.core.time.HourFormat
 import kotlinx.serialization.Serializable
 
@@ -67,6 +68,7 @@ data class WidgetStyle(
     val spacing: Spacing = Spacing.NORMAL,
     val textShadow: Boolean = true,
     val showDate: Boolean = true,
+    val dateStyle: DateStyle = DateStyle.TEXT,
     val showLocation: Boolean = true,
     val showHighLow: Boolean = true,
     /** Máxima, mínima y condición de mañana en las composiciones que tienen lugar. */

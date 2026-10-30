@@ -70,6 +70,8 @@ import app.aura.core.studio.ClockMaterial
 import app.aura.core.studio.StudioProject
 import app.aura.core.style.Brand
 import app.aura.core.style.FontChoice
+import app.aura.core.studio.ClockLayout
+import app.aura.core.time.DateStyle
 import app.aura.core.time.HourFormat
 import app.aura.studio.wallpaper.WallpaperApplier
 import app.aura.ui.components.ColorSwatches
@@ -280,6 +282,11 @@ private fun ColumnScope.ClockPanel(vm: StudioViewModel, p: StudioProject) {
         ),
         if (d.customFont == null) d.font else null,
     ) { f -> vm.design { it.copy(font = f!!, customFont = null) } }
+    Text("Orientación", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp, bottom = 6.dp))
+    Segmented(
+        listOf(ClockLayout.HORIZONTAL to "Horizontal  09:50", ClockLayout.VERTICAL to "Vertical  09 / 50"),
+        d.layout, { l -> vm.design { it.copy(layout = l) } },
+    )
     LabeledRow("Horas en negrita") { Switch(d.boldHours, { v -> vm.design { it.copy(boldHours = v) } }) }
     Text("Color", style = MaterialTheme.typography.bodyMedium)
     ColorSwatches(INKS.map { Color(it) }, Color(d.color), { c -> vm.design { it.copy(color = c.toArgb()) } }, Modifier.padding(vertical = 8.dp))
@@ -292,6 +299,12 @@ private fun ColumnScope.ClockPanel(vm: StudioViewModel, p: StudioProject) {
         OutlinedButton(onClick = { vm.design { it.copy(centerX = 0.5f, centerY = 0.5f) } }) { Text("Medio") }
     }
     LabeledRow("Fecha") { Switch(d.showDate, { v -> vm.design { it.copy(showDate = v) } }) }
+    if (d.showDate) {
+        Segmented(
+            listOf(DateStyle.TEXT to "Palabras", DateStyle.NUMERIC to "dd/mm/aaaa", DateStyle.WEEKDAY_NUMERIC to "Día + nº"),
+            d.dateStyle, { f -> vm.design { it.copy(dateStyle = f) } }, Modifier.padding(bottom = 6.dp),
+        )
+    }
     LabeledRow("Clima de Aura", supporting = "Temperatura y ciudad de la última actualización") { Switch(d.showWeather, { v -> vm.design { it.copy(showWeather = v) } }) }
     Segmented(listOf(HourFormat.SYSTEM to "Como la app", HourFormat.H12 to "12 h", HourFormat.H24 to "24 h"), d.hourFormat, { f -> vm.design { it.copy(hourFormat = f) } })
 }

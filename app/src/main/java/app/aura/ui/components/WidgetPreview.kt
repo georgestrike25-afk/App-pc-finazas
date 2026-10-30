@@ -192,8 +192,10 @@ fun WidgetPreview(
     val hoursPart = now.format(DateTimeFormatter.ofPattern(if (is24) "HH" else "h"))
     val minutesPart = now.format(DateTimeFormatter.ofPattern(":mm"))
     val ampm = if (is24) null else now.format(DateTimeFormatter.ofPattern(ClockPatterns.AM_PM, Locale.getDefault()))
-    val dateSkeleton = if (size == SizeClass.LARGE) ClockPatterns.DATE_SKELETON_LONG else ClockPatterns.DATE_SKELETON_SHORT
-    val date = now.format(DateTimeFormatter.ofPattern(android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), dateSkeleton), Locale.getDefault()))
+    val datePattern = ClockPatterns.datePattern(s.dateStyle, long = size == SizeClass.LARGE) {
+        android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), it)
+    }
+    val date = now.format(DateTimeFormatter.ofPattern(datePattern, Locale.getDefault()))
     val pad = (if (size == SizeClass.SMALL) minOf(s.spacing.paddingDp, 10) else s.spacing.paddingDp).dp
     val horizontal = when (s.alignment) {
         StyleAlignment.START -> Alignment.Start

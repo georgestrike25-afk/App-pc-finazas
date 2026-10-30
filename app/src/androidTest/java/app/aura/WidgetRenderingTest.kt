@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.BeforeClass
+import app.aura.core.time.DateStyle
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -166,6 +167,26 @@ class WidgetRenderingTest {
             assertTrue("Weather $size: fecha vacía", date.text.isNotBlank())
             val (hidden, _) = inflate(WidgetType.WEATHER, size, Profiles.MINIMAL.copy(showDate = false), d.first, d.second)
             assertEquals(View.GONE, hidden.findViewById<TextClock>(R.id.w_date).visibility)
+        }
+    }
+
+    @Test
+    fun numericDateFormatShowsDayMonthYear() {
+        val today = java.time.LocalDate.now()
+        val numeric = "%02d/%02d/%04d".format(today.dayOfMonth, today.monthValue, today.year)
+        listOf(
+            Triple(WidgetType.WEATHER, SizeClass.MEDIUM, 220 to 96),
+            Triple(WidgetType.WEATHER, SizeClass.LARGE, 360 to 110),
+            Triple(WidgetType.CLOCK, SizeClass.MEDIUM, 220 to 96),
+            Triple(WidgetType.DUO, SizeClass.MEDIUM, 360 to 100),
+        ).forEach { (type, size, d) ->
+            listOf(DateStyle.NUMERIC, DateStyle.WEEKDAY_NUMERIC).forEach { ds ->
+                val (view, bmp) = inflate(type, size, Profiles.MINIMAL.copy(dateStyle = ds), d.first, d.second)
+                save("date_${ds.name.lowercase()}_${type.name.lowercase()}_${size.name.lowercase()}", bmp)
+                val text = view.findViewById<TextClock>(R.id.w_date).text.toString()
+                assertTrue("$type $size $ds: «$text» no tiene dd/mm/aaaa", text.endsWith(numeric))
+                if (ds == DateStyle.WEEKDAY_NUMERIC) assertTrue("$type $size: falta el día «$text»", text.length > numeric.length)
+            }
         }
     }
 

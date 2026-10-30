@@ -70,6 +70,7 @@ import app.aura.core.style.Profiles
 import app.aura.core.style.Spacing
 import app.aura.core.style.WidgetConfig
 import app.aura.core.style.WidgetStyle
+import app.aura.core.time.DateStyle
 import app.aura.core.time.HourFormat
 import app.aura.core.widget.SizeClass
 import app.aura.core.widget.WidgetType
@@ -310,6 +311,13 @@ fun CustomizeScreen(
 
             SectionTitle("Contenido")
             LabeledRow("Fecha") { Switch(style.showDate, { v -> edit { it.copy(showDate = v) } }) }
+            if (style.showDate) {
+                Segmented(
+                    listOf(DateStyle.TEXT to "Palabras", DateStyle.NUMERIC to "dd/mm/aaaa", DateStyle.WEEKDAY_NUMERIC to "Día + nº"),
+                    style.dateStyle, { f -> edit { it.copy(dateStyle = f) } },
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             LabeledRow("Ubicación") { Switch(style.showLocation, { v -> edit { it.copy(showLocation = v) } }) }
             LabeledRow("Máxima y mínima") { Switch(style.showHighLow, { v -> edit { it.copy(showHighLow = v) } }) }
             LabeledRow("Pronóstico de mañana", supporting = "En Forecast mediano, Weather grande y Duo") {

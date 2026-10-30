@@ -2,12 +2,17 @@ package app.aura.core.studio
 
 import app.aura.core.style.Brand
 import app.aura.core.style.FontChoice
+import app.aura.core.time.DateStyle
 import app.aura.core.time.HourFormat
 import kotlinx.serialization.Serializable
 
 /** Acabado del reloj 3D de Aura Studio. */
 @Serializable
 enum class ClockMaterial { MINIMAL, METAL, GLASS, NEON, STONE }
+
+/** Horizontal: «09:50» en una línea. Vertical: las horas arriba y los minutos abajo, sin los dos puntos. */
+@Serializable
+enum class ClockLayout { HORIZONTAL, VERTICAL }
 
 /**
  * Diseño editable del reloj de un fondo. Todo es paramétrico (no hay imágenes prediseñadas): el
@@ -20,6 +25,7 @@ data class ClockDesign(
     /** Fuente para números incluida en Aura (id de recurso, p. ej. "clock_bebas"); null = fuente del sistema [font]. */
     val customFont: String? = null,
     val boldHours: Boolean = true,
+    val layout: ClockLayout = ClockLayout.HORIZONTAL,
     val color: Int = Brand.WHITE,
     /** Tinte del metal, brillo del neón y vetas de la piedra. */
     val accentColor: Int = Brand.SOLAR,
@@ -39,7 +45,8 @@ data class ClockDesign(
     val rotation: Float = 0f,
     /**
      * Separación desde el centro (0–1): las horas se alejan hacia el borde izquierdo y los minutos
-     * hacia el derecho. 1 = cada grupo llega a su borde de la pantalla.
+     * hacia el derecho (en vertical, hacia arriba y hacia abajo); los dos puntos quedan en el medio.
+     * 1 = cada grupo llega a su borde de la pantalla.
      */
     val spread: Float = 0f,
     /**
@@ -64,6 +71,7 @@ data class ClockDesign(
     /** Aclara (+) u oscurece (−) el camuflaje para que los números se distingan (−100 a 100). */
     val chameleonLift: Int = 25,
     val showDate: Boolean = true,
+    val dateStyle: DateStyle = DateStyle.TEXT,
     val showWeather: Boolean = true,
     val hourFormat: HourFormat = HourFormat.SYSTEM,
     /** Con máscara de profundidad: el sujeto de la foto queda delante del reloj. */
