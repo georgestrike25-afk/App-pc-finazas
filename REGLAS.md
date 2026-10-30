@@ -72,8 +72,8 @@ El sueldo se cobra el **día 4** de cada mes. Para algo hecho en el mes M:
 | Básico (6 guardias) | 4 del mes M+1 |
 | Pasivas | 4 del mes M+1 |
 | 7.ª guardia (extra) | **Siempre** el 4 del mes M+2 |
-| Otras horas extra sueltas (no guardia completa): hechas del 1 al 16 | 4 del mes M+1 |
-| Otras horas extra sueltas: hechas del 17 en adelante | 4 del mes M+2 |
+| Otras horas extra sueltas (no guardia completa): hechas del 1 al 15 | 4 del mes M+1 |
+| Otras horas extra sueltas: hechas del 16 en adelante | 4 del mes M+2 |
 | ❓ Nocturnas | A definir |
 | ❓ 100% por feriado en guardia del básico | A definir |
 
