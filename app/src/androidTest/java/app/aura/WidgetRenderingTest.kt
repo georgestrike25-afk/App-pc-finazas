@@ -156,6 +156,25 @@ class WidgetRenderingTest {
     }
 
     @Test
+    fun tomorrowForecastIsShownWhereThereIsRoom() {
+        listOf(
+            Triple(WidgetType.FORECAST, SizeClass.MEDIUM, 320 to 190),
+            Triple(WidgetType.DUO, SizeClass.MEDIUM, 360 to 100),
+            Triple(WidgetType.DUO, SizeClass.LARGE, 360 to 190),
+            Triple(WidgetType.WEATHER, SizeClass.LARGE, 360 to 110),
+        ).forEach { (type, size, d) ->
+            val (view, bmp) = inflate(type, size, Profiles.MINIMAL, d.first, d.second)
+            save("tomorrow_${type.name.lowercase()}_${size.name.lowercase()}", bmp)
+            val block = view.findViewById<View>(R.id.w_tomorrow)
+            assertEquals("$type $size sin bloque de mañana", View.VISIBLE, block.visibility)
+            val range = view.findViewById<TextView>(R.id.w_tomorrow_range).text.toString()
+            assertTrue("$type $size: rango de mañana inválido «$range»", range.matches(Regex("-?\\d+° / -?\\d+°")))
+            val (hidden, _) = inflate(type, size, Profiles.MINIMAL.copy(showTomorrow = false), d.first, d.second)
+            assertEquals(View.GONE, hidden.findViewById<View>(R.id.w_tomorrow).visibility)
+        }
+    }
+
+    @Test
     fun opacityControlsPanelAlphaAcrossTheFullRange() {
         listOf(0, 25, 50, 75, 100).forEach { opacity ->
             val style = WidgetStyle(background = BackgroundMode.DARK, opacity = opacity)

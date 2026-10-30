@@ -106,8 +106,9 @@ def status(c, size=11, margin=' android:layout_marginTop="2dp"'):
     return text(c, "w_status", size, default="", extra=margin + ' android:visibility="gone"')
 
 
-def col(vid, children, gravity="start", extra=""):
-    return (f'<LinearLayout android:id="@+id/{vid}" android:layout_width="wrap_content" android:layout_height="wrap_content"'
+def col(vid, children, gravity="start", extra="", width="wrap_content", weight=None):
+    w = f'android:layout_width="{width}"' + (f' android:layout_weight="{weight}"' if weight else "")
+    return (f'<LinearLayout android:id="@+id/{vid}" {w} android:layout_height="wrap_content"'
             f' android:orientation="vertical" android:gravity="{gravity}"{extra}>' + "".join(children) + '</LinearLayout>')
 
 
@@ -126,7 +127,18 @@ def divider(vertical=True):
             ' android:scaleType="fitXY" android:src="@drawable/widget_hairline" />')
 
 
-def hours(c, n, time_sp=12, icon_dp=24, temp_sp=13, margin_top=10):
+def tomorrow_cell(c, label_sp=12, icon_dp=24, range_sp=12, weighted=True, margin=""):
+    """Columna «Mañana»: etiqueta, icono y máxima/mínima del día siguiente."""
+    width = 'android:layout_width="0dp" android:layout_weight="1"' if weighted else 'android:layout_width="wrap_content"'
+    return (f'<LinearLayout android:id="@+id/w_tomorrow" {width} android:layout_height="wrap_content"'
+            f' android:orientation="vertical" android:gravity="center_horizontal"{margin}>'
+            + text(c, "w_tomorrow_label", label_sp, default=c.sample("Mañana", ""), bold=True)
+            + icon("w_tom_icon", icon_dp, ' android:layout_marginTop="4dp" android:layout_marginBottom="4dp"')
+            + text(c, "w_tomorrow_range", range_sp, default=c.sample("24° / 12°", ""))
+            + '</LinearLayout>')
+
+
+def hours(c, n, time_sp=12, icon_dp=24, temp_sp=13, margin_top=10, with_tomorrow=False):
     cells = []
     for i in range(n):
         cells.append(
@@ -136,6 +148,8 @@ def hours(c, n, time_sp=12, icon_dp=24, temp_sp=13, margin_top=10):
             + icon(f"w_h{i}_icon", icon_dp, ' android:layout_marginTop="4dp" android:layout_marginBottom="4dp"')
             + text(c, f"w_h{i}_temp", temp_sp, default=c.sample(f"{21 - i}°", ""))
             + '</LinearLayout>')
+    if with_tomorrow:
+        cells.append(tomorrow_cell(c, time_sp, icon_dp, max(11, temp_sp - 1)))
     return (f'<LinearLayout android:id="@+id/w_hours" android:layout_width="match_parent" android:layout_height="wrap_content"'
             f' android:layout_marginTop="{margin_top}dp" android:orientation="horizontal" android:baselineAligned="false">'
             + "".join(cells) + '</LinearLayout>')
@@ -184,7 +198,8 @@ def composition(t, s, c):
                                   col("w_col", [place(c), hilo(c, 13, MT.format(2)), status(c)], extra=ML.format(12))]
         return "horizontal", [icon("w_icon", 52), spacer_w(12), temp(c, 52),
                               col("w_col", [condition(c), place(c, 13, MT.format(2)), hilo(c, 13, MT.format(2)), status(c)],
-                                  extra=ML.format(14))]
+                                  extra=ML.format(14), width="0dp", weight="1"),
+                              tomorrow_cell(c, 11, 26, 12, weighted=False, margin=ML.format(8))]
     if t == "duo":
         if s == "small":
             return "vertical", [clock_row(c, 44),
@@ -193,11 +208,13 @@ def composition(t, s, c):
         if s == "medium":
             return "horizontal", [col("w_clock_col", [clock_row(c, 56), date(c, 13, 4)]), divider(True),
                                   col("w_col", [row("w_wx_row", [icon("w_icon", 30), spacer_w(8), temp(c, 30)]),
-                                                place(c, 13, MT.format(4)), status(c)])]
+                                                place(c, 13, MT.format(4)), status(c)]),
+                                  tomorrow_cell(c, 11, 22, 12, weighted=False, margin=ML.format(14))]
         return "vertical", [clock_row(c, 76), date(c, 15, 4),
                             row("w_wx_row", [icon("w_icon", 32), spacer_w(10), temp(c, 32),
                                              col("w_col", [condition(c, 13), text(c, "w_meta", 12, default=c.sample("Madrid · 24° / 14°", ""), extra=MT.format(2)), status(c)],
-                                                 extra=ML.format(12))], extra=MT.format(14))]
+                                                 extra=ML.format(12)),
+                                             tomorrow_cell(c, 11, 24, 12, weighted=False, margin=ML.format(18))], extra=MT.format(14))]
     if t == "forecast":
         if s == "small":
             return "horizontal", [icon("w_icon", 34), spacer_w(8), temp(c, 34), spacer_w(14),
@@ -210,7 +227,7 @@ def composition(t, s, c):
                                           place(c, 12, MT.format(2)), status(c)], gravity="end")],
                   width="match_parent")
         if s == "medium":
-            return "vertical", [top, hours(c, 5)]
+            return "vertical", [top, hours(c, 4, with_tomorrow=True)]
         return "vertical", [top, hours(c, 6, margin_top=14), divider(False), days(c, 5)]
     if t == "night":
         if s == "small":

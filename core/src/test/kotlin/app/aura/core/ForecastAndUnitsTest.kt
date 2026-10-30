@@ -34,6 +34,8 @@ class ForecastAndUnitsTest {
         assertEquals(listOf("2026-10-28", "2026-10-29", "2026-10-30"), result.map { it.date })
         assertEquals("2026-10-28", ForecastSlots.todayRange(days, LocalDate.parse("2026-10-28"))?.date)
         assertNull(ForecastSlots.todayRange(days, LocalDate.parse("2027-01-01")))
+        assertEquals("2026-10-29", ForecastSlots.tomorrow(days, LocalDate.parse("2026-10-28"))?.date)
+        assertNull(ForecastSlots.tomorrow(days, LocalDate.parse("2026-10-30")))
     }
 
     @Test

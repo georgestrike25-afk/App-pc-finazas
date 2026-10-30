@@ -22,6 +22,8 @@
     <string name="widget_status_expired">Sin actualizar · %1$s</string>
     <string name="widget_now">Ahora</string>
     <string name="widget_today">Hoy</string>
+    <string name="widget_tomorrow">Mañana</string>
+    <string name="widget_tomorrow_cd">Mañana: %1$s, máxima %2$s, mínima %3$s</string>
     <string name="widget_hilo_cd">Máxima %1$s, mínima %2$s</string>
     <string name="age_minutes">%1$d min</string>
     <string name="age_hours">%1$d h</string>

@@ -69,6 +69,8 @@ data class WidgetStyle(
     val showDate: Boolean = true,
     val showLocation: Boolean = true,
     val showHighLow: Boolean = true,
+    /** Máxima, mínima y condición de mañana en las composiciones que tienen lugar. */
+    val showTomorrow: Boolean = true,
     val hourFormat: HourFormat = HourFormat.SYSTEM,
     /** Horas en negrita y minutos con la tipografía elegida (p. ej. **02**:45). */
     val boldHours: Boolean = false,

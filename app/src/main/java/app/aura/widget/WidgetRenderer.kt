@@ -207,7 +207,7 @@ class WidgetRenderer(private val context: Context) {
             v.setTextViewText(R.id.w_temp, "—°")
             v.setViewVisibility(R.id.w_icon, View.GONE)
             setTextOrGone(v, R.id.w_place, context.getString(if (r.settings.activePlace == null) R.string.widget_no_place else R.string.widget_no_data))
-            listOf(R.id.w_hilo, R.id.w_condition, R.id.w_status, R.id.w_meta, R.id.w_hours, R.id.w_days, R.id.w_divider)
+            listOf(R.id.w_hilo, R.id.w_condition, R.id.w_status, R.id.w_meta, R.id.w_hours, R.id.w_days, R.id.w_divider, R.id.w_tomorrow)
                 .forEach { v.setViewVisibility(it, View.GONE) }
             return
         }
@@ -254,6 +254,7 @@ class WidgetRenderer(private val context: Context) {
         setTextOrGone(v, R.id.w_status, status.takeIf { size != SizeClass.SMALL })
 
         if (r.type == WidgetType.FORECAST) applyForecast(v, r, style, size, snap, zone)
+        applyTomorrow(v, r, style, snap, zone)
     }
 
     private fun applyForecast(v: RemoteViews, r: Request, style: WidgetStyle, size: SizeClass, snap: WeatherSnapshot, zone: ZoneId) {
@@ -298,6 +299,25 @@ class WidgetRenderer(private val context: Context) {
         }
         v.setViewVisibility(R.id.w_days, if (days.isEmpty() || dayCount == 0) View.GONE else View.VISIBLE)
         v.setViewVisibility(R.id.w_divider, if (days.isEmpty() || dayCount == 0) View.GONE else View.VISIBLE)
+    }
+
+    /** Bloque «Mañana»: condición, máxima y mínima del día siguiente (solo donde la composición lo incluye). */
+    private fun applyTomorrow(v: RemoteViews, r: Request, style: WidgetStyle, snap: WeatherSnapshot, zone: ZoneId) {
+        val tomorrow = ForecastSlots.tomorrow(snap.data.daily, LocalDate.now(zone))
+        if (!style.showTomorrow || tomorrow == null) {
+            v.setViewVisibility(R.id.w_tomorrow, View.GONE)
+            return
+        }
+        val unit = r.settings.temperatureUnit
+        v.setViewVisibility(R.id.w_tomorrow, View.VISIBLE)
+        v.setTextViewText(R.id.w_tomorrow_label, context.getString(R.string.widget_tomorrow))
+        v.setTextViewText(R.id.w_tomorrow_range, TemperatureFormatter.range(tomorrow.maxC, tomorrow.minC, unit))
+        setIcon(v, R.id.w_tom_icon, R.id.w_tom_icon_base, R.id.w_tom_icon_accent, R.id.w_tom_icon_3d, tomorrow.condition, style)
+        v.setContentDescription(
+            R.id.w_tomorrow,
+            context.getString(R.string.widget_tomorrow_cd, WeatherText.condition(context, tomorrow.condition),
+                TemperatureFormatter.short(tomorrow.maxC, unit), TemperatureFormatter.short(tomorrow.minC, unit)),
+        )
     }
 
     private fun setIcon(v: RemoteViews, container: Int, base: Int, accent: Int, realistic: Int, condition: WeatherCondition, style: WidgetStyle) {
@@ -367,10 +387,10 @@ class WidgetRenderer(private val context: Context) {
             else -> c
         }
 
-        private val PRIMARY_TEXT = intArrayOf(R.id.w_temp)
+        private val PRIMARY_TEXT = intArrayOf(R.id.w_temp, R.id.w_tomorrow_range)
         private val TIME_TEXT = intArrayOf(R.id.w_time, R.id.w_time_h, R.id.w_time_m)
         private val SECONDARY_TEXT = intArrayOf(
-            R.id.w_ampm, R.id.w_date, R.id.w_place, R.id.w_hilo, R.id.w_condition, R.id.w_meta, R.id.w_status,
+            R.id.w_ampm, R.id.w_tomorrow_label, R.id.w_date, R.id.w_place, R.id.w_hilo, R.id.w_condition, R.id.w_meta, R.id.w_status,
         )
         private val HOUR_CELL = intArrayOf(R.id.w_h0, R.id.w_h1, R.id.w_h2, R.id.w_h3, R.id.w_h4, R.id.w_h5)
         private val HOUR_TIME = intArrayOf(R.id.w_h0_time, R.id.w_h1_time, R.id.w_h2_time, R.id.w_h3_time, R.id.w_h4_time, R.id.w_h5_time)

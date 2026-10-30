@@ -36,9 +36,9 @@ Cada tamaño tiene su propia composición (no se encoge lo mismo):
 | Widget | Pequeño | Mediano | Grande |
 |---|---|---|---|
 | Clock | Hora | Hora + fecha | Hora grande + fecha larga |
-| Weather | Icono + temperatura | Icono, temperatura, ubicación, máx./mín. | + condición y estado |
-| Duo | Hora + icono, temperatura, ubicación | Hora y fecha │ clima | Hora grande, fecha, clima con condición y meta |
-| Forecast | Clima actual + 3 horas | Hora, clima + 5 horas | + 6 horas y 5 días |
+| Weather | Icono + temperatura | Icono, temperatura, ubicación, máx./mín. | + condición, estado y **mañana** |
+| Duo | Hora + icono, temperatura, ubicación | Hora y fecha │ clima │ **mañana** | Hora grande, fecha, clima con condición y meta, **mañana** |
+| Forecast | Clima actual + 3 horas | Hora, clima, 4 horas + **mañana** | + 6 horas y 5 días |
 | Night | Hora + clima mínimo | Hora │ clima y fecha | Hora grande, fecha, condición |
 
 En Android 12+ se entrega un mapa de tamaños (`RemoteViews(Map<SizeF, RemoteViews>)`), así el launcher cambia de composición al redimensionar sin despertar la app. En Android 8–11 se elige en `onAppWidgetOptionsChanged`. Los umbrales están en `WidgetSizing` (probado en `WidgetSizingTest`).

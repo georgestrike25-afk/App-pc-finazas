@@ -73,6 +73,8 @@ data class PreviewContent(
     val hours: List<Triple<String, WeatherCondition, String>>,
     val days: List<Triple<String, WeatherCondition, String>>,
     val isSample: Boolean,
+    /** Condición y «máx. / mín.» de mañana, si hay datos. */
+    val tomorrow: Pair<WeatherCondition, String>? = null,
 ) {
     companion object {
         fun from(context: Context, snapshot: WeatherSnapshot?, settings: AppSettings, nowMillis: Long): PreviewContent {
@@ -93,6 +95,7 @@ data class PreviewContent(
                         Triple("Dom", WeatherCondition.CLEAR_DAY, "25° / 13°"),
                     ),
                     isSample = true,
+                    tomorrow = WeatherCondition.RAIN to "19° / 12°",
                 )
             }
             val zone = snapshot.data.timeZoneId?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: ZoneId.systemDefault()
@@ -121,6 +124,7 @@ data class PreviewContent(
                     )
                 },
                 isSample = false,
+                tomorrow = ForecastSlots.tomorrow(snapshot.data.daily, today)?.let { it.condition to TemperatureFormatter.range(it.maxC, it.minC, unit) },
             )
         }
     }
@@ -250,8 +254,22 @@ fun WidgetPreview(
     val place = content.place.takeIf { s.showLocation }
     val hilo = content.hilo.takeIf { s.showHighLow }
 
+    val tomorrow = content.tomorrow.takeIf { s.showTomorrow }
+
     @Composable
-    fun Hours(n: Int, labelSp: Float = 12f, iconDp: Dp = 24.dp, tempSpH: Float = 13f) {
+    fun Tomorrow(labelSp: Float = 11f, iconDp: Dp = 24.dp, rangeSp: Float = 12f, modifier: Modifier = Modifier) {
+        val t = tomorrow ?: return
+        Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Mañana", style = ts(labelSp, color = secondary), maxLines = 1)
+            Spacer(Modifier.height(4.dp))
+            WeatherIcon(t.first, iconDp, ink, accentTint = accent, realistic = s.iconStyle == IconStyle.REALISTIC)
+            Spacer(Modifier.height(4.dp))
+            Text(t.second, style = ts(rangeSp), maxLines = 1)
+        }
+    }
+
+    @Composable
+    fun Hours(n: Int, labelSp: Float = 12f, iconDp: Dp = 24.dp, tempSpH: Float = 13f, withTomorrow: Boolean = false) {
         Row(Modifier.fillMaxWidth()) {
             content.hours.take(n).forEach { (label, c, t) ->
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -262,6 +280,7 @@ fun WidgetPreview(
                     Text(t, style = ts(tempSpH), maxLines = 1)
                 }
             }
+            if (withTomorrow && tomorrow != null) Tomorrow(labelSp, iconDp, tempSpH - 1, Modifier.weight(1f))
         }
     }
 
@@ -302,6 +321,10 @@ fun WidgetPreview(
                         Secondary(place, top = if (size == SizeClass.LARGE) 2.dp else 0.dp)
                         Secondary(hilo, top = 2.dp)
                     }
+                    if (size == SizeClass.LARGE) {
+                        Spacer(Modifier.weight(1f))
+                        Tomorrow(iconDp = 26.dp)
+                    }
                 }
             }
             WidgetType.DUO -> when (size) {
@@ -318,6 +341,7 @@ fun WidgetPreview(
                         Row(verticalAlignment = Alignment.CenterVertically) { Icon(30.dp); Spacer(Modifier.width(8.dp)); Temp() }
                         Secondary(place, top = 4.dp)
                     }
+                    Tomorrow(iconDp = 22.dp, modifier = Modifier.padding(start = 14.dp))
                 }
                 SizeClass.LARGE -> Column(inner, verticalArrangement = Arrangement.Center, horizontalAlignment = horizontal) {
                     Clock(); DateLine(15f)
@@ -327,6 +351,7 @@ fun WidgetPreview(
                             Text(content.conditionLabel, style = ts(13f), maxLines = 1)
                             Secondary(listOfNotNull(place, hilo).joinToString(" · "), 12f, 2.dp)
                         }
+                        Tomorrow(modifier = Modifier.padding(start = 18.dp))
                     }
                 }
             }
@@ -345,7 +370,7 @@ fun WidgetPreview(
                         }
                     }
                     Spacer(Modifier.height(if (size == SizeClass.LARGE) 14.dp else 10.dp))
-                    Hours(if (size == SizeClass.LARGE) 6 else 5)
+                    if (size == SizeClass.LARGE) Hours(6) else Hours(4, withTomorrow = true)
                     if (size == SizeClass.LARGE) {
                         Box(Modifier.padding(top = 10.dp, bottom = 8.dp).fillMaxWidth().height(1.dp).background(text.copy(alpha = 0.27f)))
                         content.days.take(5).forEach { (name, c, range) ->

@@ -312,6 +312,9 @@ fun CustomizeScreen(
             LabeledRow("Fecha") { Switch(style.showDate, { v -> edit { it.copy(showDate = v) } }) }
             LabeledRow("Ubicación") { Switch(style.showLocation, { v -> edit { it.copy(showLocation = v) } }) }
             LabeledRow("Máxima y mínima") { Switch(style.showHighLow, { v -> edit { it.copy(showHighLow = v) } }) }
+            LabeledRow("Pronóstico de mañana", supporting = "En Forecast mediano, Weather grande y Duo") {
+                Switch(style.showTomorrow, { v -> edit { it.copy(showTomorrow = v) } })
+            }
             Spacer(Modifier.height(8.dp))
             Text("Formato horario", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))

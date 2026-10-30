@@ -21,6 +21,10 @@ object ForecastSlots {
             .take(count)
             .toList()
 
+    /** Pronóstico de mañana (día local siguiente a [today]), si el proveedor lo incluyó. */
+    fun tomorrow(daily: List<DailyPoint>, today: LocalDate): DailyPoint? =
+        daily.firstOrNull { it.date == today.plusDays(1).toString() }
+
     /** Máxima y mínima del día local [today], si el proveedor las incluyó. */
     fun todayRange(daily: List<DailyPoint>, today: LocalDate): DailyPoint? =
         daily.firstOrNull { it.date == today.toString() }
