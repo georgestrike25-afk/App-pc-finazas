@@ -351,7 +351,15 @@ fun WidgetPreview(
                             Text(content.conditionLabel, style = ts(13f), maxLines = 1)
                             Secondary(listOfNotNull(place, hilo).joinToString(" · "), 12f, 2.dp)
                         }
-                        Tomorrow(modifier = Modifier.padding(start = 18.dp))
+                        tomorrow?.let { t ->
+                            Row(Modifier.padding(start = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                                WeatherIcon(t.first, 24.dp, ink, accentTint = accent, realistic = s.iconStyle == IconStyle.REALISTIC)
+                                Column(Modifier.padding(start = 6.dp)) {
+                                    Text("Mañana", style = ts(11f, color = secondary), maxLines = 1)
+                                    Text(t.second, style = ts(12f), maxLines = 1)
+                                }
+                            }
+                        }
                     }
                 }
             }

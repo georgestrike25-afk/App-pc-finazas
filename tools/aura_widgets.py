@@ -138,6 +138,17 @@ def tomorrow_cell(c, label_sp=12, icon_dp=24, range_sp=12, weighted=True, margin
             + '</LinearLayout>')
 
 
+def tomorrow_inline(c, margin=""):
+    """«Mañana» en una línea: icono a la izquierda y etiqueta + máx./mín. a la derecha (poco alto)."""
+    return (f'<LinearLayout android:id="@+id/w_tomorrow" android:layout_width="wrap_content" android:layout_height="wrap_content"'
+            f' android:orientation="horizontal" android:gravity="center_vertical"{margin}>'
+            + icon("w_tom_icon", 24, ' android:layout_marginEnd="6dp"')
+            + '<LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">'
+            + text(c, "w_tomorrow_label", 11, default=c.sample("Mañana", ""), bold=True)
+            + text(c, "w_tomorrow_range", 12, default=c.sample("24° / 12°", ""), extra=MT.format(1))
+            + '</LinearLayout></LinearLayout>')
+
+
 def hours(c, n, time_sp=12, icon_dp=24, temp_sp=13, margin_top=10, with_tomorrow=False):
     cells = []
     for i in range(n):
@@ -214,7 +225,7 @@ def composition(t, s, c):
                             row("w_wx_row", [icon("w_icon", 32), spacer_w(10), temp(c, 32),
                                              col("w_col", [condition(c, 13), text(c, "w_meta", 12, default=c.sample("Madrid · 24° / 14°", ""), extra=MT.format(2)), status(c)],
                                                  extra=ML.format(12)),
-                                             tomorrow_cell(c, 11, 24, 12, weighted=False, margin=ML.format(18))], extra=MT.format(14))]
+                                             tomorrow_inline(c, margin=ML.format(18))], extra=MT.format(14))]
     if t == "forecast":
         if s == "small":
             return "horizontal", [icon("w_icon", 34), spacer_w(8), temp(c, 34), spacer_w(14),
