@@ -313,13 +313,13 @@ fun WidgetPreview(
                     Icon(30.dp); Temp()
                 }
                 else -> Row(inner, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = rowArrangement) {
-                    Icon(if (size == SizeClass.LARGE) 52.dp else 44.dp)
-                    Spacer(Modifier.width(if (size == SizeClass.LARGE) 12.dp else 10.dp))
+                    Icon(if (size == SizeClass.LARGE) 52.dp else 34.dp)
+                    Spacer(Modifier.width(if (size == SizeClass.LARGE) 12.dp else 6.dp))
                     Temp()
-                    Column(Modifier.padding(start = if (size == SizeClass.LARGE) 14.dp else 12.dp)) {
+                    Column(Modifier.padding(start = if (size == SizeClass.LARGE) 14.dp else 8.dp)) {
                         if (size == SizeClass.LARGE) Text(content.conditionLabel, style = ts(14f), maxLines = 1)
-                        Secondary(place, top = if (size == SizeClass.LARGE) 2.dp else 0.dp)
-                        Secondary(hilo, top = 2.dp)
+                        Secondary(place, if (size == SizeClass.LARGE) 13f else 12f, if (size == SizeClass.LARGE) 2.dp else 0.dp)
+                        Secondary(hilo, if (size == SizeClass.LARGE) 13f else 12f, 2.dp)
                     }
                     if (size == SizeClass.LARGE) {
                         Spacer(Modifier.weight(1f))

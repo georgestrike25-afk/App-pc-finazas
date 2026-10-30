@@ -256,5 +256,5 @@ object WidgetLayouts {
     /** Tamaño base (dp) del icono principal de cada composición; 0 si no tiene. */
     fun iconDp(type: WidgetType, size: SizeClass): Int = ICON_DP[type.ordinal * SizeClass.entries.size + size.ordinal]
 
-    private val ICON_DP = intArrayOf(0, 0, 0, 30, 44, 52, 20, 30, 32, 34, 30, 30, 18, 24, 22)
+    private val ICON_DP = intArrayOf(0, 0, 0, 30, 34, 52, 20, 30, 32, 34, 30, 30, 18, 24, 22)
 }

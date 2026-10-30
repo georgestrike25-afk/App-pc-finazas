@@ -45,7 +45,7 @@ object WidgetSizing {
         }
         WidgetType.WEATHER -> when (size) {
             SizeClass.SMALL -> Hero(time = 0, temperature = 30)
-            SizeClass.MEDIUM -> Hero(time = 0, temperature = 44)
+            SizeClass.MEDIUM -> Hero(time = 0, temperature = 38)
             SizeClass.LARGE -> Hero(time = 0, temperature = 52)
         }
         WidgetType.DUO -> when (size) {

@@ -42,7 +42,8 @@ class WidgetConfigActivity : ComponentActivity() {
         setContent {
             val settings by viewModel.settings.collectAsStateWithLifecycle()
             AuraTheme(settings.themeMode) {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                // Surface fija el color de contenido del tema: sin ella el texto salía negro sobre fondo oscuro.
+                androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     CustomizeRoute(
                         viewModel = viewModel,
                         type = type,
