@@ -12,14 +12,15 @@ Mockups previos a la implementación: [`docs/mockups/`](mockups/).
 | Recortar y encuadrar | Ajuste «cubrir» a la resolución real de la pantalla + zoom (1–5×) y desplazamiento con gestos; nunca deja bordes vacíos (`Framing`) |
 | Fuentes para números | 20 tipografías abiertas incluidas (Bebas Neue, Anton, Oswald, Teko, Rajdhani, Orbitron, Audiowide, Michroma, Russo One, Black Ops, Monoton, Bungee, Righteous, Share Tech, Major Mono, Poiret One, Comfortaa, Abril Fatface, Playfair, Pacifico), recortadas a los caracteres del reloj (≈100 KB en total), más las 8 del sistema |
 | Ancho, alto y rotación | Estiramiento independiente (50–250 %), giro de −45° a 45° (deslizador, botones de 0,5° o dos dedos) |
-| Separar desde el centro | Las horas se alejan hacia el borde izquierdo y los minutos hacia el derecho (0–100 %); botón «Llenar el ancho» |
+| Orientación | Horizontal (`09:50` en una línea) o vertical (horas arriba y minutos abajo, sin los dos puntos) |
+| Separar desde el centro | Las horas se alejan hacia el borde izquierdo y los minutos hacia el derecho (en vertical, hacia arriba y abajo); los dos puntos quedan siempre en el medio (0–100 %); botón «Llenar el ancho» |
 | Deformación libre | Pestaña Deformar: 4 esquinas arrastrables (perspectiva, inclinación); atajos de perspectiva; el camaleón sigue la deformación |
 | Ajuste fino | Posición con deslizadores y flechas de 0,25 % de la pantalla, para encajar los números en la foto |
 | Modo camaleón | La cara de los números toma la foto que tienen detrás, alineada píxel a píxel aunque el reloj esté girado o estirado; el canto toma el tono medio del fondo. Intensidad y aclarar/oscurecer ajustables. Se adapta solo al mover el reloj |
 | Reloj editable | Paramétrico (no hay imágenes prediseñadas): 8 tipografías del sistema de Aura, horas en negrita, color, tamaño, espaciado, opacidad, posición con arrastre y pellizco |
 | Efectos 3D | Sombra difusa, profundidad (extrusión), bisel, reflejo especular y brillo, con dirección de la luz ajustable |
 | Materiales | Metal (degradado cromado con tinte), vidrio (cara translúcida y filo claro), neón (resplandor multicapa), piedra (textura procedural), minimal |
-| Clima y hora de Aura | Formato 12/24 h de Aura, fecha localizada y temperatura y ciudad en caché del sistema meteorológico existente |
+| Clima y hora de Aura | Formato 12/24 h de Aura, fecha localizada o en números (dd/mm/aaaa, con o sin el día) y temperatura y ciudad en caché del sistema meteorológico existente |
 | Deshacer / rehacer | Historial único del proyecto (reloj, encuadre, máscara y trazos); un gesto = un paso |
 | Proyectos | Guardar, abrir, duplicar, eliminar; miniatura; todo en almacenamiento interno privado |
 | Exportar | PNG en la resolución real de la pantalla, en Imágenes › Aura (MediaStore) |

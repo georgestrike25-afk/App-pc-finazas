@@ -47,7 +47,7 @@ Aura Night muestra la variante nocturna del icono para cielos despejados o parci
 
 ## Personalización
 
-Por widget (clave `widget_<appWidgetId>` en DataStore): fondo y opacidad, color de texto y de iconos, iconos a color o monocromo, tamaño de hora y temperatura (70–140 %), tipografía, alineación, espaciado, sombra suave, fecha/ubicación/máx.-mín. visibles, formato horario. Las unidades son globales (Ajustes).
+Por widget (clave `widget_<appWidgetId>` en DataStore): fondo y opacidad, color de texto y de iconos, iconos a color o monocromo, tamaño de hora y temperatura (70–140 %), tipografía, alineación, espaciado, sombra suave, fecha/ubicación/máx.-mín. visibles, formato de la fecha (palabras, dd/mm/aaaa o día + dd/mm/aaaa), formato horario. Las unidades son globales (Ajustes).
 
 RemoteViews no deja cambiar la familia tipográfica ni la sombra en ejecución, por eso `tools/aura_widgets.py` genera 240 layouts (5 widgets × 3 tamaños × 8 tipografías × con/sin sombra). El resto se aplica en ejecución.
 
