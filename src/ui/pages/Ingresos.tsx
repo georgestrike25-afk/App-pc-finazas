@@ -20,7 +20,7 @@ function LinesEditor({ title, lines, onChange }: { title: string; lines: IncomeL
           <button type="button" className="btn ghost icon" aria-label="Quitar" onClick={() => onChange(lines.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button type="button" className="btn small" onClick={() => onChange([...lines, { concept: '', amount: 0 }])}>+ Agregar</button>
+      <button type="button" className="btn small" onClick={() => onChange([...lines, { concept: '', amount: 0, at: new Date().toISOString() }])}>+ Agregar</button>
     </fieldset>
   );
 }

@@ -17,6 +17,8 @@ export type DataStatus = 'confirmado' | 'estimado';
 export interface IncomeLine {
   concept: string;
   amount: Cents;
+  /** Cuándo se anotó (para sumarlo a "Plata hasta cobrar" si entró después de anotar tu plata). */
+  at?: string;
 }
 
 export interface IncomeRevision {

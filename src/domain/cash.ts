@@ -10,6 +10,8 @@ export interface CashStatus {
   spent: Cents;
   /** Lo que te devolvieron (p. ej. tu pareja, su parte de Sancor) desde que anotaste tu plata. */
   returned: Cents;
+  /** Ingresos que anotaste después de anotar tu plata (no el sueldo: con el sueldo se vuelve a anotar la plata). */
+  ingresos: Cents;
   left: Cents;
   /** Gastos que se descontaron (para mostrarlos). */
   items: Array<{ concept: string; amount: Cents; date: string }>;
@@ -26,7 +28,7 @@ const outOfPocket = (e: Expense) => bolsilloPareja(e) ?? (e.kind === 'hogar' ? s
  * los gastos que anota o que detecta la app (efectivo, débito, transferencias, billeteras) y
  * los pagos de resumen. Las compras con tarjeta de crédito no: se pagan con el resumen.
  */
-export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'settings'> & Partial<Pick<DataSet, 'sancor' | 'pareja'>>, todayIso: string): CashStatus | null {
+export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'settings'> & Partial<Pick<DataSet, 'sancor' | 'pareja' | 'incomes'>>, todayIso: string): CashStatus | null {
   const c = data.settings.cash;
   if (!c) return null;
   const since = c.setAt.slice(0, 10);
@@ -44,7 +46,14 @@ export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'se
   // Lo que te devuelve tu pareja (Sancor) después de anotar tu plata: vuelve a tu bolsillo.
   const back = (data.sancor ?? []).filter((x) => !x.deleted).flatMap((x) => x.received.filter((r) => r.date > since || (r.date === since && (r.at ?? '') > c.setAt)));
   const returned = sum(back.map((r) => r.amount)) + sum(parejaPagos.filter((p) => p.a === pa!.yo).map((p) => p.monto));
-  const left = c.amount - spent + returned;
+  // Otros ingresos anotados después (widget "+ Ingreso", Ingresos → ingresos adicionales). Los anotados
+  // antes de que existiera la fecha de cada renglón cuentan si el registro del mes se creó después.
+  const ingresos = sum(
+    (data.incomes ?? [])
+      .filter((i) => !i.deleted)
+      .flatMap((i) => i.extras.filter((x) => x.amount > 0 && (x.at ? x.at > c.setAt : i.createdAt > c.setAt)).map((x) => x.amount)),
+  );
+  const left = c.amount - spent + returned + ingresos;
   const days = c.until && c.until >= todayIso ? daysBetween(todayIso, c.until) + 1 : undefined;
-  return { start: c.amount, spent, returned, left, items, days, perDay: days ? Math.floor(Math.max(0, left) / days) : undefined };
+  return { start: c.amount, spent, returned, ingresos, left, items, days, perDay: days ? Math.floor(Math.max(0, left) / days) : undefined };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cashStatus } from '../../src/domain/cash';
-import { emptyData, expense } from './helpers';
+import { emptyData, expense, income } from './helpers';
 
 describe('plata hasta cobrar', () => {
   it('descuenta lo que gastás desde que anotaste el monto (no las compras con tarjeta)', () => {
@@ -45,5 +45,29 @@ describe('reintegro de Sancor y tu plata', () => {
     const s = cashStatus(d, '2026-11-06')!;
     expect(s.returned).toBe(15000000);
     expect(s.left).toBe(25000000);
+  });
+});
+
+describe('plata hasta cobrar: ingresos anotados después', () => {
+  it('suma lo que entró después de anotar la plata (no lo de antes)', () => {
+    const settings = { ...emptyData().settings, cash: { amount: 100_000_00, setAt: '2026-10-20T10:00:00.000Z' } };
+    const inc = (createdAt: string, extras: Array<{ concept: string; amount: number; at?: string }>) => ({ ...income({ month: '2026-10', amountReceived: 0 }), createdAt, extras });
+    const c = cashStatus(
+      {
+        ...emptyData(),
+        settings,
+        incomes: [
+          inc('2026-10-01T10:00:00.000Z', [
+            { concept: 'Viejo', amount: 5_000_00, at: '2026-10-05T10:00:00.000Z' },
+            { concept: 'Transferencia', amount: 150_000_00, at: '2026-10-29T10:00:00.000Z' },
+          ]),
+          // Anotado con el widget antes de que existiera la fecha por renglón: el registro es de después.
+          inc('2026-10-28T10:00:00.000Z', [{ concept: 'Ingreso', amount: 1_000_00 }]),
+        ],
+      },
+      '2026-10-30',
+    )!;
+    expect(c.ingresos).toBe(151_000_00);
+    expect(c.left).toBe(100_000_00 + 151_000_00);
   });
 });

@@ -86,7 +86,7 @@ export function planQuick(entries: QuickEntry[], ctx: { expenses: Expense[]; inc
       }
       const month = monthOf(date);
       const prev = plan.incomes.find((i) => i.month === month) ?? ctx.incomes.find((i) => !i.deleted && i.month === month);
-      const line = { concept: `${concept}${q.cuenta ? ` (${q.cuenta})` : ''}`, amount: monto };
+      const line = { concept: `${concept}${q.cuenta ? ` (${q.cuenta})` : ''}`, amount: monto, at: ctx.nowIso };
       const inc: Income = prev
         ? { ...prev, updatedAt: ctx.nowIso, deviceId: ctx.deviceId, extras: [...prev.extras, line] }
         : { id: uid(), createdAt: ctx.nowIso, updatedAt: ctx.nowIso, deviceId: ctx.deviceId, month, status: 'confirmado', amountReceived: 0, receivedDate: date, extras: [line], deductions: [], notes: 'Ingresos anotados con la anotación rápida.', revisions: [] };

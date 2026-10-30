@@ -60,8 +60,9 @@ export function CashCard() {
           hasta el {formatDate(c.until)} · {st.days} día{st.days === 1 ? '' : 's'} · <strong><Money value={st.perDay!} /> por día</strong>
         </p>
       )}
-      {st.items.length > 0 && <Progress value={st.spent} max={st.start + st.returned} />}
-      {st.returned > 0 && <small className="ok-text">+ <Money value={st.returned} /> que te devolvieron (Sancor)</small>}
+      {st.items.length > 0 && <Progress value={st.spent} max={st.start + st.returned + st.ingresos} />}
+      {st.ingresos > 0 && <small className="ok-text">+ <Money value={st.ingresos} /> que te entraron (ingresos anotados)</small>}
+      {st.returned > 0 && <small className="ok-text">+ <Money value={st.returned} /> que te devolvieron o te pasaron</small>}
       {st.items.length === 0 ? (
         <small className="muted">Desde el {formatDate(c.setAt.slice(0, 10))} se descuenta cada gasto que anotes.</small>
       ) : (
