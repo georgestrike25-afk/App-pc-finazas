@@ -1,4 +1,4 @@
-import { monthOf, type MonthKey } from './dates';
+import type { MonthKey } from './dates';
 import { occurrencesForMonth } from './expenses';
 import { incomeNet } from './income';
 import { sum, type Cents } from './money';
@@ -242,12 +242,3 @@ function fmtShort(c: Cents): string {
   return `$${(c / 100).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** Utilidad para listar meses con datos (para historial y gráficos). */
-export function monthsWithData(data: DataSet): MonthKey[] {
-  const set = new Set<MonthKey>();
-  data.incomes.filter((i) => !i.deleted).forEach((i) => set.add(i.month));
-  data.expenses.filter((e) => !e.deleted).forEach((e) => set.add(e.month));
-  data.sancor.filter((s) => !s.deleted).forEach((s) => set.add(s.month));
-  data.cardPayments.filter((p) => !p.deleted).forEach((p) => set.add(monthOf(p.date)));
-  return [...set].sort();
-}

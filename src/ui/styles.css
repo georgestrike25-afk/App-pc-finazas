@@ -155,7 +155,6 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; }
 @media (max-width: 860px) {
   .only-mobile { display: flex !important; }
   .bottom.only-mobile { display: grid !important; }
-  .hide-mobile { display: none !important; }
   .side { position: fixed; left: 0; top: 0; z-index: 20; transform: translateX(-100%); transition: transform 0.2s; box-shadow: var(--shadow-pop); }
   .side.open { transform: none; }
   .topbar { padding: 12px 16px 8px; position: sticky; top: 0; z-index: 5; }
@@ -304,12 +303,10 @@ tr.dim { opacity: 0.5; }
 .list li:last-child { border-bottom: 0; }
 .dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; margin: 0 0 12px; }
 .dl dt { color: var(--muted); font-size: 0.88rem; min-width: 0; overflow-wrap: normal; }
-.dl .dl-full { grid-column: 1 / -1; }
 .dl dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .dl.three { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr) minmax(110px, auto)); }
 .timeline { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; }
 .timeline li { padding: 8px 0; border-bottom: 1px solid var(--border); }
-.rules li { margin-bottom: 6px; }
 
 /* Movimientos (gastos) */
 .exp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -470,9 +467,6 @@ td .cat-ic { display: inline-grid; vertical-align: middle; margin-right: 10px; w
   .modal-back { padding: 0; align-items: end; }
   .modal, .modal.wide { width: 100%; max-height: 94vh; border-radius: var(--r-lg) var(--r-lg) 0 0; }
   .modal-f { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
-  .modal.sheet-full { height: 100%; max-height: 100%; border-radius: 0; border: 0; }
-  .modal.sheet-full .modal-f { flex-direction: column-reverse; }
-  .modal.sheet-full .modal-f .btn { width: 100%; }
   .modal-back:has(.modal.confirm) { align-items: center; padding: 20px; }
   .modal.confirm { border-radius: var(--r-lg); }
 }

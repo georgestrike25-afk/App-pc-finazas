@@ -31,10 +31,6 @@ export function toCents(pesos: number): Cents {
   return Math.round(pesos * 100);
 }
 
-export function assertCents(v: unknown): v is Cents {
-  return typeof v === 'number' && Number.isInteger(v) && Number.isFinite(v);
-}
-
 /** Calcula un porcentaje de un importe redondeando al centavo (half-up). */
 export function percentOf(cents: Cents, pct: number): Cents {
   return Math.round((cents * pct) / 100);

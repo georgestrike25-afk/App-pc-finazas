@@ -11,7 +11,9 @@ App de finanzas personales de Jorge (es-AR). Una sola base web que se publica co
 
 ## Estructura
 - `src/domain/` lógica pura (cálculo mensual, plata hasta cobrar `cash.ts`, Sancor, deudas). `src/importers/` lectura de PDFs/capturas/planillas. `src/notifications/` análisis de avisos, anotación rápida, widget. `src/sync/` sincronización celular ↔ PC (cifrada, frase ≥ 8). `src/ui/pages/` pantallas.
-- Pruebas: `tests/unit` (Vitest), `tests/e2e` (Playwright sobre la compilación). `tests/local/` está en .gitignore (pruebas con datos reales / Electron con xvfb).
+- Pruebas: `tests/unit` (Vitest), `tests/e2e` (Playwright sobre la compilación). `tests/local/` está en .gitignore (pruebas con datos reales / Electron con xvfb / comparación visual antes-después `visual.spec.ts`).
+- Rendimiento: "Este mes" se carga con la app y el resto de las pantallas con `React.lazy` (`src/ui/App.tsx`); `qrcode` se importa recién al dibujar un QR. Mantener así lo pesado (lectores de PDF/OCR/planillas) fuera del arranque.
+- `@capacitor/app` no se importa en JS pero se deja: el plugin nativo maneja el botón Atrás de Android.
 
 ## Comandos
 - `npx tsc --noEmit -p .` · `npx vitest run` · `npm run build && npx playwright test`
@@ -31,4 +33,5 @@ App de finanzas personales de Jorge (es-AR). Una sola base web que se publica co
 - Hecho: rediseño "Forest Finance"/Brote, widget y anotación rápida, avisos, compartir → importar, QR + "Mostrar frase" para conectar celular ↔ PC, Gastos del más nuevo al más viejo, ingresos anotados suman a "Plata hasta cobrar", pestaña "Viajes y ahorros".
 - Transferencias recibidas ("te transfirió $ X"): se anotan solas como ingreso extra del mes (aviso "Te entraron $ X" con Deshacer); si el aviso no trae el importe, aviso "¿Cuánto te entró?" (Anotar / No registrar) y queda en "Detectados para revisar". El sueldo acreditado, rendimientos y devoluciones NO se anotan solos (el sueldo va con los movimientos del banco). Lógica en `analyzer.ts`/`ingest.ts`/`quick.ts`; espejo nativo en `Analisis.java`/`LectorNotificaciones.java`/`Avisos.java`.
 - Quitado: modo pareja (sincronización con Antonella, planilla compartida, celular de prueba). Compartidos volvió a gastos del hogar con ½ y Sancor.
+- Limpieza 03/11/2026: código muerto, scripts de íconos rotos, `jsdom`, zip viejo y maquetas del modo pareja eliminados; arranque 671 KB → 389 KB.
 - Ideas: `docs/ideas-pendientes.md`.

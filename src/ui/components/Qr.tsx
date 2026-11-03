@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import QRCode from 'qrcode';
 import { Modal } from './ui';
 
-/** QR para conectar el otro celular (se genera en el dispositivo, no sale a internet). */
+/** QR para conectar el celular con la PC (se genera en el dispositivo, no sale a internet). */
 export function QrCode({ text, label }: { text: string; label: string }) {
   const [src, setSrc] = useState('');
   useEffect(() => {
-    QRCode.toDataURL(text, { errorCorrectionLevel: 'M', margin: 2, width: 560, color: { dark: '#123c3a', light: '#ffffff' } }).then(setSrc, () => setSrc(''));
+    // La librería del QR se carga recién acá (solo la usa la pantalla de Copias de la PC).
+    import('qrcode')
+      .then(({ default: QRCode }) => QRCode.toDataURL(text, { errorCorrectionLevel: 'M', margin: 2, width: 560, color: { dark: '#123c3a', light: '#ffffff' } }))
+      .then(setSrc, () => setSrc(''));
   }, [text]);
   return src ? <img className="qr" src={src} alt={label} width={240} height={240} /> : null;
 }

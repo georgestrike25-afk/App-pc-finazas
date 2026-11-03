@@ -44,13 +44,6 @@ export function monthDiff(a: MonthKey, b: MonthKey): number {
   return (yb - ya) * 12 + (mb - ma);
 }
 
-export function monthRange(from: MonthKey, to: MonthKey): MonthKey[] {
-  const out: MonthKey[] = [];
-  const n = monthDiff(from, to);
-  for (let i = 0; i <= n; i++) out.push(addMonths(from, i));
-  return out;
-}
-
 export function monthLabel(month: MonthKey): string {
   if (!isMonthKey(month)) return month;
   const [y, m] = month.split('-').map(Number);
@@ -67,12 +60,6 @@ export function formatDate(iso: string | null | undefined): string {
   if (!iso || !isIsoDate(iso)) return '—';
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
-}
-
-export function addDays(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + days));
-  return dt.toISOString().slice(0, 10);
 }
 
 export function daysBetween(a: string, b: string): number {

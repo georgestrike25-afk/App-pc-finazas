@@ -1,4 +1,3 @@
-import { monthOf, type MonthKey } from './dates';
 import { percentOf, sum, type Cents } from './money';
 import type { SancorCharge } from './types';
 
@@ -76,9 +75,3 @@ export function couponMerges(charges: SancorCharge[]): Array<{ keep: SancorCharg
   return out;
 }
 
-/** Reintegros recibidos en un mes (por fecha de cobro), de todos los cargos. */
-export function reimbursementsReceivedInMonth(charges: SancorCharge[], month: MonthKey) {
-  return charges
-    .filter((c) => !c.deleted)
-    .flatMap((c) => c.received.filter((r) => monthOf(r.date) === month).map((r) => ({ charge: c, r })));
-}

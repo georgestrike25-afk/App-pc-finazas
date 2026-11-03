@@ -10,11 +10,6 @@ export function isNative(): boolean {
   }
 }
 
-export function platformName(): 'android' | 'web' | 'escritorio' {
-  if (isNative()) return 'android';
-  return (window as unknown as { finanzasDesktop?: unknown }).finanzasDesktop ? 'escritorio' : 'web';
-}
-
 export interface DesktopPairing {
   localUrl: string;
   lanUrl: string | null;

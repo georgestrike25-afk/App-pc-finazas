@@ -1,5 +1,5 @@
 import { ArrowDownToLine, CalendarClock, CircleHelp, CreditCard, History, Landmark, ListChecks, Menu, PiggyBank, Plane, Receipt, RefreshCw, Settings, Upload, Users, Wallet, type LucideIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, lazy, Suspense, type ComponentType } from 'react';
 import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost, Help } from './components/ui';
 import { applyTheme, watchSystemTheme } from './theme';
@@ -7,23 +7,25 @@ import { syncWidget } from '../notifications/native';
 import { monthLabel } from '../domain/dates';
 import { Tour } from './components/Tour';
 import { getLock, verifyPin } from './lock';
-import { ResumenPage } from './pages/Resumen';
 import { EsteMesPage } from './pages/EsteMes';
-import { AyudaPage } from './pages/Ayuda';
-import { IngresosPage } from './pages/Ingresos';
-import { GastosPage } from './pages/Gastos';
-import { CompartidosPage } from './pages/Compartidos';
-import { DeudasPage } from './pages/Deudas';
-import { CuotasPage } from './pages/Cuotas';
-import { EntidadesPage } from './pages/Entidades';
-import { PresupuestoPage } from './pages/Presupuesto';
-import { ImportarPage } from './pages/Importar';
-import { ViajePage } from './pages/Viaje';
-import { HistorialPage } from './pages/Historial';
-import { ConfiguracionPage } from './pages/Configuracion';
-import { CopiasPage } from './pages/Copias';
 import { usePwa } from './pwa';
 import { getSyncStatus, onSyncStatus, type SyncStatus } from '../sync/autoSync';
+
+// "Este mes" se carga con la app; el resto de las pantallas, recién cuando se abren (la app arranca más rápido).
+const ResumenPage = lazy(() => import('./pages/Resumen').then((m) => ({ default: m.ResumenPage })));
+const AyudaPage = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.AyudaPage })));
+const IngresosPage = lazy(() => import('./pages/Ingresos').then((m) => ({ default: m.IngresosPage })));
+const GastosPage = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.GastosPage })));
+const CompartidosPage = lazy(() => import('./pages/Compartidos').then((m) => ({ default: m.CompartidosPage })));
+const DeudasPage = lazy(() => import('./pages/Deudas').then((m) => ({ default: m.DeudasPage })));
+const CuotasPage = lazy(() => import('./pages/Cuotas').then((m) => ({ default: m.CuotasPage })));
+const EntidadesPage = lazy(() => import('./pages/Entidades').then((m) => ({ default: m.EntidadesPage })));
+const PresupuestoPage = lazy(() => import('./pages/Presupuesto').then((m) => ({ default: m.PresupuestoPage })));
+const ImportarPage = lazy(() => import('./pages/Importar').then((m) => ({ default: m.ImportarPage })));
+const ViajePage = lazy(() => import('./pages/Viaje').then((m) => ({ default: m.ViajePage })));
+const HistorialPage = lazy(() => import('./pages/Historial').then((m) => ({ default: m.HistorialPage })));
+const ConfiguracionPage = lazy(() => import('./pages/Configuracion').then((m) => ({ default: m.ConfiguracionPage })));
+const CopiasPage = lazy(() => import('./pages/Copias').then((m) => ({ default: m.CopiasPage })));
 
 function SyncBadge() {
   const [s, setS] = useState<SyncStatus>(getSyncStatus());
@@ -40,7 +42,7 @@ interface RouteDef {
   label: string;
   short?: string;
   icon: LucideIcon;
-  el: () => JSX.Element;
+  el: ComponentType;
   nav: Nav;
   /** Sección principal a la que pertenece (para marcarla activa y mostrar pestañas). */
   group?: 'deudas' | 'plata';
@@ -241,7 +243,13 @@ function Shell() {
               ))}
             </nav>
           )}
-          {ctx?.data ? <Page /> : <p className="muted">Cargando datos locales…</p>}
+          {ctx?.data ? (
+            <Suspense fallback={<p className="muted">Cargando…</p>}>
+              <Page />
+            </Suspense>
+          ) : (
+            <p className="muted">Cargando datos locales…</p>
+          )}
         </main>
         <nav className="bottom only-mobile" aria-label="Navegación principal">
           {BOTTOM.map((p) => {
