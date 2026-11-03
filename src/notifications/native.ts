@@ -58,8 +58,21 @@ export async function ingestQuick(): Promise<number> {
   }
 }
 
-/** Registra anotaciones rápidas (las del widget y los avisos de Android) en Gastos o Ingresos. */
-async function registrarRapidas(items: QuickEntry[]): Promise<number> {
+/** Anota como ingreso una transferencia recibida que se completó a mano (desde "Detectados para revisar"). */
+export async function registrarIngresoDetectado(i: { monto: number; descripcion: string; cuenta: string; fecha: number; clave: string }): Promise<void> {
+  await registrarRapidas([{ accion: 'guardar', tipo: 'ingreso', monto: i.monto, descripcion: i.descripcion, cuenta: i.cuenta, fecha: i.fecha, clave: i.clave }]);
+  notify();
+}
+
+/** Las anotaciones se registran de a una tanda: dos a la vez podían pisarse el ingreso del mes. */
+let colaRegistro: Promise<unknown> = Promise.resolve();
+function registrarRapidas(items: QuickEntry[]): Promise<number> {
+  const paso = colaRegistro.then(() => registrarRapidasYa(items));
+  colaRegistro = paso.catch(() => {});
+  return paso;
+}
+
+async function registrarRapidasYa(items: QuickEntry[]): Promise<number> {
   const db = getDb();
   const settings = await getSettings(db);
   const deviceId = await getDeviceId(db);
@@ -152,8 +165,12 @@ export async function ingestNotifications(): Promise<number> {
       if (r.expenses.length) await addAudit(db, 'crear', 'gastos', undefined, `${r.expenses.length} gasto(s) registrados desde notificaciones`, await getDeviceId(db));
     });
     await Notificaciones.borrar({ cantidad: items.length });
-    if (r.expenses.length || r.review.length) notify();
-    return r.expenses.length;
+    // Plata que te entró por transferencia: se anota como ingreso del mes (con "Deshacer" en el aviso).
+    if (r.incomes.length) {
+      await registrarRapidas(r.incomes.map((i): QuickEntry => ({ accion: 'guardar', tipo: 'ingreso', monto: i.monto, descripcion: i.descripcion, cuenta: i.cuenta, fecha: i.fecha, clave: i.clave })));
+    }
+    if (r.expenses.length || r.review.length || r.incomes.length) notify();
+    return r.expenses.length + r.incomes.length;
   } finally {
     running = false;
   }

@@ -57,3 +57,43 @@ describe('anotación rápida (widget y avisos)', () => {
     expect(antes.resolved).toEqual(['k3']);
   });
 });
+
+describe('transferencias recibidas → ingreso', () => {
+  const raw = (titulo: string, texto: string, clave: string) => ({ paquete: 'com.mercadopago.wallet', titulo, texto, fecha, clave });
+  const dec = (r: ReturnType<typeof raw>[]) => decide(r, { expenses: [], processed: new Set(), nowIso: '2026-10-22T15:00:00.000Z' });
+
+  it('con importe: se anota como ingreso (no como gasto) y la misma transferencia avisada dos veces cuenta una vez', () => {
+    const r = dec([raw('Recibiste dinero', 'Antonella Pérez te transfirió $ 150.000', 'a1'), raw('Recibiste dinero', 'Antonella Pérez te transfirió $ 150.000', 'a2')]);
+    expect(r.expenses).toHaveLength(0);
+    expect(r.incomes).toEqual([expect.objectContaining({ monto: 15000000, descripcion: 'Transferencia de Antonella Pérez', clave: 'a1' })]);
+  });
+
+  it('sin importe: queda para revisar como ingreso (el aviso de Brote pregunta cuánto entró)', () => {
+    const r = dec([raw('Recibiste dinero', 'Antonella Pérez te transfirió dinero', 'b1')]);
+    expect(r.incomes).toHaveLength(0);
+    expect(r.review).toEqual([expect.objectContaining({ tipo: 'ingreso', monto: 0, clave: 'b1', descripcion: 'Transferencia de Antonella Pérez' })]);
+  });
+
+  it('el sueldo acreditado y los rendimientos no se anotan solos (el sueldo va con los movimientos del banco)', () => {
+    const r = dec([{ ...raw('Acreditación', 'Se acreditó tu sueldo por $ 850.000,00', 's1'), paquete: 'ar.com.bancopatagonia.patagoniamovil' }]);
+    expect(r.incomes).toHaveLength(0);
+    expect(r.review).toHaveLength(0);
+  });
+
+  it('se anota con su aviso (clave), no se duplica y "Deshacer" lo saca', () => {
+    const entrada: QuickEntry = { accion: 'guardar', tipo: 'ingreso', monto: 15000000, descripcion: 'Transferencia de Antonella Pérez', cuenta: 'Mercado Pago', fecha, clave: 'a1' };
+    const p = planQuick([entrada], ctx());
+    expect(p.incomes[0].extras).toEqual([expect.objectContaining({ amount: 15000000, clave: 'a1', concept: 'Transferencia de Antonella Pérez (Mercado Pago)' })]);
+    // Otra vez el mismo aviso: no suma de nuevo.
+    expect(planQuick([entrada], { ...ctx(), incomes: p.incomes }).incomes).toHaveLength(0);
+    // Deshacer desde el aviso de Android.
+    const d = planQuick([{ accion: 'deshacer', clave: 'a1' }], { ...ctx(), incomes: p.incomes });
+    expect(d.incomes[0].extras).toEqual([]);
+  });
+
+  it('"Anotar" desde el aviso sin importe: resuelve el aviso y suma lo que se puso', () => {
+    const p = planQuick([{ accion: 'guardar', tipo: 'ingreso', monto: 8000000, descripcion: 'Transferencia de Antonella Pérez', cuenta: 'Mercado Pago', fecha, clave: 'b1' }], ctx());
+    expect(p.resolved).toContain('b1');
+    expect(p.incomes[0].extras[0]).toMatchObject({ amount: 8000000, clave: 'b1' });
+  });
+});

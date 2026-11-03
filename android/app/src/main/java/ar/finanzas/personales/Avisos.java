@@ -47,9 +47,13 @@ final class Avisos {
     }
 
     static PendingIntent anotar(Context c, String modo, String clave, long monto, String descripcion, String cuenta, long fecha, boolean transferencia) {
+        return anotar(c, modo, "gasto", clave, monto, descripcion, cuenta, fecha, transferencia);
+    }
+
+    static PendingIntent anotar(Context c, String modo, String tipo, String clave, long monto, String descripcion, String cuenta, long fecha, boolean transferencia) {
         Intent i = new Intent(c, AnotarActivity.class);
         i.putExtra("modo", modo);
-        i.putExtra("tipo", "gasto");
+        i.putExtra("tipo", tipo);
         i.putExtra("clave", clave);
         i.putExtra("monto", monto);
         i.putExtra("descripcion", descripcion);
@@ -70,6 +74,34 @@ final class Avisos {
                 .setContentIntent(Brote.abrirApp(c, id(clave)))
                 .addAction(new Notification.Action.Builder(null, "Deshacer", accion(c, AccionReceiver.DESHACER, clave)).build())
                 .addAction(new Notification.Action.Builder(null, "Cambiar categoría", anotar(c, "reemplazar", clave, monto, descripcion, cuenta, fecha, transferencia)).build())
+                .build();
+        gestor(c).notify(id(clave), n);
+    }
+
+    /** "Te entraron $ 150.000": se anota como ingreso, con Deshacer. */
+    static void ingresoAnotado(Context c, String clave, long monto, String descripcion, String cuenta) {
+        if (!permitido(c)) return;
+        String texto = descripcion + " · " + cuenta + ". Se suma a tus ingresos y a tu plata hasta cobrar.";
+        Notification n = base(c)
+                .setContentTitle("Te entraron " + Brote.pesos(monto))
+                .setContentText(texto)
+                .setStyle(new Notification.BigTextStyle().bigText(texto))
+                .setContentIntent(Brote.abrirApp(c, id(clave)))
+                .addAction(new Notification.Action.Builder(null, "Deshacer", accion(c, AccionReceiver.DESHACER, clave)).build())
+                .build();
+        gestor(c).notify(id(clave), n);
+    }
+
+    /** "¿Cuánto te entró?" cuando el aviso de la transferencia no trae el importe. */
+    static void ingresoSinMonto(Context c, String clave, String cuenta, long fecha) {
+        if (!permitido(c)) return;
+        PendingIntent abrir = anotar(c, "sinmonto", "ingreso", clave, 0, "Transferencia recibida", cuenta, fecha, false);
+        Notification n = base(c)
+                .setContentTitle("¿Cuánto te entró?")
+                .setContentText(cuenta + " avisó que te transfirieron plata, sin el importe.")
+                .setContentIntent(abrir)
+                .addAction(new Notification.Action.Builder(null, "Anotar", abrir).build())
+                .addAction(new Notification.Action.Builder(null, "No registrar", accion(c, AccionReceiver.DESCARTAR, clave)).build())
                 .build();
         gestor(c).notify(id(clave), n);
     }

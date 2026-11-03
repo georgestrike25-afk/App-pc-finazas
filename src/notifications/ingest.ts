@@ -25,6 +25,8 @@ export interface ReviewNotif {
   motivo: string;
   /** Notificación de origen (para resolverla desde el aviso de Brote o la anotación rápida). */
   clave?: string;
+  /** "ingreso": plata que te entró (el aviso no traía el importe). Por defecto es un gasto. */
+  tipo?: 'ingreso';
 }
 
 export interface LogNotif {
@@ -34,8 +36,18 @@ export interface LogNotif {
   resultado: string;
 }
 
+/** Plata que te entró por transferencia: se anota como ingreso del mes. */
+export interface IngresoDetectado {
+  fecha: number;
+  monto: Cents;
+  descripcion: string;
+  cuenta: string;
+  clave: string;
+}
+
 export interface IngestResult {
   expenses: Expense[];
+  incomes: IngresoDetectado[];
   review: ReviewNotif[];
   log: LogNotif[];
   keys: string[];
@@ -85,7 +97,7 @@ export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: str
 export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; processed: Set<string>; nowIso: string; deviceId?: string; cotizacionDolar?: number; partnerName?: string }): IngestResult {
   const partner = (ctx.partnerName ?? '').trim().split(/\s+/)[0]?.toLowerCase().normalize('NFD').replace(/\p{Mn}+/gu, '');
   const isPartner = (who?: string) => !!who && !!partner && partner !== 'pareja' && who.toLowerCase().normalize('NFD').replace(/\p{Mn}+/gu, '').split(/\s+/).some((w) => w.length >= 3 && (w.startsWith(partner) || partner.startsWith(w)));
-  const out: IngestResult = { expenses: [], review: [], log: [], keys: [] };
+  const out: IngestResult = { expenses: [], incomes: [], review: [], log: [], keys: [] };
   const recent = ctx.expenses.filter((e) => !e.deleted && e.importedFrom === 'notificacion');
   const pending: Array<{ d: Detectado }> = [];
   for (const r of raws) {
@@ -105,7 +117,21 @@ export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; proc
       continue;
     }
     if (d.tipo === 'INGRESO') {
-      log(d.cuenta, 'Ingreso (el sueldo se carga con los movimientos del banco)');
+      if (d.transferencia !== 'RECIBIDA') {
+        log(d.cuenta, 'Acreditación, rendimiento o devolución (no se anota)');
+        continue;
+      }
+      // Te transfirieron plata: es un ingreso. La misma transferencia avisada dos veces se anota una sola vez.
+      const repetida = out.incomes.some((i) => i.monto === d.monto && Math.abs(i.fecha - d.fecha) <= DUP_MS && i.cuenta === d.cuenta);
+      if (repetida) {
+        log(d.cuenta, 'Repetida (ya registrada)');
+      } else if (d.monto === 0) {
+        out.review.push({ id: uid(), fecha: d.fecha, monto: 0, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo: 'Te entró plata pero el aviso no dice cuánto: poné el importe', clave: r.clave, tipo: 'ingreso' });
+        log(d.cuenta, 'Para revisar (ingreso sin importe)');
+      } else {
+        out.incomes.push({ fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, clave: r.clave });
+        log(d.cuenta, `Ingreso anotado: ${d.descripcion}`);
+      }
       continue;
     }
     if (d.cuotas) {

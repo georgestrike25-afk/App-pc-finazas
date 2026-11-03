@@ -13,8 +13,8 @@ test('diseño adaptable en Android: sin desplazamiento horizontal y navegación 
   await expect(page.locator('nav.bottom a')).toHaveCount(4);
   await expect(page.locator('.topbar').getByRole('link', { name: 'Subir documento' })).toBeVisible();
   await page.getByRole('button', { name: 'Más' }).click();
-  await page.locator('.side').getByRole('link', { name: /Viaje/ }).click();
-  await expect(page.locator('.topbar h1')).toHaveText('Objetivo de viaje');
+  await page.locator('.side').getByRole('link', { name: /Viajes/ }).click();
+  await expect(page.locator('.topbar h1')).toHaveText('Viajes y ahorros');
   await page.screenshot({ path: 'test-results/movil-viaje.png', fullPage: true });
   // Los gastos se ven como lista (no como tabla apretada)
   await go(page, 'gastos');

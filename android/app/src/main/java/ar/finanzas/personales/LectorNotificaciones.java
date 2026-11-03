@@ -95,7 +95,15 @@ public class LectorNotificaciones extends NotificationListenerService {
         String n = Analisis.normalizar((titulo == null ? "" : titulo) + " " + (texto == null ? "" : texto));
         // Una transferencia a tu pareja puede ser el alquiler (ya cargado): la decide la app, sin aviso automático.
         if (r.transferencia && pareja.length() >= 3 && n.contains(Analisis.normalizar(pareja))) return;
-        if (r.tipo == Analisis.Tipo.SIN_MONTO) {
+        if (r.tipo == Analisis.Tipo.INGRESO_SIN_MONTO) {
+            Brote.agregarPendiente(this, clave);
+            Avisos.ingresoSinMonto(this, clave, r.cuenta, fecha);
+        } else if (r.tipo == Analisis.Tipo.INGRESO) {
+            if (p.getLong("ultimoMonto", -1) == r.monto && Math.abs(fecha - p.getLong("ultimaFecha", 0)) <= REPETIDA_MS) return;
+            p.edit().putLong("ultimoMonto", r.monto).putLong("ultimaFecha", fecha).apply();
+            Brote.ultimo(this, "Te entró: " + r.descripcion, r.cuenta + " · recién", r.monto);
+            Avisos.ingresoAnotado(this, clave, r.monto, r.descripcion, r.cuenta);
+        } else if (r.tipo == Analisis.Tipo.SIN_MONTO) {
             Brote.agregarPendiente(this, clave);
             Avisos.sinMonto(this, clave, r.descripcion, r.cuenta, fecha, r.transferencia);
         } else {

@@ -6,7 +6,7 @@ import { isNative } from '../../platform';
 import { formatARS } from '../../domain/money';
 import { expenseFromDetected } from '../../notifications/ingest';
 import type { LogNotif, ReviewNotif } from '../../notifications/ingest';
-import { getNotifConfig, getNotifLog, getNotifReview, ingestNotifications, Notificaciones, setNotifConfig, setNotifReview, syncWidget } from '../../notifications/native';
+import { getNotifConfig, getNotifLog, getNotifReview, ingestNotifications, Notificaciones, registrarIngresoDetectado, setNotifConfig, setNotifReview, syncWidget } from '../../notifications/native';
 import { Card, Money, MoneyInput } from '../components/ui';
 import type { Cents } from '../../domain/money';
 
@@ -111,6 +111,13 @@ export function NotifReviewCard() {
     if (r?.clave) await Notificaciones.quitarAviso({ clave: r.clave }).catch(() => {});
     void syncWidget();
   };
+  const asIncome = async (r: ReviewNotif) => {
+    const monto = r.monto || amounts[r.id];
+    if (!monto) return toast('Poné cuánto te entró.', 'error');
+    await registrarIngresoDetectado({ monto, descripcion: r.descripcion, cuenta: r.cuenta, fecha: r.fecha, clave: r.clave ?? `rev-${r.id}` });
+    await drop(r.id);
+    toast(`Ingreso anotado: ${r.descripcion} (${formatARS(monto)}).`);
+  };
   const asExpense = async (r: ReviewNotif) => {
     const monto = r.monto || amounts[r.id];
     if (!monto) return toast('Poné cuánto fue la transferencia.', 'error');
@@ -128,7 +135,7 @@ export function NotifReviewCard() {
           <li key={r.id} className="exp-item">
             <div className="exp-top">
               <span className="exp-concept">{r.descripcion}</span>
-              {r.monto ? <Money value={r.monto} className="exp-amount" /> : <span className="exp-amount warn">¿Cuánto?</span>}
+              {r.monto ? <Money value={r.monto} className={r.tipo === 'ingreso' ? 'exp-amount pos' : 'exp-amount'} /> : <span className="exp-amount warn">¿Cuánto?</span>}
             </div>
             {!r.monto && (
               <div style={{ maxWidth: 220 }}>
@@ -139,8 +146,17 @@ export function NotifReviewCard() {
             <div className="exp-foot">
               <span />
               <span className="exp-acts">
-                <button className="btn small primary" onClick={() => asExpense(r)}>Es un gasto</button>
-                <button className="btn small ghost" onClick={() => drop(r.id)}>No es gasto</button>
+                {r.tipo === 'ingreso' ? (
+                  <>
+                    <button className="btn small primary" onClick={() => asIncome(r)}>Anotar ingreso</button>
+                    <button className="btn small ghost" onClick={() => drop(r.id)}>No es un ingreso</button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn small primary" onClick={() => asExpense(r)}>Es un gasto</button>
+                    <button className="btn small ghost" onClick={() => drop(r.id)}>No es gasto</button>
+                  </>
+                )}
               </span>
             </div>
           </li>

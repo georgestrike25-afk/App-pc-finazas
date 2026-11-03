@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 final class Analisis {
     private Analisis() {}
 
-    enum Tipo { ANOTADO, SIN_MONTO, NADA }
+    enum Tipo { ANOTADO, SIN_MONTO, INGRESO, INGRESO_SIN_MONTO, NADA }
 
     static final class Resultado {
         Tipo tipo = Tipo.NADA;
@@ -108,6 +108,12 @@ final class Analisis {
         boolean enviada = tiene(n, ENVIADAS);
         if (monto == 0) {
             // Ualá, Mercado Pago o un pago sin contacto avisan a veces sin el importe: se pregunta cuánto fue.
+            // Te transfirieron plata pero el aviso no dice cuánto: se pregunta cuánto entró.
+            if (tiene(n, RECIBIDAS) && !tiene(n, FALLIDAS) && !tiene(n, PROPIAS) && !tiene(n, PROMOCIONES)) {
+                r.tipo = Tipo.INGRESO_SIN_MONTO;
+                r.descripcion = "Transferencia recibida";
+                return r;
+            }
             if (tiene(n, FALLIDAS) || tiene(n, PROPIAS) || tiene(n, RECIBIDAS) || tiene(n, INGRESOS)) return r;
             if (!enviada && (!tiene(n, GASTOS) || tiene(n, PROMOCIONES))) return r;
             r.tipo = Tipo.SIN_MONTO;
@@ -116,7 +122,15 @@ final class Analisis {
             r.descripcion = enviada ? (c != null ? "una transferencia a " + c : "una transferencia") : (c != null ? "un pago en " + c : "un pago");
             return r;
         }
-        if (tiene(n, FALLIDAS) || tiene(n, PROPIAS) || tiene(n, RECIBIDAS)) return r;
+        if (tiene(n, FALLIDAS) || tiene(n, PROPIAS)) return r;
+        if (tiene(n, RECIBIDAS)) {
+            // Te transfirieron plata: es un ingreso (la app lo anota al abrirse).
+            if (tiene(n, PROMOCIONES)) return r;
+            r.tipo = Tipo.INGRESO;
+            r.monto = monto;
+            r.descripcion = "Transferencia recibida";
+            return r;
+        }
         if (!enviada && tiene(n, INGRESOS)) return r;
         boolean gasto = enviada || tiene(n, GASTOS) || r.cuenta.equals("Pago sin contacto");
         if (!gasto) return r;

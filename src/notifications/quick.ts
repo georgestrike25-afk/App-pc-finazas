@@ -67,6 +67,14 @@ export function planQuick(entries: QuickEntry[], ctx: { expenses: Expense[]; inc
         plan.put = plan.put.filter((x) => x.id !== e.id);
         if (ctx.expenses.some((x) => x.id === e.id)) plan.remove.push(e);
       }
+      // "Deshacer" de un ingreso anotado solo (transferencia recibida): se saca ese renglón del ingreso.
+      if (!e && q.accion === 'deshacer' && q.clave) {
+        for (const i of [...ctx.incomes.filter((x) => !x.deleted), ...plan.incomes]) {
+          if (!i.extras.some((x) => x.clave === q.clave)) continue;
+          const edit: Income = { ...i, updatedAt: ctx.nowIso, deviceId: ctx.deviceId, extras: i.extras.filter((x) => x.clave !== q.clave) };
+          plan.incomes = [...plan.incomes.filter((x) => x.id !== edit.id), edit];
+        }
+      }
       continue;
     }
     const monto = Math.abs(Math.round(q.monto ?? 0));
@@ -84,7 +92,9 @@ export function planQuick(entries: QuickEntry[], ctx: { expenses: Expense[]; inc
       }
       const month = monthOf(date);
       const prev = plan.incomes.find((i) => i.month === month) ?? ctx.incomes.find((i) => !i.deleted && i.month === month);
-      const line = { concept: `${concept}${q.cuenta ? ` (${q.cuenta})` : ''}`, amount: monto, at: ctx.nowIso };
+      const line = { concept: `${concept}${q.cuenta ? ` (${q.cuenta})` : ''}`, amount: monto, at: ctx.nowIso, ...(q.clave ? { clave: q.clave } : {}) };
+      // El mismo aviso ya anotado como ingreso: no se suma dos veces.
+      if (q.clave && [...plan.incomes, ...ctx.incomes].some((i) => !i.deleted && i.extras.some((x) => x.clave === q.clave))) continue;
       const inc: Income = prev
         ? { ...prev, updatedAt: ctx.nowIso, deviceId: ctx.deviceId, extras: [...prev.extras, line] }
         : { id: uid(), createdAt: ctx.nowIso, updatedAt: ctx.nowIso, deviceId: ctx.deviceId, month, status: 'confirmado', amountReceived: 0, receivedDate: date, extras: [line], deductions: [], notes: 'Ingresos anotados con la anotación rápida.', revisions: [] };

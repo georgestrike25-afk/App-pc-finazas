@@ -53,7 +53,7 @@ export const ROUTES: RouteDef[] = [
   { path: 'importar', label: 'Subir documento', short: 'Subir', icon: Upload, el: ImportarPage, nav: 'main', help: 'Subí un PDF o una captura (resumen de tarjeta, cronograma de préstamo, movimientos del banco, plan de Mercado Pago). La app lo lee, te muestra lo que va a cargar y vos confirmás. Si subís algo dos veces, no se duplica.' },
   { path: 'entidades', label: 'Deuda por entidad', short: 'Deudas', icon: Landmark, el: EntidadesPage, nav: 'main', group: 'deudas', help: 'Cuánto le debés en total a cada banco o billetera, sumando préstamos, cuotas, planes de pago, resúmenes sin pagar y los consumos que vienen en el próximo resumen, y en qué mes terminás de pagar.' },
   { path: 'gastos', label: 'Gastos', icon: Receipt, el: GastosPage, nav: 'main', group: 'plata', help: 'Todos los gastos del mes. Lo de la tarjeta llega solo con el resumen; acá anotás lo que pagás en efectivo o transferencia.' },
-  { path: 'viaje', label: 'Objetivo de viaje', short: 'Viaje', icon: Plane, el: ViajePage, nav: 'main', help: 'Tu objetivo de ahorro para el viaje: cuánto cuesta, cuánto llevás ahorrado y si llegás a la fecha.' },
+  { path: 'viaje', label: 'Viajes y ahorros', short: 'Viajes', icon: Plane, el: ViajePage, nav: 'main', help: 'Tus viajes y ahorros: cuánto cuesta el viaje, cuánto llevás ahorrado y si llegás a la fecha.' },
   { path: 'ayuda', label: 'Cómo usar', icon: CircleHelp, el: AyudaPage, nav: 'more', help: 'Explicación corta de cómo usar la app y la guía paso a paso.' },
   { path: 'configuracion', label: 'Configuración', icon: Settings, el: ConfiguracionPage, nav: 'more', help: 'Nombre de tu pareja, cómo se reparten los gastos, el presupuesto diario, el PIN de bloqueo y otras opciones.' },
   { path: 'copias', label: 'Copias y sincronización', icon: RefreshCw, el: CopiasPage, nav: 'more', help: 'Guardá una copia de tus datos en un archivo (hacé una por mes) o conectá el celular con la PC para que tengan los mismos datos.' },
@@ -73,14 +73,14 @@ const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
 };
 /** Menú lateral (escritorio): las secciones de uso diario a la vista. */
 const SIDE_MAIN = ['inicio', 'gastos', 'ingresos', 'compartidos', 'presupuesto', 'entidades', 'viaje', 'resumen', 'importar'];
-const SIDE_LABEL: Record<string, string> = { inicio: 'Este mes', compartidos: 'Compartidos', presupuesto: 'Presupuesto', entidades: 'Deudas', viaje: 'Viaje', importar: 'Subir documento' };
+const SIDE_LABEL: Record<string, string> = { inicio: 'Este mes', compartidos: 'Compartidos', presupuesto: 'Presupuesto', entidades: 'Deudas', viaje: 'Viajes y ahorros', importar: 'Subir documento' };
 /** Navegación inferior (celular). "Subir" queda arriba, en el encabezado. */
 const BOTTOM = ['inicio', 'gastos', 'entidades', 'viaje'];
 const SUBTITLES: Record<string, string> = {
   entidades: 'Cuánto debés y cuándo terminás',
   cuotas: 'Cuánto debés y cuándo terminás',
   deudas: 'Cuánto debés y cuándo terminás',
-  viaje: 'Tu meta de ahorro',
+  viaje: 'Tus viajes y metas de ahorro',
   importar: 'Resúmenes, cronogramas, capturas y planillas',
   resumen: 'La cuenta completa del mes',
   configuracion: 'Preferencias de este dispositivo',
@@ -250,7 +250,7 @@ function Shell() {
             return (
               <a key={p} href={`#/${p}`} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} data-tour={tourId(p)}>
                 <span aria-hidden><r.icon size={20} strokeWidth={1.8} /></span>
-                <small>{SIDE_LABEL[p] === 'Este mes' ? 'Inicio' : SIDE_LABEL[p] ?? r.short ?? r.label}</small>
+                <small>{SIDE_LABEL[p] === 'Este mes' ? 'Inicio' : p === 'viaje' ? 'Ahorros' : SIDE_LABEL[p] ?? r.short ?? r.label}</small>
               </a>
             );
           })}

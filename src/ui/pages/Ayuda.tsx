@@ -17,7 +17,7 @@ export function AyudaPage() {
           <li><strong>Subir</strong> → los <strong>cronogramas de tus préstamos</strong>.</li>
           <li><strong>Subir</strong> → el último <strong>resumen de cada tarjeta</strong> y el plan de Mercado Pago.</li>
           <li><strong>Gastos → Compartidos</strong> → tus gastos fijos (alquiler, luz, gas, internet) marcando "Se repite todos los meses".</li>
-          <li><strong>Viaje</strong> → cuánto cuesta y cuánto querés ahorrar por mes.</li>
+          <li><strong>Viajes y ahorros</strong> → cuánto cuesta y cuánto querés ahorrar por mes.</li>
         </ol>
       </Card>
       <Card title="Cada mes">

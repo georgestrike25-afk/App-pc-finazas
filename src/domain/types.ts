@@ -19,6 +19,8 @@ export interface IncomeLine {
   amount: Cents;
   /** Cuándo se anotó (para sumarlo a "Plata hasta cobrar" si entró después de anotar tu plata). */
   at?: string;
+  /** Aviso de origen (transferencia detectada en una notificación): permite deshacerlo. */
+  clave?: string;
 }
 
 export interface IncomeRevision {

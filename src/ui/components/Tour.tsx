@@ -59,7 +59,7 @@ const STEPS: Step[] = [
   {
     route: 'viaje',
     target: ['nav-viaje'],
-    title: 'Viaje',
+    title: 'Viajes y ahorros',
     text: 'Poné cuánto cuesta el viaje y cuánto ahorrás por mes. La app te dice si llegás y cuánto te falta.',
   },
   {

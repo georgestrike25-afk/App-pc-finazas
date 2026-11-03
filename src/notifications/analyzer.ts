@@ -186,6 +186,11 @@ export function analizar(paquete: string, titulo: string | null | undefined, tex
       const c = comercio(original);
       return { movimiento: { fecha: instante, monto: 0, tipo: 'GASTO', descripcion: c ? `Pago en ${c}` : 'Pago sin importe', cuenta, textoOriginal: original } };
     }
+    // Te transfirieron plata pero el aviso no dice cuánto: queda para que el usuario ponga el importe.
+    if (has(n, recibidas) && !has(n, fallidas) && !has(n, propias) && !has(n, promociones)) {
+      const de = remitente(original);
+      return { movimiento: { fecha: instante, monto: 0, tipo: 'INGRESO', descripcion: de ? `Transferencia de ${de}` : 'Transferencia recibida', cuenta, contraparte: de, transferencia: 'RECIBIDA', textoOriginal: original } };
+    }
     return { ignorada: 'SIN_MONTO' };
   }
   if (has(n, fallidas)) return { ignorada: 'OPERACION_FALLIDA' };
