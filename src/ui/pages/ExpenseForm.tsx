@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord } from '../../db/repo';
 import { monthOf, todayIso, monthLabel, type MonthKey } from '../../domain/dates';
-import { splitShared, FREQUENCY_LABEL } from '../../domain/expenses';
+import { splitShared, FREQUENCY_LABEL, otherPerson } from '../../domain/expenses';
 import { formatARS } from '../../domain/money';
 import type { Expense, ExpenseKind, Frequency, PaidBy, PaymentMethod } from '../../domain/types';
 import { Field, Help, Modal, MoneyInput, MonthSelect } from '../components/ui';
@@ -105,9 +105,9 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
           checked={shared}
           onChange={(e) => setD({ ...d, kind: e.target.checked ? 'hogar' : DAILY_CATEGORIES.includes(d.category) ? 'cotidiano' : 'personal', userPct: e.target.checked ? data.settings.defaultUserPct : 100, paidBy: e.target.checked ? d.paidBy ?? 'cada_uno' : undefined })}
         />
-        Compartido con {data.settings.partnerName}
+        Gasto compartido (a medias)
       </label>
-      <Help label="Qué es un gasto compartido">Marcalo si el gasto lo dividís con tu pareja (alquiler, luz, súper). Solo se cuenta tu parte; por defecto la mitad.</Help>
+      <Help label="Qué es un gasto compartido">Marcalo si el gasto lo dividís con otra persona (alquiler, luz, súper). Solo se cuenta tu parte; por defecto la mitad.</Help>
       </div>
       <div className="check-inline">
       <label className="check">
@@ -126,7 +126,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
               <select id={id} value={d.paidBy ?? 'cada_uno'} onChange={(e) => setD({ ...d, paidBy: e.target.value as PaidBy })}>
                 <option value="cada_uno">Cada uno pagó su parte</option>
                 <option value="usuario">Lo pagué yo (total)</option>
-                <option value="pareja">Lo pagó {data.settings.partnerName} (total)</option>
+                <option value="pareja">Lo pagó {otherPerson(data.settings.partnerName)} (total)</option>
               </select>
             )}
           </Field>
@@ -134,7 +134,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
       )}
       {shared && split && (
         <p className="total-line">
-          Corresponde al usuario: <strong>{formatARS(split.user)}</strong> · a {data.settings.partnerName}: <strong>{formatARS(split.partner)}</strong>
+          Tu parte: <strong>{formatARS(split.user)}</strong> · la otra parte: <strong>{formatARS(split.partner)}</strong>
         </p>
       )}
       <details className="more-opts">

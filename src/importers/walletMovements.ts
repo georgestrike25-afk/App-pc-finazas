@@ -193,7 +193,7 @@ export function parseWalletMovements(lines: SourceLine[], ctx: WalletContext = {
     } else if (r.type === 'enviada' && isPartner(r.concept)) {
       kind = 'transferencia';
       concept = `Transferencia a ${r.concept}`;
-      warnings.push('Transferencia a tu pareja: suele ser tu parte de los gastos compartidos (ya cargados con la planilla). Marcala solo si es otro gasto.');
+      warnings.push('Transferencia a la persona con la que compartís gastos: suele ser tu parte de los compartidos (ya cargados). Marcala solo si es otro gasto.');
     } else if (r.type === 'enviada') {
       kind = 'consumo';
       concept = `Transferencia a ${r.concept}`;

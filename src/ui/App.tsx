@@ -57,14 +57,14 @@ export const ROUTES: RouteDef[] = [
   { path: 'gastos', label: 'Gastos', icon: Receipt, el: GastosPage, nav: 'main', group: 'plata', help: 'Todos los gastos del mes. Lo de la tarjeta llega solo con el resumen; acá anotás lo que pagás en efectivo o transferencia.' },
   { path: 'viaje', label: 'Viajes y ahorros', short: 'Viajes', icon: Plane, el: ViajePage, nav: 'main', help: 'Tus viajes y ahorros: cuánto cuesta el viaje, cuánto llevás ahorrado y si llegás a la fecha.' },
   { path: 'ayuda', label: 'Cómo usar', icon: CircleHelp, el: AyudaPage, nav: 'more', help: 'Explicación corta de cómo usar la app y la guía paso a paso.' },
-  { path: 'configuracion', label: 'Configuración', icon: Settings, el: ConfiguracionPage, nav: 'more', help: 'Nombre de tu pareja, cómo se reparten los gastos, el presupuesto diario, el PIN de bloqueo y otras opciones.' },
+  { path: 'configuracion', label: 'Configuración', icon: Settings, el: ConfiguracionPage, nav: 'more', help: 'Cómo se reparten los gastos compartidos, el presupuesto diario, el PIN de bloqueo y otras opciones.' },
   { path: 'copias', label: 'Copias y sincronización', icon: RefreshCw, el: CopiasPage, nav: 'more', help: 'Guardá una copia de tus datos en un archivo (hacé una por mes) o conectá el celular con la PC para que tengan los mismos datos.' },
   { path: 'historial', label: 'Historial', icon: History, el: HistorialPage, nav: 'more', help: 'Todo lo que se cargó o se cambió, con fecha, y los documentos que subiste.' },
   // Pantallas a las que se llega desde las pestañas o desde "Este mes".
   { path: 'cuotas', label: 'Cuotas futuras', icon: CalendarClock, el: CuotasPage, nav: 'hidden', group: 'deudas', help: 'Cuánto vas a pagar de cuotas cada mes que viene, y si quedó alguna cuota vencida sin pagar.' },
   { path: 'deudas', label: 'Tarjetas y deudas', icon: CreditCard, el: DeudasPage, nav: 'hidden', group: 'deudas', help: 'Cada préstamo, compra en cuotas o plan, y los resúmenes de tarjeta. Tocá "Ver cuotas" para ver en qué cuota vas o corregir una cuota marcada por error.' },
   { path: 'ingresos', label: 'Ingresos', icon: ArrowDownToLine, el: IngresosPage, nav: 'hidden', group: 'plata', help: 'Tu sueldo y otros ingresos de cada mes. Si subís la captura de los movimientos del banco, el sueldo se carga solo.' },
-  { path: 'compartidos', label: 'Compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con tu pareja (alquiler, luz, súper…). Solo se cuenta tu parte. También el cargo de Sancor Salud y lo que te devuelve.' },
+  { path: 'compartidos', label: 'Compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con otra persona (alquiler, luz, súper…). Solo se cuenta tu parte. También el cargo de Sancor Salud y lo que te devuelve.' },
   { path: 'presupuesto', label: 'Presupuesto mensual', icon: PiggyBank, el: PresupuestoPage, nav: 'hidden', group: 'plata', help: 'Cuánto querés gastar como máximo en el día a día (comida, transporte, salidas) y cuánto llevás.' },
   { path: 'resumen', label: 'Detalle del mes', icon: ListChecks, el: ResumenPage, nav: 'hidden', help: 'La cuenta completa del mes, línea por línea: de dónde sale el número de "Te quedan".' },
 ];

@@ -77,14 +77,21 @@ export function monthChecklist(data: DataSet, today: MonthKey, todayIso: string,
           payInstallment: { obligationId: ob.id, n: i.n },
         });
       } else {
-        items.push({ key: `cuota-${ob.id}`, done: true, title: `Cuota ${i.n} de ${ob.concept}: vence el ${formatDate(due)} (${formatARS(i.amount)})` });
+        // Todavía no venció: queda pendiente (no pagada) y se puede marcar apenas se paga.
+        items.push({
+          key: `cuota-${ob.id}`,
+          done: false,
+          title: `Pagar la cuota ${i.n} de ${ob.concept} (${formatARS(i.amount)})`,
+          detail: `Vence el ${formatDate(due)}.`,
+          payInstallment: { obligationId: ob.id, n: i.n },
+        });
       }
     }
   }
 
   const pendingSancor = sum(data.sancor.map((c) => sancorSummary(c).pending));
   if (pendingSancor > 0)
-    items.push({ key: 'sancor', done: false, title: `Registrar el reintegro de Sancor (${formatARS(pendingSancor)})`, detail: `Cuando ${data.settings.partnerName && data.settings.partnerName !== 'Pareja' ? data.settings.partnerName : 'tu pareja'} te devuelva su parte.`, href: '#/compartidos', hrefLabel: 'Registrar' });
+    items.push({ key: 'sancor', done: false, title: `Registrar el reintegro de Sancor (${formatARS(pendingSancor)})`, detail: 'Cuando te devuelvan la parte compartida.', href: '#/compartidos', hrefLabel: 'Registrar' });
 
   if (!empty) {
     const days = lastBackup ? (Date.parse(todayIso) - Date.parse(lastBackup.slice(0, 10))) / 86400000 : Infinity;

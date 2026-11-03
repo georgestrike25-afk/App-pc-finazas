@@ -7,7 +7,7 @@ const pctText = (p: number) => `${p.toLocaleString('es-AR', { maximumFractionDig
 
 /** Revisión de una planilla de gastos compartidos antes de incorporarla. */
 export function SharedReviewView({ review, setReview, onConfirm, onCancel, error }: { review: SharedReview; setReview: (r: SharedReview) => void; onConfirm: () => void; onCancel: () => void; error: string }) {
-  const partner = review.sheet.people.find((p) => p !== review.me) ?? 'tu pareja';
+  const partner = review.sheet.people.find((p) => p !== review.me) ?? 'la otra persona';
   const included = review.rows.filter((r) => r.include);
   const months = [...new Set(review.rows.map((r) => r.month))];
   const current = months.find((m) => m <= monthOf(new Date().toISOString())) ?? months[0];

@@ -48,7 +48,7 @@ const STEPS: Step[] = [
     route: 'gastos',
     target: ['nav-gastos'],
     title: 'Gastos',
-    text: 'Lo que pagaste con tarjeta llega solo con el resumen. Acá anotás lo demás: efectivo o transferencias. En las pestañas de arriba están los ingresos, los gastos compartidos con tu pareja y el presupuesto.',
+    text: 'Lo que pagaste con tarjeta llega solo con el resumen. Acá anotás lo demás: efectivo o transferencias. En las pestañas de arriba están los ingresos, los gastos compartidos y el presupuesto.',
   },
   {
     route: 'gastos',

@@ -152,7 +152,7 @@ test('8-9. compra en cuotas manual y gasto compartido al 50 %', async ({ page })
   await page.getByRole('button', { name: '+ Gasto del hogar' }).click();
   await page.locator('input[name="concept"]').fill('Alquiler');
   await page.locator('input[name="amount"]').fill('600.000');
-  await expect(page.getByText(/Corresponde al usuario/)).toContainText('300.000,00');
+  await expect(page.getByText(/Tu parte:/)).toContainText('300.000,00');
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.locator('tr', { hasText: 'Alquiler' })).toContainText('50 %');
   await expect(kpi(page, 'Mi parte')).toContainText('300.000,00');
@@ -236,7 +236,7 @@ test('14. funcionamiento sin conexión de las funciones esenciales', async ({ pa
   await context.setOffline(false);
 });
 
-test('botón rápido "½" divide un gasto con la pareja y se puede quitar', async ({ page }) => {
+test('botón rápido "½" divide un gasto a medias y se puede quitar', async ({ page }) => {
   await openFresh(page);
   await go(page, 'gastos');
   await page.getByRole('button', { name: '+ Anotar gasto' }).click();
@@ -245,10 +245,10 @@ test('botón rápido "½" divide un gasto con la pareja y se puede quitar', asyn
   await page.getByRole('button', { name: 'Guardar' }).click();
   const row = page.locator('tr', { hasText: 'Compra a medias' });
   await expect(row).toContainText('10.000,00');
-  await row.getByRole('button', { name: /^Mitad con/ }).click();
+  await row.getByRole('button', { name: /^A medias:/ }).click();
   await expect(row).toContainText('5.000,00');
   await expect(row).toContainText('50 %');
-  await row.getByRole('button', { name: /^Quitar mitad con/ }).click();
+  await row.getByRole('button', { name: /^Quitar a medias:/ }).click();
   await expect(row).not.toContainText('5.000,00');
   await expect(row).toContainText('10.000,00');
 });

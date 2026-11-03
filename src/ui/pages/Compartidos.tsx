@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord, softDelete } from '../../db/repo';
-import { occurrencesForMonth, partnerBalance } from '../../domain/expenses';
+import { capitalize, occurrencesForMonth, otherPerson, partnerBalance } from '../../domain/expenses';
 import { formatDate, monthLabel, todayIso, type MonthKey } from '../../domain/dates';
 import { chargeCoupons, partnerCoupon, pctForCoupon, sancorSummary } from '../../domain/sancor';
 import { formatARS, sum, type Cents } from '../../domain/money';
@@ -28,7 +28,7 @@ function SancorForm({ initial, onClose }: { initial: Partial<SancorCharge> & { m
       <div className="form-grid">
         <Field label="Mes del resumen">{(id) => <MonthSelect id={id} value={d.month} onChange={(month) => setD({ ...d, month })} />}</Field>
         <Field label={d.coupons && d.coupons.length > 1 ? 'Total cobrado en la tarjeta (suma de los cupones)' : 'Importe total del cupón (cobrado en la tarjeta)'} error={err}>{(id) => <MoneyInput id={id} value={d.chargeAmount} onChange={(v) => setD({ ...d, chargeAmount: v })} />}</Field>
-        <Field label="Porcentaje que corresponde a la pareja" help="Qué parte de la cuota de Sancor le toca pagar a tu pareja (y te la devuelve).">{(id) => <input id={id} type="number" min={0} max={100} step="any" value={d.partnerPct} onChange={(e) => setD({ ...d, partnerPct: Number(e.target.value) })} />}</Field>
+        <Field label="Porcentaje que te devuelven" help="Qué parte de la cuota de Sancor no es tuya y te devuelven.">{(id) => <input id={id} type="number" min={0} max={100} step="any" value={d.partnerPct} onChange={(e) => setD({ ...d, partnerPct: Number(e.target.value) })} />}</Field>
       </div>
       <Field label="Observaciones">{(id) => <textarea id={id} rows={2} value={d.notes ?? ''} onChange={(e) => setD({ ...d, notes: e.target.value })} />}</Field>
     </Modal>
@@ -65,7 +65,8 @@ export function CompartidosPage() {
   const bal = partnerBalance(occ);
   const charges = data.sancor.filter((c) => c.month === month);
   const allPending = sum(data.sancor.map((c) => sancorSummary(c).pending));
-  const p = data.settings.partnerName;
+  const p = otherPerson(data.settings.partnerName);
+  const P = capitalize(p);
 
   return (
     <div className="page">
@@ -77,15 +78,15 @@ export function CompartidosPage() {
         <div className="kpi"><span>Total gastos del hogar</span><Money value={sum(occ.map((o) => o.total))} /></div>
         <div className="kpi"><span>Mi parte</span><Money value={sum(occ.map((o) => o.userShare))} /></div>
         <div className="kpi"><span>Parte de {p}</span><Money value={sum(occ.map((o) => o.partnerShare))} /></div>
-        <div className="kpi"><span>{bal >= 0 ? `${p} me debe` : `Le debo a ${p}`}</span><Money value={Math.abs(bal)} /></div>
+        <div className="kpi"><span>{bal >= 0 ? `${P} me debe` : `Le debo a ${p}`}</span><Money value={Math.abs(bal)} /></div>
       </div>
-      <Card title="Gastos del hogar (alquiler, servicios, supermercado compartido…)" help="Gastos que dividís con tu pareja. En cada uno podés elegir qué parte es tuya (por defecto 50 %) y quién lo pagó; arriba ves quién le debe a quién.">
+      <Card title="Gastos del hogar (alquiler, servicios, supermercado compartido…)" help="Gastos que dividís con otra persona. En cada uno podés elegir qué parte es tuya (por defecto 50 %) y quién lo pagó; arriba ves quién le debe a quién.">
         <ExpenseTable kinds={['hogar']} emptyText="Registre alquiler, electricidad, gas, internet, supermercado compartido u otros. El reparto inicial es 50/50 y se puede editar en cada gasto." />
       </Card>
 
       <Card
         title="Sancor Salud"
-        help="La tarjeta te cobra la cuota entera de Sancor, pero tu pareja te devuelve su parte. Acá ves cuánto te tienen que devolver y anotás cuando te lo dan."
+        help="La tarjeta te cobra la cuota entera de Sancor, pero te devuelven la parte que no es tuya. Acá ves cuánto te tienen que devolver y anotás cuando te lo dan."
         actions={<button className="btn small" onClick={() => setSancorEdit({ id: uid(), month, partnerPct: data.settings.sancorPartnerPct })}>+ Asociar cargo manualmente</button>}
       >
         <p className="muted small">
@@ -104,7 +105,7 @@ export function CompartidosPage() {
                 {coupons.length > 1 && (
                   <p className="small" style={{ marginTop: 0 }}>
                     En la tarjeta vienen <strong>{coupons.length} cupones</strong>{sameAmounts ? <> de <Money value={coupons[0].amount} /></> : <>: {coupons.map((k, i) => <span key={i}>{i ? ' y ' : ''}<Money value={k.amount} /></span>)}</>}.
-                    {theirs ? ` Uno es de ${p} y te lo devuelve entero.` : ` ${p} te devuelve el ${c.partnerPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} % del total.`}
+                    {theirs ? ` Uno es de ${p} y te lo devuelve entero.` : ` ${P} te devuelve el ${c.partnerPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} % del total.`}
                   </p>
                 )}
                 {coupons.length > 1 && !sameAmounts && (

@@ -75,6 +75,13 @@ export function occurrencesForMonth(expenses: Expense[], month: MonthKey): Expen
   return out;
 }
 
+/** Con quién se comparten los gastos: su nombre si está configurado, o "la otra persona". */
+export function otherPerson(partnerName?: string): string {
+  const n = (partnerName ?? '').trim();
+  return n && n.toLowerCase() !== 'pareja' ? n : 'la otra persona';
+}
+export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /**
  * Saldo entre la pareja para los gastos compartidos de un mes.
  * Positivo: la pareja le debe al usuario. Negativo: el usuario le debe a la pareja.

@@ -153,10 +153,10 @@ export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; proc
     }
     if (d.monto === 0 || (d.transferencia === 'ENVIADA' && isPartner(d.contraparte))) {
       // Sin importe en el aviso, o a tu pareja (puede ser el alquiler, que ya está en los compartidos): decide el usuario.
-      const motivo = d.monto === 0 ? 'El aviso no dice el importe: poné cuánto fue' : 'Transferencia a tu pareja: ¿es un gasto nuevo o ya está en los compartidos?';
+      const motivo = d.monto === 0 ? 'El aviso no dice el importe: poné cuánto fue' : 'Transferencia a la persona con la que compartís gastos: ¿es un gasto nuevo o ya está en los compartidos?';
       out.review.push({ id: uid(), fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo, clave: r.clave });
       pending.push({ d });
-      log(d.cuenta, d.monto === 0 ? (d.transferencia ? 'Para revisar (transferencia sin importe)' : 'Para revisar (pago sin importe)') : 'Para revisar (transferencia a tu pareja)');
+      log(d.cuenta, d.monto === 0 ? (d.transferencia ? 'Para revisar (transferencia sin importe)' : 'Para revisar (pago sin importe)') : 'Para revisar (transferencia de gastos compartidos)');
       continue;
     }
     out.expenses.push(expenseFromDetected(d, ctx.nowIso, ctx.deviceId, r.clave));

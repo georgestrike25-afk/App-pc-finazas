@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord, softDelete } from '../../db/repo';
-import { occurrencesForMonth, FREQUENCY_LABEL } from '../../domain/expenses';
+import { occurrencesForMonth, FREQUENCY_LABEL, otherPerson } from '../../domain/expenses';
 import { formatDate, monthLabel } from '../../domain/dates';
 import { sum } from '../../domain/money';
 import type { Expense, ExpenseKind } from '../../domain/types';
@@ -21,11 +21,11 @@ function HalfButton({ e, partner }: { e: Expense; partner: string }) {
     saveRecord<Expense>(
       'expenses',
       on ? { ...e, kind: DAILY_CATEGORIES.includes(e.category) ? 'cotidiano' : 'personal', userPct: 100, paidBy: undefined } : { ...e, kind: 'hogar', userPct: 50, paidBy: 'usuario' },
-      `${on ? 'Gasto vuelve a ser solo tuyo' : `Gasto a medias con ${partner}`}: "${e.concept}"`,
+      `${on ? 'Gasto vuelve a ser solo tuyo' : 'Gasto a medias'}: "${e.concept}"`,
     );
   return (
-    <button className={`btn small ${on ? 'primary' : 'ghost'}`} aria-pressed={on} onClick={toggle} title={on ? `Quitar: vuelve a ser solo tuyo` : `Lo pagaste vos y ${partner} te devuelve la mitad`} aria-label={`${on ? 'Quitar mitad con' : 'Mitad con'} ${partner}: ${e.concept}`}>
-      ½ {partner}
+    <button className={`btn small ${on ? 'primary' : 'ghost'}`} aria-pressed={on} onClick={toggle} title={on ? `Quitar: vuelve a ser solo tuyo` : `Lo pagaste vos y te devuelven la mitad`} aria-label={`${on ? 'Quitar a medias' : 'A medias'}: ${e.concept}`}>
+      ½ {partner || 'a medias'}
     </button>
   );
 }
@@ -48,7 +48,8 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
   // Total y porcentaje solo aportan si este mes hay algún gasto compartido.
   const shared = kinds.includes('hogar') && items.some((o) => o.userPct !== 100);
   const canSplit = kinds.includes('hogar');
-  const partner = (data.settings.partnerName || 'pareja').trim().split(/\s+/)[0];
+  const name = otherPerson(data.settings.partnerName);
+  const partner = name === 'la otra persona' ? '' : name.split(/\s+/)[0];
   const narrow = useNarrow();
   const remove = async (e: Expense) =>
     (await confirmDialog(`¿Eliminar "${e.concept}"?${e.frequency !== 'unica' ? '\nSe eliminarán todas sus ocurrencias. Para un solo mes use "Ajustar mes" → "No corresponde".' : ''}`, { danger: true, ok: 'Eliminar' })) &&
@@ -219,7 +220,7 @@ export function GastosPage() {
         <button className="btn primary" data-tour="anotar-gasto" onClick={() => setEditing(newExpenseDraft('cotidiano', month, data.settings.defaultUserPct))}>+ Anotar gasto</button>
       </div>
       <div className="cols cols-main">
-      <Card title={`Gastos de ${monthLabel(month)}`} help={<><p>Todos tus gastos del mes: los que anotaste a mano y los que llegaron con los resúmenes. Si es compartido con tu pareja, se cuenta solo tu parte (botón ½).</p><p>Nada se cuenta dos veces: una compra con tarjeta se cuenta una sola vez; el pago del resumen no es un gasto nuevo; si anotaste algo que después llega en el resumen (mismo importe, ±5 días), se vincula; las cuotas se cuentan una por una en Deudas.</p></>}>
+      <Card title={`Gastos de ${monthLabel(month)}`} help={<><p>Todos tus gastos del mes: los que anotaste a mano y los que llegaron con los resúmenes. Si es compartido, se cuenta solo tu parte (botón ½).</p><p>Nada se cuenta dos veces: una compra con tarjeta se cuenta una sola vez; el pago del resumen no es un gasto nuevo; si anotaste algo que después llega en el resumen (mismo importe, ±5 días), se vincula; las cuotas se cuentan una por una en Deudas.</p></>}>
         <ExpenseTable kinds={['cotidiano', 'personal', 'hogar']} emptyText="Anotá lo que pagás en efectivo o débito. Lo de la tarjeta llega solo cuando subís el resumen." />
       </Card>
       <ByCategory />

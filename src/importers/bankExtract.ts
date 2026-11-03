@@ -130,11 +130,11 @@ export function parseBankExtract(lines: SourceLine[]): ParsedDocument | null {
       kind = 'consumo';
       concept = `Transferencia a ${counterpart || 'terceros'}`;
       category = { category: 'Transferencias', kind: 'personal' };
-      warnings.push('Revisá si es un gasto, un pago a tu pareja o un préstamo a alguien.');
+      warnings.push('Revisá si es un gasto, tu parte de un gasto compartido o un préstamo a alguien.');
     } else if (/transferencia recibida/.test(d)) {
       kind = 'credito';
       concept = `Transferencia de ${counterpart || 'terceros'}`;
-      warnings.push('No se importa: si es un ingreso o un reintegro de tu pareja (p. ej. Sancor), cargalo en Ingresos o Gastos compartidos.');
+      warnings.push('No se importa: si es un ingreso o un reintegro de un gasto compartido (p. ej. Sancor), cargalo en Ingresos o Compartidos.');
     } else if (/devolucion/.test(d) && !r.debit) {
       kind = 'bonificacion';
     } else if (/ajuste de credito/.test(d) && !r.debit) {

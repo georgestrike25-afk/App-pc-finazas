@@ -56,10 +56,10 @@ export function ConfiguracionPage() {
       <NotificationsSettingsCard />
       <Card title="Preferencias">
         <div className="form-grid">
-          <Field label="Nombre de la pareja (para los repartos)">{(id) => <input id={id} value={s.partnerName} onChange={(e) => setS({ ...s, partnerName: e.target.value })} />}</Field>
+          <Field label="Con quién compartís gastos (opcional)" help="Si ponés un nombre, aparece en los gastos compartidos. Vacío: dice 'la otra persona'.">{(id) => <input id={id} value={s.partnerName} onChange={(e) => setS({ ...s, partnerName: e.target.value })} />}</Field>
           <Field label="Tu nombre y apellido" help="Para reconocer las transferencias entre tus propias cuentas (por ejemplo, de Patagonia a Ualá) y que no se cuenten como gastos ni ingresos.">{(id) => <input id={id} value={s.ownNames ?? ''} placeholder="Ej.: Jorge Exequiel Aguero" onChange={(e) => setS({ ...s, ownNames: e.target.value })} />}</Field>
           <Field label="Reparto por defecto de gastos del hogar (% del usuario)" help="Qué parte de los gastos compartidos pagás vos. 50 = mitad y mitad. Se puede cambiar en cada gasto.">{(id) => <input id={id} type="number" min={0} max={100} value={s.defaultUserPct} onChange={(e) => setS({ ...s, defaultUserPct: Number(e.target.value) })} />}</Field>
-          <Field label="Sancor Salud: % que corresponde a la pareja">{(id) => <input id={id} type="number" min={0} max={100} value={s.sancorPartnerPct} onChange={(e) => setS({ ...s, sancorPartnerPct: Number(e.target.value) })} />}</Field>
+          <Field label="Sancor Salud: % que te devuelven">{(id) => <input id={id} type="number" min={0} max={100} value={s.sancorPartnerPct} onChange={(e) => setS({ ...s, sancorPartnerPct: Number(e.target.value) })} />}</Field>
           <Field label="Presupuesto cotidiano por defecto" hint="Valor inicial orientativo: $700.000 (editable).">{(id) => <MoneyInput id={id} value={s.dailyBudgetDefault} onChange={(v) => setS({ ...s, dailyBudgetDefault: v ?? 0, dailyBudgetIsInitialValue: false })} />}</Field>
           <Field label="Ingreso mensual estimado (solo para proyecciones)" help="Cuánto creés que vas a cobrar en los meses que vienen. Solo se usa para el viaje y las proyecciones; nunca se suma como cobrado.">{(id) => <MoneyInput id={id} value={s.projectedMonthlyIncome} onChange={(v) => setS({ ...s, projectedMonthlyIncome: v ?? 0 })} />}</Field>
         </div>
