@@ -4,11 +4,10 @@ import { App } from './ui/App';
 import { ensureInitialized } from './db/repo';
 import { registerPwa } from './ui/pwa';
 import { startAutoSync } from './sync/autoSync';
-import { startParejaSync } from './sync/pareja';
-import { iniciarPrueba } from './sync/prueba';
 import '@fontsource-variable/inter/wght.css';
 import './ui/styles.css';
-import { startNotificationIngest, startParejaAvisos } from './notifications/native';
+import { startNotificationIngest } from './notifications/native';
+import { getDb } from './db/db';
 
 // Los errores no controlados se muestran sin exponer datos financieros en la consola.
 window.addEventListener('unhandledrejection', (e) => {
@@ -36,9 +35,8 @@ async function start() {
   );
   registerPwa();
   startAutoSync();
-  startParejaSync();
   startNotificationIngest();
-  startParejaAvisos();
-  iniciarPrueba().catch(() => {});
+  // El modo pareja se quitó: se borra su configuración guardada (los gastos que ya estaban quedan).
+  getDb().meta.delete('pareja').catch(() => {});
 }
 start();

@@ -4,7 +4,6 @@ import { incomeNet } from './income';
 import { sum, type Cents } from './money';
 import { installmentsForMonth, obligationIssues } from './obligations';
 import { sancorSummary } from './sancor';
-import type { ParejaCaja } from './pareja';
 import type { CardPayment, Expense, Income, Obligation, SancorCharge, Settings, Statement } from './types';
 
 export interface DataSet {
@@ -15,8 +14,6 @@ export interface DataSet {
   cardPayments: CardPayment[];
   sancor: SancorCharge[];
   settings: Settings;
-  /** Modo pareja (si está activado en este dispositivo): pagos entre los dos. */
-  pareja?: ParejaCaja;
 }
 
 export interface CalcLine {

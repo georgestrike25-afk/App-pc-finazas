@@ -128,7 +128,6 @@ public class NotificacionesPlugin extends Plugin {
         if (t != null) e.putString("ultimoT", t).putString("ultimoS", call.getString("ultimoS", "")).putString("ultimoM", call.getString("ultimoM", ""));
         String plata = call.getString("plata");
         if (plata != null) e.putString("plata", plata);
-        e.putString("parejaNombre", call.getString("parejaNombre", "")).putString("parejaSaldo", call.getString("parejaSaldo", ""));
         e.apply();
         Brote.actualizarWidgets(getContext());
         call.resolve();
@@ -164,69 +163,5 @@ public class NotificacionesPlugin extends Plugin {
         Avisos.quitar(getContext(), clave);
         Brote.resolverPendiente(getContext(), clave);
         call.resolve();
-    }
-
-    /** Modo pareja: aviso cuando el otro anota un gasto compartido o marca un pago. */
-    @PluginMethod
-    public void avisoPareja(PluginCall call) {
-        Avisos.pareja(getContext(), call.getString("id", ""), call.getString("titulo", "Brote"), call.getString("texto", ""));
-        call.resolve();
-    }
-
-    /** Modo pareja: este celular recibe la sincronización del otro (también con la app cerrada). */
-    @PluginMethod
-    public void servidorPareja(PluginCall call) {
-        String token = call.getString("token");
-        String espacio = call.getString("space");
-        if (token == null || espacio == null) {
-            call.reject("faltan datos");
-            return;
-        }
-        ServidorPareja.configurar(getContext(), token, espacio, call.getString("yo", ""));
-        JSObject r = new JSObject();
-        JSArray urls = new JSArray();
-        if (ServidorPareja.andando()) for (String u : ServidorPareja.direcciones()) urls.put(u);
-        r.put("urls", urls);
-        r.put("puerto", ServidorPareja.PUERTO);
-        if (!ServidorPareja.andando()) {
-            call.reject("no se pudo abrir el puerto");
-            return;
-        }
-        call.resolve(r);
-    }
-
-    @PluginMethod
-    public void detenerPareja(PluginCall call) {
-        ServidorPareja.olvidar(getContext());
-        call.resolve();
-    }
-
-    /** Modo pareja: recibir con Brote cerrado (servicio con notificación fija). */
-    @PluginMethod
-    public void segundoPlano(PluginCall call) {
-        boolean on = Boolean.TRUE.equals(call.getBoolean("activo", false));
-        try {
-            ServicioPareja.cambiar(getContext(), on);
-            // Sin esto, Android corta el Wi-Fi a Brote cuando el celular está quieto un rato.
-            android.os.PowerManager pm = (android.os.PowerManager) getContext().getSystemService(android.content.Context.POWER_SERVICE);
-            if (on && Build.VERSION.SDK_INT >= 23 && pm != null && !pm.isIgnoringBatteryOptimizations(getContext().getPackageName()) && getActivity() != null) {
-                Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                i.setData(android.net.Uri.parse("package:" + getContext().getPackageName()));
-                getActivity().startActivity(i);
-            }
-        } catch (Exception e) {
-            call.reject("No se pudo activar.", e);
-            return;
-        }
-        call.resolve();
-    }
-
-    @PluginMethod
-    public void estadoSegundoPlano(PluginCall call) {
-        android.os.PowerManager pm = (android.os.PowerManager) getContext().getSystemService(android.content.Context.POWER_SERVICE);
-        JSObject r = new JSObject();
-        r.put("activo", ServicioPareja.activo(getContext()));
-        r.put("sinRestriccionBateria", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName())));
-        call.resolve(r);
     }
 }

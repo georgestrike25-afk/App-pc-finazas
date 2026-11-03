@@ -3,7 +3,6 @@ import { defaultGoal, defaultSettings, GOAL_ID, SETTINGS_ID } from './defaults';
 import { uid } from '../domain/text';
 import { couponMerges } from '../domain/sancor';
 import type { DataSet } from '../domain/monthly';
-import type { Miembro, ParejaDoc } from '../domain/pareja';
 import type { AuditEntry, BaseRecord, SavingsGoal, Settings, SyncTable } from '../domain/types';
 
 type Listener = () => void;
@@ -122,7 +121,7 @@ export async function getGoal(db: FinanzasDB = getDb()): Promise<SavingsGoal> {
 const live = <T extends BaseRecord>(xs: T[]) => xs.filter((x) => !x.deleted);
 
 export async function loadDataSet(db: FinanzasDB = getDb()): Promise<DataSet> {
-  const [incomes, expenses, obligations, statements, cardPayments, sancor, settings, pareja] = await Promise.all([
+  const [incomes, expenses, obligations, statements, cardPayments, sancor, settings] = await Promise.all([
     db.incomes.toArray(),
     db.expenses.toArray(),
     db.obligations.toArray(),
@@ -130,10 +129,7 @@ export async function loadDataSet(db: FinanzasDB = getDb()): Promise<DataSet> {
     db.cardPayments.toArray(),
     db.sancor.toArray(),
     getSettings(db),
-    db.meta.get('pareja'),
   ]);
-  // Modo pareja: los pagos entre los dos cuentan en "Plata hasta cobrar".
-  const pa = pareja?.value as { yo?: Miembro; doc: ParejaDoc } | undefined;
   return {
     incomes: live(incomes),
     expenses: live(expenses),
@@ -142,7 +138,6 @@ export async function loadDataSet(db: FinanzasDB = getDb()): Promise<DataSet> {
     cardPayments: live(cardPayments),
     sancor: live(sancor),
     settings,
-    ...(pa?.yo ? { pareja: { yo: pa.yo, nombreOtro: pa.doc.nombres[pa.yo === 'a' ? 'b' : 'a'], pagos: pa.doc.pagos } } : {}),
   };
 }
 

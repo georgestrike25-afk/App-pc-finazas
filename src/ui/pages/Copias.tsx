@@ -3,7 +3,7 @@ import { useApp } from '../store';
 import { buildBackup, isEncryptedBackup, parseBackup, restoreBackup, serializeBackup } from '../../backup/backup';
 import { checkServer, parsePairingCode } from '../../sync/syncClient';
 import { getSyncStatus, loadSyncConfig, onSyncStatus, runSync, saveSyncConfig, type StoredSyncConfig, type SyncStatus } from '../../sync/autoSync';
-import { desktop, isNative, saveFile, saveToDocuments, esPrueba } from '../../platform';
+import { desktop, isNative, saveFile, saveToDocuments } from '../../platform';
 import { DesktopPairingCard } from './DesktopPairing';
 import { QrScanner } from '../components/Qr';
 import { ScanLine } from 'lucide-react';
@@ -106,7 +106,7 @@ export function CopiasPage() {
 
   return (
     <div className="page">
-      {desktop() && !esPrueba() && <DesktopPairingCard cfg={cfg} setCfg={setCfg} />}
+      {desktop() && <DesktopPairingCard cfg={cfg} setCfg={setCfg} />}
       {!desktop() && <Card title="Sincronizar con la PC" help="Para que el celular y la PC tengan los mismos datos. Abrí la app en la PC, copiá el código que muestra y pegalo acá. Los dos tienen que estar en el mismo Wi-Fi. Los datos viajan cifrados.">
         <p className="small muted">
           La sincronización usa un servidor que corre en su propia PC (gratis, sin servicios externos). Los datos viajan cifrados con la frase de sincronización: nadie más puede leerlos.

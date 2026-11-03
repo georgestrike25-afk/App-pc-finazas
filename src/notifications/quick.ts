@@ -21,8 +21,6 @@ export interface QuickEntry {
   transferencia?: boolean;
   clave?: string;
   reemplaza?: boolean;
-  /** Compartido (modo pareja): lo pagó tu pareja. */
-  pagoPareja?: boolean;
 }
 
 /** Categorías generales de la anotación rápida → tipo y categoría de la app. */

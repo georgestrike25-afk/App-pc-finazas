@@ -50,11 +50,6 @@ public class AnotarActivity extends Activity {
     private String cuenta;
     private long fecha;
     private boolean transferencia;
-    /** Modo pareja: nombre de la pareja (vacío si no está activado) y si el compartido lo pagó ella/él. */
-    private String pareja = "";
-    private boolean pagoPareja;
-    private LinearLayout quien;
-    private TextView mitad;
 
     private int color(int id) {
         return getColor(id);
@@ -94,7 +89,6 @@ public class AnotarActivity extends Activity {
         cuenta = i.getStringExtra("cuenta");
         fecha = i.getLongExtra("fecha", System.currentTimeMillis());
         transferencia = i.getBooleanExtra("transferencia", false);
-        pareja = Brote.prefs(this).getString("parejaSaldo", "").isEmpty() ? "" : Brote.prefs(this).getString("parejaNombre", "");
         long inicial = i.getLongExtra("monto", 0);
         if (inicial > 0) {
             entrada.append(inicial / 100);
@@ -147,7 +141,7 @@ public class AnotarActivity extends Activity {
         tipos = new LinearLayout(this);
         tipos.setBackground(fondo(color(R.color.brote_superficie2), 14, 0));
         tipos.setPadding(dp(4), dp(4), dp(4), dp(4));
-        String[][] ts = {{"gasto", "Gasto"}, {"ingreso", "Ingreso"}, {"compartido", pareja.isEmpty() ? "Compartido" : "Con " + pareja}};
+        String[][] ts = {{"gasto", "Gasto"}, {"ingreso", "Ingreso"}, {"compartido", "Compartido"}};
         int[] ti = {R.drawable.ic_menos, R.drawable.ic_mas, R.drawable.ic_compartido};
         for (int k = 0; k < ts.length; k++) {
             final String valor = ts[k][0];
@@ -178,32 +172,6 @@ public class AnotarActivity extends Activity {
         LinearLayout.LayoutParams pm = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         pm.topMargin = dp(12);
         hoja.addView(monto, pm);
-
-        // Modo pareja: cuánto le toca poner a cada uno (mitad y mitad)
-        mitad = texto("", 14, true, color(R.color.brote_texto2));
-        mitad.setGravity(Gravity.CENTER);
-        hoja.addView(mitad, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        // Modo pareja: quién pagó el compartido
-        quien = new LinearLayout(this);
-        quien.setBackground(fondo(color(R.color.brote_superficie2), 14, 0));
-        quien.setPadding(dp(4), dp(4), dp(4), dp(4));
-        String[] qs = {"Lo pagué yo", "Lo pagó " + pareja};
-        for (int k = 0; k < qs.length; k++) {
-            final boolean valor = k == 1;
-            TextView op = texto(qs[k], 13.5f, true, color(R.color.brote_texto2));
-            op.setGravity(Gravity.CENTER);
-            op.setPadding(0, dp(8), 0, dp(8));
-            op.setTag(valor);
-            op.setOnClickListener(v -> {
-                pagoPareja = valor;
-                pintar();
-            });
-            quien.addView(op, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        }
-        LinearLayout.LayoutParams pq = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        pq.topMargin = dp(10);
-        hoja.addView(quien, pq);
 
         // Categorías generales
         cats = new LinearLayout(this);
@@ -316,21 +284,6 @@ public class AnotarActivity extends Activity {
             op.setSelected(on);
         }
         cats.setVisibility(tipo.equals("ingreso") ? View.GONE : View.VISIBLE);
-        boolean conPareja = tipo.equals("compartido") && !pareja.isEmpty();
-        quien.setVisibility(conPareja ? View.VISIBLE : View.GONE);
-        long total = centavos();
-        // La mitad de quien no pagó: como en la app, si el monto es impar el centavo de más queda para quien pagó.
-        long delOtro = total / 2;
-        mitad.setVisibility(conPareja && total > 0 ? View.VISIBLE : View.GONE);
-        mitad.setText(pagoPareja
-                ? "Le ponés a " + pareja + " " + Brote.pesos(delOtro) + " (la mitad)"
-                : pareja + " te pone " + Brote.pesos(delOtro) + " (la mitad)");
-        for (int k = 0; k < quien.getChildCount(); k++) {
-            TextView op = (TextView) quien.getChildAt(k);
-            boolean on = pagoPareja == (Boolean) op.getTag();
-            op.setBackground(on ? fondo(oscuro ? color(R.color.brote_lima) : color(R.color.brote_superficie), 10, 0) : null);
-            op.setTextColor(on ? (oscuro ? color(R.color.brote_bosque) : color(R.color.brote_texto)) : color(R.color.brote_texto2));
-        }
         for (int k = 0; k < cats.getChildCount(); k++) {
             LinearLayout op = (LinearLayout) cats.getChildAt(k);
             boolean on = categoria.equals(op.getTag());
@@ -364,26 +317,16 @@ public class AnotarActivity extends Activity {
             o.put("transferencia", transferencia);
             if (clave != null) o.put("clave", clave);
             o.put("reemplaza", "reemplazar".equals(modo));
-            if (tipo.equals("compartido")) o.put("pagoPareja", pagoPareja);
             Brote.agregar(this, o);
         } catch (Exception e) {
             Toast.makeText(this, "No se pudo guardar. Probá de nuevo.", Toast.LENGTH_LONG).show();
             return;
         }
-        String que = tipo.equals("ingreso") ? "Ingreso" : tipo.equals("compartido") ? (pareja.isEmpty() ? "Compartido" : "Con " + pareja) : etiqueta;
+        String que = tipo.equals("ingreso") ? "Ingreso" : tipo.equals("compartido") ? "Compartido" : etiqueta;
         Brote.ultimo(this, "Se sumó: " + concepto, (cuenta != null ? cuenta + " · " : "") + "recién · " + que, tipo.equals("ingreso") ? c : c);
         Brote.resolverPendiente(this, clave);
         Avisos.quitar(this, clave);
         Brote.actualizarWidgets(this);
-        if (tipo.equals("compartido") && !pareja.isEmpty()) {
-            // Se abre Brote un momento para mandárselo a la pareja (el widget solo no puede mandarlo).
-            Toast.makeText(this, "Anotado. Mandándoselo a " + pareja + "…", Toast.LENGTH_SHORT).show();
-            Intent abrir = new Intent(this, MainActivity.class);
-            abrir.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(abrir);
-            finish();
-            return;
-        }
         Toast.makeText(this, "Anotado: " + Brote.pesos(c), Toast.LENGTH_SHORT).show();
         finish();
     }

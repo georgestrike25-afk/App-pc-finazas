@@ -1,6 +1,8 @@
 # Ideas pendientes
 
-## Modo pareja: Jorge y Antonella comparten gastos (pedido el 23/10/2026 — HECHO el 24/10/2026, ver README → Modo pareja)
+## Modo pareja: Jorge y Antonella comparten gastos (hecho el 24/10/2026 y QUITADO el 03/11/2026)
+
+**03/11/2026:** Antonella no va a usar la app (le resulta complicada). Se quitó todo el modo pareja (sincronización entre celulares, planilla compartida, celular de prueba). La app es solo de Jorge: los gastos compartidos se anotan en Compartidos como antes (½ y gastos del hogar). Lo de abajo queda como historia por si se retoma.
 
 Solo celular (Android). No programar hasta que Jorge lo confirme; primero mostrar el diseño en capturas para aprobar.
 

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord } from '../../db/repo';
-import { compartirConPareja } from '../../sync/pareja';
 import { monthOf, todayIso, monthLabel, type MonthKey } from '../../domain/dates';
 import { splitShared, FREQUENCY_LABEL } from '../../domain/expenses';
 import { formatARS } from '../../domain/money';
@@ -61,13 +60,7 @@ export function ExpenseForm({ initial, onClose }: { initial: ExpenseDraft; onClo
     if (d.endMonth && d.endMonth < d.month) e.end = 'El fin no puede ser anterior al inicio';
     setErrors(e);
     if (Object.keys(e).length) return;
-    const saved = await saveRecord<Expense>('expenses', { ...d, totalAmount: d.totalAmount!, userPct: shared ? d.userPct : 100 } as Expense, `${d.id ? 'Modificación' : 'Registro'} de gasto "${d.concept}"`);
-    // Modo pareja: un gasto compartido de una sola vez se manda a tu pareja (le aparece su parte).
-    if (shared && (await compartirConPareja(saved))) {
-      toast('Gasto compartido: a tu pareja le aparece su parte');
-      onClose();
-      return;
-    }
+    await saveRecord<Expense>('expenses', { ...d, totalAmount: d.totalAmount!, userPct: shared ? d.userPct : 100 } as Expense, `${d.id ? 'Modificación' : 'Registro'} de gasto "${d.concept}"`);
     toast('Gasto guardado');
     onClose();
   };

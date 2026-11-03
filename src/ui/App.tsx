@@ -4,8 +4,6 @@ import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost, Help } from './components/ui';
 import { applyTheme, watchSystemTheme } from './theme';
 import { syncWidget } from '../notifications/native';
-import { esPrueba } from '../platform';
-import { WidgetPrueba } from './components/WidgetPrueba';
 import { monthLabel } from '../domain/dates';
 import { Tour } from './components/Tour';
 import { getLock, verifyPin } from './lock';
@@ -15,7 +13,6 @@ import { AyudaPage } from './pages/Ayuda';
 import { IngresosPage } from './pages/Ingresos';
 import { GastosPage } from './pages/Gastos';
 import { CompartidosPage } from './pages/Compartidos';
-import { onNovedades } from '../sync/pareja';
 import { DeudasPage } from './pages/Deudas';
 import { CuotasPage } from './pages/Cuotas';
 import { EntidadesPage } from './pages/Entidades';
@@ -65,7 +62,7 @@ export const ROUTES: RouteDef[] = [
   { path: 'cuotas', label: 'Cuotas futuras', icon: CalendarClock, el: CuotasPage, nav: 'hidden', group: 'deudas', help: 'Cuánto vas a pagar de cuotas cada mes que viene, y si quedó alguna cuota vencida sin pagar.' },
   { path: 'deudas', label: 'Tarjetas y deudas', icon: CreditCard, el: DeudasPage, nav: 'hidden', group: 'deudas', help: 'Cada préstamo, compra en cuotas o plan, y los resúmenes de tarjeta. Tocá "Ver cuotas" para ver en qué cuota vas o corregir una cuota marcada por error.' },
   { path: 'ingresos', label: 'Ingresos', icon: ArrowDownToLine, el: IngresosPage, nav: 'hidden', group: 'plata', help: 'Tu sueldo y otros ingresos de cada mes. Si subís la captura de los movimientos del banco, el sueldo se carga solo.' },
-  { path: 'compartidos', label: 'Compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Todo lo que compartís con tu pareja: los gastos fijos del mes, lo que anotan como compartido, quién le debe a quién (con "Pagado" se salda) y el cargo de Sancor del resumen. Con el modo pareja, se ve igual en los dos celulares.' },
+  { path: 'compartidos', label: 'Compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con tu pareja (alquiler, luz, súper…). Solo se cuenta tu parte. También el cargo de Sancor Salud y lo que te devuelve.' },
   { path: 'presupuesto', label: 'Presupuesto mensual', icon: PiggyBank, el: PresupuestoPage, nav: 'hidden', group: 'plata', help: 'Cuánto querés gastar como máximo en el día a día (comida, transporte, salidas) y cuánto llevás.' },
   { path: 'resumen', label: 'Detalle del mes', icon: ListChecks, el: ResumenPage, nav: 'hidden', help: 'La cuenta completa del mes, línea por línea: de dónde sale el número de "Te quedan".' },
 ];
@@ -88,18 +85,13 @@ const SUBTITLES: Record<string, string> = {
   resumen: 'La cuenta completa del mes',
   configuracion: 'Preferencias de este dispositivo',
   copias: 'Tus datos, a salvo y en tus equipos',
-  compartidos: 'Lo que comparten, en las dos apps',
 };
 const LOGO = `${import.meta.env.BASE_URL}icons/brote-mark.png`;
 
 const tourId = (p: string) => `nav-${p === 'entidades' ? 'deudas' : p}`;
 
 function useHashRoute(): string {
-  // "Pareja" pasó a ser parte de Compartidos: los enlaces viejos llevan ahí.
-  const get = () => {
-    const r = window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'inicio';
-    return r === 'pareja' ? 'compartidos' : r;
-  };
+  const get = () => window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'inicio';
   const [r, setR] = useState(get);
   useEffect(() => {
     const h = () => {
@@ -170,9 +162,6 @@ function Shell() {
     const t = setTimeout(() => void syncWidget(), 800);
     return () => clearTimeout(t);
   }, [ctx?.data]);
-  // Cuando tu pareja anota un gasto compartido o marca un pago, se avisa (en el celular también llega una notificación).
-  const toast = ctx?.toast;
-  useEffect(() => (toast ? onNovedades((ns) => ns.slice(0, 3).forEach((n) => toast(n.titulo))) : undefined), [toast]);
   const current = ROUTES.find((r) => r.path === route) ?? ROUTES[0];
   const Page = current.el;
   useEffect(() => {
@@ -243,11 +232,6 @@ function Shell() {
             <button className="btn small ghost" onClick={pwa.dismiss}>Más tarde</button>
           </div>
         )}
-        {esPrueba() && (
-          <div className="banner prueba" role="note">
-            <strong>Celular de prueba.</strong> Hace de celular de tu pareja con datos separados de los tuyos. Lo que anotes acá le llega a tu celular (y al de tu pareja de verdad cuando se sincronicen): borralo después con "No es compartido".
-          </div>
-        )}
         {pwa.offlineReady && <div className="banner ok">La aplicación quedó lista para usarse sin conexión.<button className="btn small ghost" onClick={pwa.dismiss}>Cerrar</button></div>}
         <main className="content" id="contenido">
           {current.group && (
@@ -257,7 +241,6 @@ function Shell() {
               ))}
             </nav>
           )}
-          {esPrueba() && ctx?.data && <WidgetPrueba />}
           {ctx?.data ? <Page /> : <p className="muted">Cargando datos locales…</p>}
         </main>
         <nav className="bottom only-mobile" aria-label="Navegación principal">

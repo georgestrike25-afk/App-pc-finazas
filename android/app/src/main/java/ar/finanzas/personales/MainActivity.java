@@ -24,15 +24,6 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NotificacionesPlugin.class);
         super.onCreate(savedInstanceState);
-        ServidorPareja.iniciar(getApplicationContext());
-        // "Recibir con Brote cerrado": si Android paró el servicio, se vuelve a prender al abrir Brote.
-        if (ServicioPareja.activo(this)) {
-            try {
-                ServicioPareja.cambiar(this, true);
-            } catch (Exception ignorada) {
-                // sin permiso para notificaciones o restricción del sistema
-            }
-        }
         recibir(getIntent());
     }
 
