@@ -88,7 +88,15 @@ export function EntidadesPage() {
                 <Money value={c.amount} />
               </li>
             ))}
-            {d.items.map(({ ob, progress: p }) => (
+            {d.items.map(({ ob, progress: p, balance }) => balance !== undefined ? (
+              <li key={ob.id} data-testid="entity-balance-item">
+                <span>
+                  <strong>{ob.concept}</strong> <Badge tone="neutral">Saldo</Badge>
+                  <small className="muted d-block">{ob.notes ? `${ob.notes} · ` : ''}se actualiza cada vez que subís el PDF nuevo</small>
+                </span>
+                <Money value={balance} />
+              </li>
+            ) : (
               <li key={ob.id}>
                 <span>
                   <strong>{ob.concept}</strong> <Badge tone="neutral">{OBLIGATION_TYPE_LABEL[ob.type]}</Badge>
@@ -104,6 +112,7 @@ export function EntidadesPage() {
               </li>
             ))}
           </ul>
+{Object.keys(d.byMonth).length > 0 && (
           <details className="small">
             <summary>Pagos mes a mes</summary>
             <ul className="list">
@@ -112,6 +121,7 @@ export function EntidadesPage() {
               ))}
             </ul>
           </details>
+          )}
         </Card>
       ))}
     </div>

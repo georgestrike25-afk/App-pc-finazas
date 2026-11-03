@@ -35,6 +35,13 @@ function Pendientes({ items }: { items: CheckItem[] }) {
     notify();
     toast('Resumen marcado como pagado.');
   };
+  const payExpense = async (id: string) => {
+    const e = data.expenses.find((x) => x.id === id);
+    if (!e) return;
+    if (!(await confirmDialog(`¿Ya pagaste ${e.concept} (${formatARS(e.totalAmount)})?`, { ok: 'Sí, ya lo pagué' }))) return;
+    await saveRecord<Expense>('expenses', { ...e, paid: true }, `Pago de "${e.concept}"`);
+    toast('Marcado como pagado.');
+  };
   const payInstallment = async (obId: string, n: number) => {
     const ob = data.obligations.find((o) => o.id === obId);
     if (!ob) return;
@@ -55,6 +62,7 @@ function Pendientes({ items }: { items: CheckItem[] }) {
             {!i.done && (
               <span className="acts">
                 {i.payStatementId && <button className="btn small primary" onClick={() => payStatement(i.payStatementId!)}>Ya lo pagué</button>}
+                {i.payExpenseId && <button className="btn small primary" onClick={() => payExpense(i.payExpenseId!)}>Ya lo pagué</button>}
                 {i.payInstallment && <button className="btn small primary" onClick={() => payInstallment(i.payInstallment!.obligationId, i.payInstallment!.n)}>Ya la pagué</button>}
                 {i.href && <a className="btn small" href={i.href}>{i.hrefLabel ?? 'Ir'}</a>}
               </span>

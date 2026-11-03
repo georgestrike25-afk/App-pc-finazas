@@ -437,6 +437,11 @@ export function entityGroup(entity: string): string {
   return entity.trim() || 'Sin entidad';
 }
 
+/** Deuda que solo tiene un saldo (sin cuotas ni vencimientos), como la de ARCA. */
+export function isBalanceOnly(ob: Obligation): boolean {
+  return !ob.deleted && !ob.nextDueMonth && !ob.totalInstallments && (ob.knownBalance ?? 0) > 0 && ob.status !== 'pagada' && ob.status !== 'cancelada';
+}
+
 /** Si la cuota viene dentro del resumen de la tarjeta (los préstamos personales se pagan aparte). */
 export function onCardOf(statements: Statement[]) {
   const docs = new Set(statements.filter((s) => !s.deleted && s.documentId).map((s) => s.documentId));
@@ -499,7 +504,8 @@ export interface EntityDebt {
   byMonth: Record<MonthKey, Cents>;
   lastMonth?: MonthKey;
   overdue: Cents;
-  items: Array<{ ob: Obligation; progress: ObligationProgress }>;
+  /** balance: deuda sin cuotas (solo el saldo, p. ej. ARCA). */
+  items: Array<{ ob: Obligation; progress: ObligationProgress; balance?: Cents }>;
   /** De las tarjetas: resúmenes sin pagar y consumos que vienen en el próximo resumen. */
   card: Array<{ kind: 'resumen' | 'consumos'; label: string; detail: string; amount: Cents; month: MonthKey; due?: string }>;
 }
@@ -521,6 +527,15 @@ export function debtByEntity(obs: Obligation[], today: MonthKey, cards?: CardDeb
   const get = (g: string) => map.get(g) ?? { group: g, remaining: 0, estimated: false, byMonth: {}, overdue: 0, items: [], card: [] };
   for (const ob of obs) {
     if (ob.deleted || ob.status === 'cancelada') continue;
+    if (isBalanceOnly(ob)) {
+      // Deuda sin cuotas (p. ej. ARCA): cuenta su saldo, sin repartirlo en meses.
+      const g = entityGroup(ob.entity);
+      const e = get(g);
+      e.remaining += ob.knownBalance!;
+      e.items.push({ ob, progress: obligationProgress(ob, today), balance: ob.knownBalance });
+      map.set(g, e);
+      continue;
+    }
     const pending = buildSchedule(ob, today).filter((i) => i.status === 'pendiente' || i.status === 'vencida');
     if (!pending.length) continue;
     const g = entityGroup(ob.entity);

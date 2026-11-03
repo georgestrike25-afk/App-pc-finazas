@@ -14,6 +14,8 @@ export interface CheckItem {
   hrefLabel?: string;
   payStatementId?: string;
   payInstallment?: { obligationId: string; n: number };
+  /** Factura de un servicio (Claro…) sin pagar. */
+  payExpenseId?: string;
 }
 
 /**
@@ -87,6 +89,16 @@ export function monthChecklist(data: DataSet, today: MonthKey, todayIso: string,
         });
       }
     }
+  }
+
+  // Facturas de servicios subidas (Claro…) que vencen este mes.
+  for (const e of data.expenses) {
+    if (e.deleted || e.month !== today || e.source !== 'importado' || !/^Factura /.test(e.notes ?? '')) continue;
+    items.push(
+      e.paid
+        ? { key: `factura-${e.id}`, done: true, title: `${e.concept} pagada (${formatARS(e.totalAmount)})` }
+        : { key: `factura-${e.id}`, done: false, title: `Pagar ${e.concept} (${formatARS(e.totalAmount)})`, detail: `Vence el ${formatDate(e.date)}.`, payExpenseId: e.id },
+    );
   }
 
   const pendingSancor = sum(data.sancor.map((c) => sancorSummary(c).pending));
