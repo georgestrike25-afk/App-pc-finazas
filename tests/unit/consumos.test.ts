@@ -118,4 +118,19 @@ describe('deuda por entidad con resúmenes sin pagar', () => {
     expect(nx.card).toEqual([expect.objectContaining({ kind: 'resumen', amount: 12000000, month: '2026-11' })]);
     expect(nx.remaining).toBe(12000000 + 4 * 3000000);
   });
+
+  it('al resumen de la tarjeta no se le restan los préstamos personales del mismo banco', async () => {
+    const { debtByEntity } = await import('../../src/domain/obligations');
+    const T = '2026-10-01T00:00:00.000Z';
+    const base = { createdAt: T, updatedAt: T, entity: 'Banco Patagonia', frequency: 'mensual' as const, status: 'pendiente' as const, variableAmount: false, revisions: [] };
+    // Del resumen de la Visa: una compra en cuotas. Del cronograma: un préstamo personal (se debita aparte).
+    const cuota = { ...base, id: 'c', type: 'compra_cuotas' as const, concept: 'Compra', paidInstallments: 1, totalInstallments: 3, installmentAmount: 1000000, nextDueMonth: '2026-11', documentId: 'doc-visa' };
+    const prestamo = { ...base, id: 'p', type: 'prestamo' as const, concept: 'Préstamo personal', loanNumber: '123', paidInstallments: 4, totalInstallments: 12, installmentAmount: 500000, nextDueMonth: '2026-11' };
+    const st = { id: 's', createdAt: T, updatedAt: T, entity: 'Visa Banco Patagonia', month: '2026-11', dueDate: '2026-11-11', total: 6000000, currency: 'ARS' as const, documentId: 'doc-visa' };
+    const [bp] = debtByEntity([cuota, prestamo], '2026-10', { statements: [st], cardPayments: [], expenses: [] });
+    // Resumen 60.000 − cuota de la tarjeta 10.000 = 50.000 (el préstamo no se resta).
+    expect(bp.card).toEqual([expect.objectContaining({ kind: 'resumen', amount: 5000000 })]);
+    // Noviembre: todo el resumen (60.000) + la cuota del préstamo (5.000).
+    expect(bp.byMonth['2026-11']).toBe(6000000 + 500000);
+  });
 });

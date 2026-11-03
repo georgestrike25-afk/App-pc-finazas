@@ -493,11 +493,14 @@ export function debtByEntity(obs: Obligation[], today: MonthKey, cards?: CardDeb
       map.set(g, e);
     };
     // Resúmenes sin pagar (del mes actual en adelante). Sus cuotas ya se cuentan en las deudas: se restan.
+    // Solo las de la tarjeta: los préstamos personales se pagan aparte y no vienen en el resumen.
+    const statementDocs = new Set(cards.statements.filter((s) => !s.deleted && s.documentId).map((s) => s.documentId));
+    const onCard = (ob: Obligation) => (!!ob.documentId && statementDocs.has(ob.documentId)) || (!ob.loanNumber && ob.type !== 'prestamo');
     for (const st of cards.statements) {
       if (st.deleted || !st.total || st.total <= 0 || st.month < today) continue;
       const g = entityGroup(st.entity);
       const paid = cards.cardPayments.filter((p) => !p.deleted && p.statementId === st.id).reduce((a, p) => a + p.amount, 0);
-      const inObligations = (map.get(g)?.items ?? []).reduce((a, { ob }) => a + buildSchedule(ob, today).filter((i) => i.month === st.month && (i.status === 'pendiente' || i.status === 'vencida')).reduce((x, i) => x + (i.amount ?? 0), 0), 0);
+      const inObligations = (map.get(g)?.items ?? []).filter(({ ob }) => onCard(ob)).reduce((a, { ob }) => a + buildSchedule(ob, today).filter((i) => i.month === st.month && (i.status === 'pendiente' || i.status === 'vencida')).reduce((x, i) => x + (i.amount ?? 0), 0), 0);
       const unpaid = st.total - paid - inObligations;
       add(g, { kind: 'resumen', label: `Resumen de ${monthLabel(st.month)}`, detail: `falta pagar${st.dueDate ? ` · vence el ${st.dueDate.split('-').reverse().join('/')}` : ''}${inObligations ? ' (sin contar sus cuotas, que están arriba)' : ''}`, amount: unpaid, month: st.month });
     }
