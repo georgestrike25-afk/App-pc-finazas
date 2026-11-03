@@ -217,7 +217,8 @@ export function ImportarPage() {
   const [plan, setPlan] = useState<PlanReview | null>(null);
   const [shared, setShared] = useState<SharedReview | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [markPrev, setMarkPrev] = useState(false);
+  // Un resumen nuevo deja la cuota en la que figura (si dice 10 de 10, la 9 ya se pagó).
+  const [markPrev, setMarkPrev] = useState(true);
   const [filter, setFilter] = useState<'todas' | 'pendientes' | 'incluidas' | 'excluidas'>('todas');
   const input = useRef<HTMLInputElement>(null);
 

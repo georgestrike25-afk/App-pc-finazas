@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { createRequire } from 'node:module';
-import { freshDb, expense } from './helpers';
+import { freshDb, expense, obligation } from './helpers';
 import { extractPdfText, type PdfLib } from '../../src/importers/pdf';
 import { parseStatementText } from '../../src/importers/statementParser';
 import { buildReview, commitReview, validateReview } from '../../src/importers/review';
@@ -10,7 +10,8 @@ import { parseCsv, rowsToLines, parseSpreadsheet } from '../../src/importers/tab
 import { sha256Hex } from '../../src/domain/text';
 import { buildSchedule } from '../../src/domain/obligations';
 import { computeMonth } from '../../src/domain/monthly';
-import { loadDataSet } from '../../src/db/repo';
+import { loadDataSet, repararDuplicados } from '../../src/db/repo';
+import { buildBackup, restoreBackup } from '../../src/backup/backup';
 import { makeStatementPdf, NEXT_STATEMENT_LINES } from '../fixtures/makeFixtures';
 import type { FinanzasDB } from '../../src/db/db';
 
@@ -167,5 +168,103 @@ describe('importación de documentos', () => {
     expect(validateFile('m.xls', bytes).kind).toBe('excel');
     const doc = parseStatementText(rowsToLines(await parseSpreadsheet(bytes)).lines);
     expect(doc.items[0]).toMatchObject({ amount: 450000, suggestedCategory: 'Farmacia' });
+  });
+});
+
+describe('el mismo documento subido en dos dispositivos', () => {
+  const importar = async (d: FinanzasDB, pdf: Uint8Array) => {
+    const review = await reviewFromPdf(d, pdf);
+    await commitReview(review, null, d);
+  };
+  const vivos = async (d: FinanzasDB) => ({
+    exp: (await d.expenses.toArray()).filter((x) => !x.deleted).length,
+    obl: (await d.obligations.toArray()).filter((x) => !x.deleted).length,
+    st: (await d.statements.toArray()).filter((x) => !x.deleted).length,
+    pagos: (await d.cardPayments.toArray()).filter((x) => !x.deleted).length,
+    sancor: (await d.sancor.toArray()).filter((x) => !x.deleted).length,
+  });
+
+  it('al juntarlos quedaba todo duplicado; se deja una sola copia y la marca de borrado viaja al otro dispositivo', async () => {
+    const pdf = await makeStatementPdf();
+    const a = await freshDb();
+    await importar(a, pdf);
+    const unico = await vivos(a);
+    const b = await freshDb();
+    await importar(b, pdf);
+    // Al sincronizar se juntan las dos copias y se limpian en el mismo paso.
+    await restoreBackup(await buildBackup({}, b), 'fusionar', a, 'sincronizar');
+    expect(await vivos(a)).toEqual(unico);
+    // El otro dispositivo recibe los borrados y no vuelve a duplicar.
+    await restoreBackup(await buildBackup({}, a), 'fusionar', b, 'sincronizar');
+    await repararDuplicados(b);
+    expect(await vivos(b)).toEqual(unico);
+    expect(await repararDuplicados(a)).toBe(0);
+  });
+
+  it('un gasto manual y lo que se editó en una copia no se pierden', async () => {
+    const pdf = await makeStatementPdf();
+    const a = await freshDb();
+    await importar(a, pdf);
+    const b = await freshDb();
+    await importar(b, pdf);
+    // En el dispositivo B se marcó una cuota como pagada (la copia más trabajada).
+    const ob = (await b.obligations.toArray()).find((o) => !o.deleted)!;
+    await b.obligations.put({ ...ob, paidInstallments: ob.paidInstallments + 1, updatedAt: new Date(Date.now() + 60_000).toISOString() });
+    await b.expenses.put({ ...expense({ kind: 'cotidiano', month: '2026-10', totalAmount: 1000, concept: 'Manual mío' }), documentId: (await b.documents.toArray())[0].id });
+    await restoreBackup(await buildBackup({}, b), 'fusionar', a, 'sincronizar');
+    await repararDuplicados(a);
+    const obs = (await a.obligations.toArray()).filter((o) => !o.deleted);
+    expect(obs).toHaveLength(1);
+    expect(obs[0].paidInstallments).toBe(ob.paidInstallments + 1);
+    expect((await a.expenses.toArray()).some((e) => !e.deleted && e.concept === 'Manual mío')).toBe(true);
+  });
+
+  it('dos préstamos distintos con la misma cuota no se confunden', async () => {
+    const d = await freshDb();
+    await importar(d, await makeStatementPdf());
+    const antes = await vivos(d);
+    expect(await repararDuplicados(d)).toBe(0);
+    expect(await vivos(d)).toEqual(antes);
+  });
+});
+
+describe('cuotas del mes pasado y de este mes', () => {
+  const deudas = async (d: FinanzasDB) => (await d.obligations.toArray()).filter((o) => !o.deleted);
+
+  it('subir dos veces el mismo resumen no duplica nada', async () => {
+    const d = await freshDb();
+    const pdf = await makeStatementPdf();
+    await commitReview(await reviewFromPdf(d, pdf), null, d);
+    const antes = { obl: (await deudas(d)).length, exp: (await d.expenses.toArray()).filter((e) => !e.deleted).length };
+    await commitReview(await reviewFromPdf(d, pdf), null, d);
+    expect((await deudas(d)).length).toBe(antes.obl);
+    expect((await d.expenses.toArray()).filter((e) => !e.deleted).length).toBe(antes.exp);
+  });
+
+  it('si ya quedó duplicada (cuota 9 de 10 y cuota 10 de 10), se queda con la más nueva', async () => {
+    const d = await freshDb();
+    const base = obligation({ entity: 'Tarjeta Naranja', concept: 'Heladera 10 cuotas', totalInstallments: 10, installmentAmount: 50000, frequency: 'mensual' });
+    // Del resumen de octubre: va por la 9 (8 pagadas). Del de noviembre: va por la 10 (9 pagadas).
+    await d.obligations.bulkPut([
+      { ...base, id: 'vieja', documentId: 'doc-oct', paidInstallments: 8, nextDueMonth: '2026-10' },
+      { ...base, id: 'nueva', entity: 'Naranja X', documentId: 'doc-nov', paidInstallments: 9, nextDueMonth: '2026-11' },
+      // Otra compra distinta en la misma tarjeta: no se toca.
+      { ...base, id: 'otra', concept: 'Zapatillas', totalInstallments: 3, installmentAmount: 20000, documentId: 'doc-oct', paidInstallments: 1, nextDueMonth: '2026-10' },
+    ]);
+    await d.fingerprints.put({ id: 'f1', createdAt: base.createdAt, updatedAt: base.createdAt, fingerprint: 'x', documentId: 'doc-oct', targetType: 'cuota', targetId: 'vieja' } as never);
+    expect(await repararDuplicados(d)).toBe(1);
+    expect((await deudas(d)).map((o) => o.id).sort()).toEqual(['nueva', 'otra']);
+    expect((await d.fingerprints.get('f1'))!.targetId).toBe('nueva');
+    expect(await repararDuplicados(d)).toBe(0);
+  });
+
+  it('dos compras iguales del mismo resumen no se juntan', async () => {
+    const d = await freshDb();
+    const base = obligation({ entity: 'Naranja X', concept: 'Pasaje', totalInstallments: 6, installmentAmount: 30000, frequency: 'mensual', paidInstallments: 0, nextDueMonth: '2026-10' });
+    await d.obligations.bulkPut([
+      { ...base, id: 'p1', documentId: 'doc' },
+      { ...base, id: 'p2', documentId: 'doc' },
+    ]);
+    expect(await repararDuplicados(d)).toBe(0);
   });
 });

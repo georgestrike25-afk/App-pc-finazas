@@ -232,7 +232,8 @@ export function findMatchingObligation(obs: Obligation[], c: InstallmentCandidat
   let best: { ob: Obligation; score: number } | undefined;
   for (const ob of obs) {
     if (ob.deleted || ob.status === 'cancelada') continue;
-    if (entity && normalizeText(ob.entity) && normalizeText(ob.entity) !== entity) continue;
+    // Misma entidad aunque el resumen la nombre distinto ("Tarjeta Naranja" / "Naranja X").
+    if (entity && normalizeText(ob.entity) && normalizeText(ob.entity) !== entity && entityGroup(ob.entity) !== entityGroup(c.entity)) continue;
     if (ob.totalInstallments !== c.total) continue;
     if (!ob.nextDueMonth) continue;
     const step = FREQ_STEP[ob.frequency] ?? 1;
@@ -247,6 +248,28 @@ export function findMatchingObligation(obs: Obligation[], c: InstallmentCandidat
     if (!best || score > best.score) best = { ob, score };
   }
   return best?.ob;
+}
+
+/**
+ * Dos registros de la misma compra en cuotas o del mismo préstamo (p. ej. uno cargado con el resumen
+ * del mes pasado, en la cuota 9 de 10, y otro con el de este mes, en la 10 de 10).
+ * Dos líneas del mismo documento nunca son la misma compra (son dos compras iguales).
+ */
+export function samePlan(a: Obligation, b: Obligation): boolean {
+  if (a.documentId && a.documentId === b.documentId) return false;
+  if (entityGroup(a.entity) !== entityGroup(b.entity)) return false;
+  if (a.loanNumber || b.loanNumber) return a.loanNumber === b.loanNumber;
+  if (!a.totalInstallments || a.totalInstallments !== b.totalInstallments || a.frequency !== b.frequency) return false;
+  if (!a.nextDueMonth || !b.nextDueMonth) return false;
+  const step = FREQ_STEP[a.frequency as keyof typeof FREQ_STEP] ?? 1;
+  const startA = addMonths(a.nextDueMonth, -a.paidInstallments * step);
+  const startB = addMonths(b.nextDueMonth, -b.paidInstallments * step);
+  if (Math.abs(monthDiff(startA, startB)) > 1) return false;
+  const sim = normalizeText(a.concept) === normalizeText(b.concept) ? 1 : conceptSimilarity(a.concept, b.concept);
+  if (sim < 0.5) return false;
+  const ra = a.installmentAmount ?? 0;
+  const rb = b.installmentAmount ?? 0;
+  return !ra || !rb || Math.abs(ra - rb) <= Math.max(100, Math.abs(ra) * 0.15);
 }
 
 /**
