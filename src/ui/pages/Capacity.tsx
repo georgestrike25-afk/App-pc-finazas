@@ -17,7 +17,7 @@ export function CapacityCard() {
   const [min, setMin] = useState<Cents | undefined>(c.budget.min);
   const [max, setMax] = useState<Cents | undefined>(c.budget.max);
   const goal = data.goal;
-  const untilTarget = c.months.filter((m) => m.month < goal.targetMonth);
+  const untilTarget = c.months.filter((m) => m.month <= goal.targetMonth);
   const totLow = sum(untilTarget.map((m) => Math.max(0, m.saveLow)));
   const totHigh = sum(untilTarget.map((m) => Math.max(0, m.saveHigh)));
   const save = async () => {
@@ -62,11 +62,11 @@ export function CapacityCard() {
       ) : (
         <>
           <p className="small muted" style={{ marginTop: 0 }}>
-            Con un ingreso de <Money value={c.income} /> y un presupuesto del día a día de <Money value={c.budget.min} /> a <Money value={c.budget.max} />.
+            Con un ingreso de <Money value={c.income} /> y un presupuesto del día a día de {c.budget.min === c.budget.max ? <Money value={c.budget.max} /> : <><Money value={c.budget.min} /> a <Money value={c.budget.max} /></>}.
           </p>
           {untilTarget.length > 0 && goal.estimatedCost > 0 && (
             <p data-testid="capacity-total">
-              Hasta {monthLabel(goal.targetMonth)} podrías juntar entre <strong><Money value={totLow} /></strong> y <strong><Money value={totHigh} /></strong> (el viaje cuesta <Money value={goal.estimatedCost} />).
+              De {monthLabel(untilTarget[0].month)} a {monthLabel(goal.targetMonth)} podrías juntar {totLow === totHigh ? <strong><Money value={totLow} /></strong> : <>entre <strong><Money value={totLow} /></strong> y <strong><Money value={totHigh} /></strong></>} (el viaje cuesta <Money value={goal.estimatedCost} />).
             </p>
           )}
           <BarChart data={chart} height={160} ariaLabel="Ahorro posible por mes" />
@@ -116,5 +116,6 @@ function range(low: Cents, high: Cents) {
   const f = (v: Cents) => (v / 100).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
   if (high <= 0) return 'No alcanza';
   if (low <= 0) return `hasta ${f(high)}`;
+  if (low === high) return f(low);
   return `${f(low)} a ${f(high)}`;
 }

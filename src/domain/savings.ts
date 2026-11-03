@@ -52,13 +52,15 @@ export function goalProgress(goal: SavingsGoal): Cents {
  */
 export function projectGoal(data: DataSet, goal: SavingsGoal, today: MonthKey, scenario: Scenario): Projection {
   const warnings: string[] = [];
+  // Se ahorra desde el mes que viene hasta el mes del viaje inclusive (ese sueldo se cobra antes de viajar).
+  // El mes en curso ya empezó: lo que se aporte se anota y cuenta como ahorrado.
   const monthsRemaining = Math.max(0, monthDiff(today, goal.targetMonth));
-  const prior = sum(goal.contributions.filter((c) => c.month < today).map((c) => c.amount));
+  const prior = sum(goal.contributions.filter((c) => c.month <= today).map((c) => c.amount));
   let acc = goal.initialSaving + goal.reserved + prior;
   const baseObligations = computeMonth(data, today, today, { forceDailyEstimate: true }).sections.find((s) => s.key === 'obligaciones')!.total;
   const months: ProjectionMonth[] = [];
 
-  for (let i = 0; i < monthsRemaining; i++) {
+  for (let i = 1; i <= monthsRemaining; i++) {
     const m = addMonths(today, i);
     const r = computeMonth(data, m, today, { forceDailyEstimate: true });
     const get = (k: string) => r.sections.find((s) => s.key === k)!.total;

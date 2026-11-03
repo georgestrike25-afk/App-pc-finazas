@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord } from '../../db/repo';
 import { goalProgress, projectGoal } from '../../domain/savings';
-import { formatDate, monthLabel, monthOf, monthShort, todayIso } from '../../domain/dates';
-import { formatARS, type Cents } from '../../domain/money';
+import { addMonths, formatDate, monthLabel, monthOf, monthShort, todayIso } from '../../domain/dates';
+import { formatARS, sum, type Cents } from '../../domain/money';
 import { uid } from '../../domain/text';
 import type { SavingsGoal } from '../../domain/types';
 import { Badge, BarChart, Card, confirmDialog, Field, Money, MoneyInput, MonthSelect, Progress, Warnings } from '../components/ui';
 import { CapacityCard } from './Capacity';
+import { savingsCapacity } from '../../domain/capacity';
 import { TripScene } from '../components/TripScene';
 import { CircleCheck, TriangleAlert } from 'lucide-react';
 
@@ -22,6 +23,27 @@ export function ViajePage() {
   const projections = useMemo(() => saved.scenarios.map((s) => projectGoal(data, saved, today, s)), [data, saved, today]);
   const p = projections.find((x) => x.scenario.key === scenarioKey) ?? projections[1];
   const progress = goalProgress(saved);
+  // Lo que te sobra cada mes (cuadro "Cuánto podés ahorrar"), de los mismos meses que la proyección.
+  const cap = useMemo(() => savingsCapacity(data, today), [data, today]);
+  const capMonths = cap.months.filter((m) => m.month <= saved.targetMonth);
+  const canAvg = cap.income > 0 && capMonths.length > 0;
+  const canLowAvg = canAvg ? Math.round(sum(capMonths.map((m) => Math.max(0, m.saveLow))) / capMonths.length) : 0;
+  const canHighAvg = canAvg ? Math.round(sum(capMonths.map((m) => Math.max(0, m.saveHigh))) / capMonths.length) : 0;
+  const plannedOk = p.reachable;
+  const verdict = plannedOk
+    ? `Llegás a ${monthLabel(saved.targetMonth)} con lo que planeás ahorrar`
+    : !canAvg
+      ? `Con lo planeado no llegás a ${monthLabel(saved.targetMonth)}`
+      : canLowAvg >= p.requiredMonthly
+        ? `Podés llegar a ${monthLabel(saved.targetMonth)}: te alcanza, pero planeaste ahorrar menos de lo necesario`
+        : canHighAvg >= p.requiredMonthly
+          ? `Podés llegar a ${monthLabel(saved.targetMonth)} si gastás cerca del mínimo del día a día`
+          : `Con tus números no llegás a ${monthLabel(saved.targetMonth)}`;
+  const canRaise = !plannedOk && canAvg && canHighAvg >= p.requiredMonthly && saved.plannedMonthlyContribution < p.requiredMonthly;
+  const raise = async () => {
+    await saveRecord<SavingsGoal>('goals', { ...saved, plannedMonthlyContribution: p.requiredMonthly }, `Ahorro planeado para el viaje: ${formatARS(p.requiredMonthly)} por mes`);
+    toast('Listo: ahorro planeado actualizado.');
+  };
   const dirty = JSON.stringify(g) !== JSON.stringify(saved);
 
   const save = async () => {
@@ -72,11 +94,17 @@ export function ViajePage() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <span className="cat-ic" aria-hidden style={p.reachable ? { background: 'var(--ok-soft)', color: 'var(--ok)' } : { background: 'var(--warn-soft)', color: 'var(--warn)' }}>{p.reachable ? <CircleCheck /> : <TriangleAlert />}</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <strong className="answer" data-testid="viaje-respuesta">
-                {p.reachable ? `Llegás a ${monthLabel(saved.targetMonth)} con lo que planeás ahorrar` : `Con lo planeado no llegás a ${monthLabel(saved.targetMonth)}`}
-              </strong>
-              {!p.reachable && (
-                <span>Para llegar, ahorrá <strong><Money value={p.requiredMonthly} /></strong> por mes durante {p.monthsRemaining} meses.</span>
+              <strong className="answer" data-testid="viaje-respuesta">{verdict}</strong>
+              {p.missing > 0 && p.monthsRemaining > 0 && (
+                <ul className="trip-facts">
+                  <li><span>Te faltan</span><Money value={p.missing} /></li>
+                  <li><span>Necesitás ahorrar por mes<small className="d-block">{p.monthsRemaining} meses: {monthLabel(addMonths(today, 1))} a {monthLabel(saved.targetMonth)}</small></span><Money value={p.requiredMonthly} /></li>
+                  {canAvg && <li><span>Podés ahorrar por mes<small className="d-block">según tus números (ver abajo)</small></span><span>{canLowAvg === canHighAvg ? <Money value={canHighAvg} /> : <><Money value={canLowAvg} /> a <Money value={canHighAvg} /></>}</span></li>}
+                  <li><span>Planeaste ahorrar por mes</span><Money value={saved.plannedMonthlyContribution} /></li>
+                </ul>
+              )}
+              {canRaise && (
+                <button className="btn primary small" style={{ alignSelf: 'flex-start' }} onClick={raise}>Planear <Money value={p.requiredMonthly} /> por mes</button>
               )}
               <small className="muted">Cálculo con tus ingresos, gastos y cuotas cargados. Es una estimación, no un resultado garantizado.</small>
             </div>

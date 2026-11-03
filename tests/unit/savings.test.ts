@@ -11,7 +11,8 @@ describe('proyección del viaje de abril de 2027', () => {
     expect(g.targetMonth).toBe('2027-04');
     expect(g.estimatedCost + g.initialSaving + g.reserved + g.plannedMonthlyContribution).toBe(0);
     const p = projectGoal(emptyData(), g, '2026-10', DEFAULT_SCENARIOS[1]);
-    expect(p.months.map((m) => m.month)).toEqual(['2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03']);
+    // Del mes que viene hasta abril inclusive (el sueldo de abril se cobra antes del viaje).
+    expect(p.months.map((m) => m.month)).toEqual(['2026-11', '2026-12', '2027-01', '2027-02', '2027-03', '2027-04']);
     expect(p.reachable).toBe(false);
     expect(p.warnings.join(' ')).toMatch(/costo estimado/);
   });
@@ -25,10 +26,10 @@ describe('proyección del viaje de abril de 2027', () => {
     const g = { ...defaultGoal(T), estimatedCost: 300000000, initialSaving: 20000000, plannedMonthlyContribution: 40000000, reinvestPct: 50 };
     const p = projectGoal(d, g, '2026-10', DEFAULT_SCENARIOS[1]);
     expect(p.monthsRemaining).toBe(6);
-    // Oct-Dic: aporte 400.000; Ene-Mar: 400.000 + 50 % de 100.000 liberados
-    expect(p.months.map((m) => m.contribution)).toEqual([40000000, 40000000, 40000000, 45000000, 45000000, 45000000]);
-    expect(p.months[3].freed).toBe(10000000);
-    expect(p.finalAccumulated).toBe(20000000 + 255000000);
+    // Nov-Dic: aporte 400.000; Ene-Abr: 400.000 + 50 % de 100.000 liberados
+    expect(p.months.map((m) => m.contribution)).toEqual([40000000, 40000000, 45000000, 45000000, 45000000, 45000000]);
+    expect(p.months[2].freed).toBe(10000000);
+    expect(p.finalAccumulated).toBe(20000000 + 260000000);
     expect(p.reachable).toBe(false);
     expect(p.requiredMonthly).toBe(Math.ceil((300000000 - 20000000) / 6));
     // Sin reinversión, el dinero liberado no se ahorra automáticamente
@@ -41,16 +42,17 @@ describe('proyección del viaje de abril de 2027', () => {
     d.settings.projectedMonthlyIncome = 80000000;
     const g = { ...defaultGoal(T), estimatedCost: 100000000, plannedMonthlyContribution: 50000000 };
     const p = projectGoal(d, g, '2026-10', DEFAULT_SCENARIOS[0]);
-    expect(p.months[1].available).toBe(Math.round(80000000 * 0.9) - Math.round(70000000 * 1.1));
-    expect(p.months[1].contribution).toBe(0);
-    expect(p.months[1].capped).toBe(true);
+    expect(p.months[0].available).toBe(Math.round(80000000 * 0.9) - Math.round(70000000 * 1.1));
+    expect(p.months[0].contribution).toBe(0);
+    expect(p.months[0].capped).toBe(true);
   });
 
-  it('usa aportes reales cuando existen', () => {
+  it('usa aportes reales cuando existen; lo aportado este mes ya cuenta como ahorrado', () => {
     const d = emptyData();
-    const g = { ...defaultGoal(T), estimatedCost: 100, contributions: [{ id: 'c', date: '2026-10-05', month: '2026-10', amount: 12345 }] };
+    const g = { ...defaultGoal(T), estimatedCost: 100, contributions: [{ id: 'c', date: '2026-10-05', month: '2026-10', amount: 12345 }, { id: 'd', date: '2026-11-05', month: '2026-11', amount: 100 }] };
     const p = projectGoal(d, g, '2026-10', DEFAULT_SCENARIOS[1]);
-    expect(p.months[0]).toMatchObject({ contribution: 12345, contributionKind: 'real' });
-    expect(p.currentProgress).toBe(12345);
+    expect(p.months[0]).toMatchObject({ month: '2026-11', contribution: 100, contributionKind: 'real' });
+    expect(p.finalAccumulated).toBe(12345 + 100);
+    expect(p.currentProgress).toBe(12445);
   });
 });
