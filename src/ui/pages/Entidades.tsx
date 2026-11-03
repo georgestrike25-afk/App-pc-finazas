@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '../store';
 import { addMonths, formatDate, monthLabel, monthShort } from '../../domain/dates';
-import { debtByEntity, entityGroup, expenseCardEntity, OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
+import { debtByEntity, entityGroup, expenseCardEntity, monthToPay, OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
 import { sum } from '../../domain/money';
 import { Badge, BarChart, Card, Empty, Money, Progress } from '../components/ui';
 import { CreditCard, Landmark } from 'lucide-react';
@@ -11,6 +11,7 @@ export function EntidadesPage() {
   const { data, today } = useApp();
   const debts = useMemo(() => debtByEntity(data.obligations, today, data), [data, today]);
   const total = sum(debts.map((d) => d.remaining));
+  const toPay = useMemo(() => monthToPay(debts, today, data.statements), [debts, today, data.statements]);
   // Tarjetas que usás (tienen resúmenes o consumos cargados) pero sin nada pendiente cargado.
   const missing = useMemo(() => {
     const known = new Set([...data.statements.filter((s) => !s.deleted).map((s) => entityGroup(s.entity)), ...data.expenses.filter((e) => !e.deleted).map(expenseCardEntity).filter((x): x is string => !!x).map(entityGroup)]);
@@ -46,6 +47,28 @@ export function EntidadesPage() {
         <div className="kpi"><span>Libre de deudas en</span><strong className="big">{last ? monthLabel(last) : '—'}</strong></div>
       </div>
       {missingCard}
+      {toPay.length > 0 && (
+        <Card title={`Este mes pagás · ${monthLabel(today)}`} help="Lo que tenés que pagar este mes a cada entidad: el resumen de la tarjeta por su total (con las cuotas que trae adentro) y aparte cada préstamo, con su vencimiento." className="pay-month">
+          {toPay.map((e) => (
+            <div key={e.group} className="pay-entity">
+              <div className="pay-head"><strong>{e.group}</strong><Money value={e.total} estimated={e.lines.some((l) => l.estimated)} /></div>
+              <ul className="list">
+                {e.lines.map((l, i) => (
+                  <li key={i}>
+                    <span>
+                      {l.label}
+                      {l.due && <small className="muted d-block">vence el {l.due.slice(8, 10)}/{l.due.slice(5, 7)}</small>}
+                      {l.detail && <small className="muted d-block">{l.detail}</small>}
+                    </span>
+                    <Money value={l.amount} estimated={l.estimated} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <div className="pay-total"><span>Total del mes</span><Money value={sum(toPay.map((e) => e.total))} /></div>
+        </Card>
+      )}
       <Card title="Cuotas por mes y entidad (próximos 12 meses)" help="Cuánto vas a pagar cada mes a cada entidad. Cuando una deuda termina, la barra baja: esa plata te queda libre.">
         <BarChart data={chart} ariaLabel="Cuotas por mes y entidad" />
       </Card>

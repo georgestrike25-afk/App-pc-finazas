@@ -586,3 +586,11 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .pj-qr .qr { width: 220px; height: 220px; border-radius: var(--r-sm); border: 1px solid var(--border); background: #fff; }
 .pj-qr p { flex: 1 1 200px; margin: 0; }
 .qr-video { width: 100%; max-height: 60vh; border-radius: var(--r-sm); background: #000; object-fit: cover; }
+
+/* Este mes pagás (Deudas) */
+.pay-month .pay-entity + .pay-entity { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.pay-month .pay-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.pay-month .pay-head strong { font-size: 1rem; }
+.pay-month .list { margin-top: 4px; }
+.pay-month .list li { padding-top: 8px; padding-bottom: 8px; }
+.pay-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--border); font-weight: 700; }

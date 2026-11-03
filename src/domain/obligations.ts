@@ -437,6 +437,60 @@ export function entityGroup(entity: string): string {
   return entity.trim() || 'Sin entidad';
 }
 
+/** Si la cuota viene dentro del resumen de la tarjeta (los préstamos personales se pagan aparte). */
+export function onCardOf(statements: Statement[]) {
+  const docs = new Set(statements.filter((s) => !s.deleted && s.documentId).map((s) => s.documentId));
+  return (ob: Obligation) => (!!ob.documentId && docs.has(ob.documentId)) || (!ob.loanNumber && ob.type !== 'prestamo');
+}
+
+export interface PayLine {
+  label: string;
+  detail?: string;
+  /** Día de vencimiento ('YYYY-MM-DD'), si se conoce. */
+  due?: string;
+  amount: Cents;
+  estimated?: boolean;
+}
+export interface EntityMonthPay {
+  group: string;
+  total: Cents;
+  lines: PayLine[];
+}
+
+/**
+ * Qué hay que pagar en un mes, por entidad: el resumen de la tarjeta por su total (con las cuotas que
+ * trae adentro) y aparte cada préstamo o cuota que no viene en el resumen.
+ */
+export function monthToPay(debts: EntityDebt[], month: MonthKey, statements: Statement[]): EntityMonthPay[] {
+  const onCard = onCardOf(statements);
+  const dueOf = (ob: Obligation, n: number) => ob.dueDates?.[n] ?? (ob.dueDay ? `${month}-${String(ob.dueDay).padStart(2, '0')}` : undefined);
+  const out: EntityMonthPay[] = [];
+  for (const d of debts) {
+    const lines: PayLine[] = [];
+    const resumenes = d.card.filter((c) => c.kind === 'resumen' && c.month === month);
+    const cuotas = d.items.flatMap(({ ob }) => buildSchedule(ob, month).filter((i) => i.month === month && (i.status === 'pendiente' || i.status === 'vencida')).map((i) => ({ ob, i })));
+    const enResumen = resumenes.length ? cuotas.filter(({ ob }) => onCard(ob)) : [];
+    for (const r of resumenes) {
+      const dentro = sum(enResumen.map(({ i }) => i.amount ?? 0));
+      lines.push({
+        label: `Resumen de la tarjeta`,
+        detail: enResumen.length ? `Incluye ${enResumen.map(({ ob, i }) => `${ob.concept} ${i.n}/${i.total ?? '?'}`).join(', ')}` : undefined,
+        due: r.due,
+        amount: r.amount + dentro,
+      });
+    }
+    for (const { ob, i } of cuotas) {
+      if (enResumen.some((x) => x.ob.id === ob.id)) continue;
+      lines.push({ label: ob.concept, detail: `Cuota ${i.n}${i.total ? ` de ${i.total}` : ''}`, due: dueOf(ob, i.n), amount: i.amount ?? 0, estimated: i.estimated });
+    }
+    for (const c of d.card.filter((c) => c.kind === 'consumos' && c.month === month)) lines.push({ label: c.label, detail: c.detail, amount: c.amount, estimated: true });
+    if (!lines.length) continue;
+    lines.sort((a, b) => (a.due ?? '9').localeCompare(b.due ?? '9'));
+    out.push({ group: d.group, total: sum(lines.map((l) => l.amount)), lines });
+  }
+  return out.sort((a, b) => (a.lines[0].due ?? '9').localeCompare(b.lines[0].due ?? '9'));
+}
+
 export interface EntityDebt {
   group: string;
   remaining: Cents;
@@ -447,7 +501,7 @@ export interface EntityDebt {
   overdue: Cents;
   items: Array<{ ob: Obligation; progress: ObligationProgress }>;
   /** De las tarjetas: resúmenes sin pagar y consumos que vienen en el próximo resumen. */
-  card: Array<{ kind: 'resumen' | 'consumos'; label: string; detail: string; amount: Cents; month: MonthKey }>;
+  card: Array<{ kind: 'resumen' | 'consumos'; label: string; detail: string; amount: Cents; month: MonthKey; due?: string }>;
 }
 
 /** Entidad de un consumo con tarjeta (los registros viejos la tienen solo en las notas). */
@@ -494,15 +548,14 @@ export function debtByEntity(obs: Obligation[], today: MonthKey, cards?: CardDeb
     };
     // Resúmenes sin pagar (del mes actual en adelante). Sus cuotas ya se cuentan en las deudas: se restan.
     // Solo las de la tarjeta: los préstamos personales se pagan aparte y no vienen en el resumen.
-    const statementDocs = new Set(cards.statements.filter((s) => !s.deleted && s.documentId).map((s) => s.documentId));
-    const onCard = (ob: Obligation) => (!!ob.documentId && statementDocs.has(ob.documentId)) || (!ob.loanNumber && ob.type !== 'prestamo');
+    const onCard = onCardOf(cards.statements);
     for (const st of cards.statements) {
       if (st.deleted || !st.total || st.total <= 0 || st.month < today) continue;
       const g = entityGroup(st.entity);
       const paid = cards.cardPayments.filter((p) => !p.deleted && p.statementId === st.id).reduce((a, p) => a + p.amount, 0);
       const inObligations = (map.get(g)?.items ?? []).filter(({ ob }) => onCard(ob)).reduce((a, { ob }) => a + buildSchedule(ob, today).filter((i) => i.month === st.month && (i.status === 'pendiente' || i.status === 'vencida')).reduce((x, i) => x + (i.amount ?? 0), 0), 0);
       const unpaid = st.total - paid - inObligations;
-      add(g, { kind: 'resumen', label: `Resumen de ${monthLabel(st.month)}`, detail: `falta pagar${st.dueDate ? ` · vence el ${st.dueDate.split('-').reverse().join('/')}` : ''}${inObligations ? ' (sin contar sus cuotas, que están arriba)' : ''}`, amount: unpaid, month: st.month });
+      add(g, { kind: 'resumen', label: `Resumen de ${monthLabel(st.month)}`, detail: `falta pagar${st.dueDate ? ` · vence el ${st.dueDate.split('-').reverse().join('/')}` : ''}${inObligations ? ' (sin contar sus cuotas, que están arriba)' : ''}`, amount: unpaid, month: st.month, due: st.dueDate });
     }
     // Consumos que todavía no tienen resumen (vistos en la app de la tarjeta).
     const prov = new Map<string, { amount: Cents; n: number; month: MonthKey }>();
