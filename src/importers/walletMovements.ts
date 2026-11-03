@@ -200,9 +200,9 @@ export function parseWalletMovements(lines: SourceLine[], ctx: WalletContext = {
       cat = { category: 'Transferencias', kind: 'personal' };
       warnings.push('Revisá si es un gasto o un préstamo a alguien.');
     } else if (r.type === 'recibida') {
-      kind = 'credito';
+      kind = 'ingreso';
       concept = `Transferencia de ${r.concept}`;
-      warnings.push('No se importa: si es un ingreso o un reintegro de tu pareja, cargalo en Ingresos o en Gastos compartidos.');
+      warnings.push('Transferencia recibida: se suma como ingreso extra del mes (si ya estaba anotada, no se repite).');
     } else if (r.type === 'devolucion') {
       kind = 'bonificacion';
     } else if (r.type === 'tarjeta') {
@@ -252,6 +252,8 @@ export function parseWalletMovements(lines: SourceLine[], ctx: WalletContext = {
   const entity = detectEntity(`${text} ${ctx.fileName ?? ''}`).entity ?? (/ual/i.test(ctx.fileName ?? '') ? 'Ualá' : 'Billetera');
   return {
     docType: 'cuenta',
+    // Si se te pasó anotar algo de meses anteriores, también se propone.
+    allMonths: true,
     entity: { value: entity, confidence: 'media' },
     currency: 'ARS',
     decimalFormat: 'coma',

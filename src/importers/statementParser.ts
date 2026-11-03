@@ -74,6 +74,8 @@ export interface UpcomingInstallments {
 export interface ParsedDocument {
   /** resumen: resumen de tarjeta · cuenta: movimientos de cuenta bancaria · consumos: consumos del período abierto (app de la tarjeta). */
   docType?: 'resumen' | 'cuenta' | 'consumos' | 'historial';
+  /** Movimientos de varios meses que se proponen todos (lo que ya está cargado se omite igual). */
+  allMonths?: boolean;
   entity: Field<string>;
   currency: 'ARS' | 'USD' | 'mixta';
   decimalFormat: DecimalFormat;

@@ -273,7 +273,7 @@ export async function buildReview(
       include = false;
       action = 'ignorar';
     }
-    if (isAccount && include && parsed.month && itemMonth !== parsed.month) {
+    if (isAccount && include && parsed.month && itemMonth !== parsed.month && !parsed.allMonths) {
       include = false;
       warnings.push(`Movimiento de ${monthLabel(itemMonth)}: no se incluye por defecto (márquelo si corresponde).`);
     }
@@ -503,7 +503,15 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         created.cuotas++;
       } else if (it.action === 'ingreso') {
         const cur = (await db.incomes.where('month').equals(it.month).toArray()).find((x) => !x.deleted);
-        if (!cur) {
+        // Transferencia recibida (capturas o video de la billetera): ingreso extra del mes, como la que se anota
+        // sola por el aviso. Cuenta para "Plata hasta cobrar" si entró después de anotar tu plata.
+        const extra = s.docType === 'cuenta' && /^Transferencia de /.test(it.concept) ? { concept: it.concept, amount: it.amount, at: `${date}T12:00:00.000Z` } : undefined;
+        if (extra) {
+          if (cur) await db.incomes.put({ ...reviseIncome(cur, { extras: [...cur.extras, extra] }, now), deviceId });
+          const inc: Income | undefined = cur ? undefined : { ...base(), month: it.month, status: 'confirmado', amountReceived: 0, receivedDate: date, extras: [extra], deductions: [], notes: 'Transferencias recibidas importadas.', revisions: [] };
+          if (inc) await db.incomes.put(inc);
+          await fp(it, 'ingreso', cur?.id ?? inc!.id);
+        } else if (!cur) {
           const inc: Income = { ...base(), month: it.month, status: 'confirmado', amountReceived: it.amount, receivedDate: date, extras: [], deductions: [], notes: `Importado: ${it.concept}`, revisions: [] };
           await db.incomes.put(inc);
           await fp(it, 'ingreso', inc.id);

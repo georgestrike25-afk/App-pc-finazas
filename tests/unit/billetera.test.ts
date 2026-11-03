@@ -30,7 +30,7 @@ describe('movimientos de billetera (video o capturas de "Mis movimientos")', () 
     const k = (c: string) => d.items.find((i) => i.concept.startsWith(c))!;
     expect(k('Transferencia a Persona Uno')).toMatchObject({ kind: 'consumo', suggestedCategory: 'Transferencias', amount: 600000 });
     expect(k('Rendimientos').kind).toBe('credito');
-    expect(k('Transferencia de Carolina').kind).toBe('credito');
+    expect(k('Transferencia de Carolina').kind).toBe('ingreso');
     expect(k('Transferencia a Carolina').kind).toBe('transferencia'); // a tu pareja: compartidos
     expect(d.items.filter((i) => /cuenta propia/.test(i.concept)).map((i) => i.amount)).toEqual([1000000, 1000000]);
     expect(k('Compra Dólar').kind).toBe('transferencia');
@@ -72,5 +72,22 @@ describe('capturas de Ualá que repiten lo que ya está cargado', () => {
     await commitReview(await buildReview(d, meta('c'), true, db, '2026-10'), null, db);
     expect((await vivos(db)).filter((e) => e.totalAmount === 400000)).toHaveLength(1);
     expect(await vivos(db)).toHaveLength(3);
+  });
+
+  it('las transferencias recibidas se anotan como ingreso una sola vez, de todos los meses del video', async () => {
+    const db = await freshDb();
+    const ingresos = async () => (await db.incomes.toArray()).filter((i) => !i.deleted).flatMap((i) => i.extras.map((x) => `${i.month} ${x.amount}`)).sort();
+    // Ya estaba anotada (por el aviso) la de octubre por $ 1.500.
+    const { saveRecord } = await import('../../src/db/repo');
+    await saveRecord('incomes', { month: '2026-10', status: 'confirmado', amountReceived: 0, extras: [{ concept: 'Te entraron', amount: 150000, at: '2026-10-14T10:00:00.000Z' }], deductions: [], revisions: [] } as never, 't', db);
+    const d = parseWalletMovements(cap(['< Mis movimientos', 'Persona Prueba  +$1.500,00', 'Transferencia recibida  14/10', 'Persona Prueba  +$2.000,00', 'Transferencia recibida  20/10', 'Otra Persona  +$900,00', 'Transferencia recibida  28/09', 'Rendimientos  +$50,00', 'Operación exitosa  20/10']), { today: '2026-10-22', fileName: 'Screen_Recording_Ual.mp4' })!;
+    const r = await buildReview(d, meta('v'), true, db, '2026-10');
+    expect(r.items.filter((i) => i.include).map((i) => i.amount).sort()).toEqual([200000, 90000].sort());
+    await commitReview(r, null, db);
+    expect(await ingresos()).toEqual(['2026-09 90000', '2026-10 150000', '2026-10 200000']);
+    // Subir el mismo video otra vez no suma nada.
+    await commitReview(await buildReview(d, meta('v2'), true, db, '2026-10'), null, db);
+    expect(await ingresos()).toEqual(['2026-09 90000', '2026-10 150000', '2026-10 200000']);
+    expect((await db.incomes.toArray()).every((i) => i.amountReceived === 0)).toBe(true);
   });
 });
