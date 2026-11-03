@@ -150,3 +150,38 @@ describe('deuda por entidad con resúmenes sin pagar', () => {
     ]);
   });
 });
+
+describe('consumos de la app de la tarjeta subidos después del resumen', () => {
+  const RESUMEN = `NARANJA X
+Cierre actual: 27/10/2026
+Vencimiento actual: 10/11/2026
+Saldo anterior 0,00
+14/10/26 MERPAGO*TIENDAPRUEB 20.000,00
+06/10/26 FARMACIA PRUEBA SRL 60.300,00
+05/10/26 UNIFORMES PRUEBA SA C.01/03 30.000,30
+Total a pagar 110.300,30`;
+  const vivos = async (db: Awaited<ReturnType<typeof freshDb>>) => (await db.expenses.toArray()).filter((e) => !e.deleted);
+
+  // El resumen escribe distinto el comercio y la fecha que la app de la tarjeta.
+  it('lo que ya vino en el resumen no se vuelve a sumar como "próximo resumen"', async () => {
+    const db = await freshDb();
+    await commitReview(await buildReview(parseStatementText(RESUMEN.split('\n').map((text) => ({ text }))), { name: 'r.pdf', size: 1, mime: 'application/pdf', kind: 'pdf', hash: 'r1' }, false, db, '2026-11'), null, db);
+    expect(await vivos(db)).toHaveLength(2);
+    const rv = await buildReview(parseCardActivity(VIDEO)!, { name: 'grabacion.mp4', size: 1, mime: 'video/mp4', kind: 'video', hash: 'v1' }, true, db, '2026-11');
+    expect(rv.items.filter((i) => i.include).map((i) => i.concept)).toEqual(['Comercio prueba']);
+    await commitReview(rv, null, db);
+    expect((await vivos(db)).filter((e) => e.provisional).map((e) => e.concept)).toEqual(['Comercio prueba']);
+    expect(await db.obligations.count()).toBe(1);
+  });
+
+  it('si ya quedaron repetidos, la limpieza quita los provisorios que vinieron en el resumen', async () => {
+    const db = await freshDb();
+    await commitReview(await buildReview(parseStatementText(RESUMEN.split('\n').map((text) => ({ text }))), { name: 'r.pdf', size: 1, mime: 'application/pdf', kind: 'pdf', hash: 'r1' }, false, db, '2026-11'), null, db);
+    const T = '2026-10-20T00:00:00.000Z';
+    const prov = (id: string, concept: string, date: string, amount: number) => ({ id, createdAt: T, updatedAt: T, date, month: '2026-11', concept, category: 'Otros', kind: 'personal' as const, totalAmount: amount, userPct: 100, frequency: 'unica' as const, paymentMethod: 'tarjeta' as const, source: 'importado' as const, paid: false, provisional: true, cardEntity: 'Naranja X' });
+    await db.expenses.bulkPut([prov('p1', 'Merpago* tiendaprueba', '2026-10-14', 2000000), prov('p2', 'Farmacia prueba', '2026-10-05', 6030000), prov('p3', 'Comercio prueba', '2026-10-07', 4000000)]);
+    const { repararDuplicados } = await import('../../src/db/repo');
+    expect(await repararDuplicados(db)).toBe(2);
+    expect((await vivos(db)).filter((e) => e.provisional).map((e) => e.id)).toEqual(['p3']);
+  });
+});

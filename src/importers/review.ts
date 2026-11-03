@@ -194,10 +194,11 @@ export async function buildReview(
           label: m.provisional ? `Ya estaba cargado como consumo provisorio ("${m.concept}"): se confirma con este resumen.` : `Coincide con el gasto cargado manualmente "${m.concept}" (${m.date}).`,
         };
         action = 'vincular';
-      } else if (isAccount) {
+      } else if (isAccount || parsed.docType === 'consumos') {
         // Capturas de movimientos que se superponen, o un gasto que ya entró por el widget, un aviso o a mano
-        // y quedó vinculado: mismo importe y misma fecha (±2 días) → ya está cargado, no se repite.
-        const ya = allExpenses.find((e) => !usedManual.has(e.id) && Math.abs(e.totalAmount) === Math.abs(p.amount!) && Math.abs(daysBetween(e.date, p.date!)) <= 2);
+        // y quedó vinculado; o un consumo de la app de la tarjeta que ya vino en un resumen:
+        // mismo importe y misma fecha (±2 días) → ya está cargado, no se repite.
+        const ya = allExpenses.find((e) => !usedManual.has(e.id) && (isAccount || e.paymentMethod === 'tarjeta') && Math.abs(e.totalAmount) === Math.abs(p.amount!) && Math.abs(daysBetween(e.date, p.date!)) <= 2);
         if (ya) {
           usedManual.add(ya.id);
           duplicate = { type: 'linea', label: `Ya está cargado: "${ya.concept}" del ${ya.date.split('-').reverse().join('/')}.` };

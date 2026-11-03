@@ -2,7 +2,7 @@ import { getDb, type FinanzasDB } from './db';
 import { defaultGoal, defaultSettings, GOAL_ID, SETTINGS_ID } from './defaults';
 import { uid } from '../domain/text';
 import { couponMerges } from '../domain/sancor';
-import { entityGroup, samePlan } from '../domain/obligations';
+import { entityGroup, expenseCardEntity, samePlan } from '../domain/obligations';
 import type { DataSet } from '../domain/monthly';
 import type { AuditEntry, BaseRecord, Obligation, SavingsGoal, Settings, SyncTable } from '../domain/types';
 
@@ -168,6 +168,24 @@ export async function repararDuplicados(db: FinanzasDB = getDb()): Promise<numbe
     for (const st of grupo) if (st.id !== conserva) quitar.statements.add(st.id);
   }
 
+  // 4. Consumos provisorios (vistos en la app de la tarjeta) que ya vinieron en un resumen: sobran.
+  const confirmados = vivos(expenses).filter((e) => !e.provisional && !quitar.expenses.has(e.id) && e.paymentMethod === 'tarjeta');
+  const usados = new Set<string>();
+  for (const p of vivos(expenses).filter((e) => e.provisional && !quitar.expenses.has(e.id))) {
+    const grupo = expenseCardEntity(p);
+    const igual = confirmados.find(
+      (e) =>
+        !usados.has(e.id) &&
+        Math.abs(e.totalAmount) === Math.abs(p.totalAmount) &&
+        Math.abs(Date.parse(e.date) - Date.parse(p.date)) <= 3 * 86400000 &&
+        (!grupo || !expenseCardEntity(e) || entityGroup(expenseCardEntity(e)!) === entityGroup(grupo)),
+    );
+    if (!igual) continue;
+    usados.add(igual.id);
+    quitar.expenses.add(p.id);
+    for (const f of vivos(fingerprints)) if (f.targetId === p.id) quitar.fingerprints.add(f.id);
+  }
+
   const total = quitar.expenses.size + quitar.obligations.size + quitar.statements.size + quitar.cardPayments.size + quitar.sancor.size;
   if (!total && !quitar.documents.size) return 0;
   const deviceId = await getDeviceId(db);
@@ -184,7 +202,7 @@ export async function repararDuplicados(db: FinanzasDB = getDb()): Promise<numbe
     await marcar(db.sancor, sancor, quitar.sancor);
     await marcar(db.fingerprints, fingerprints, quitar.fingerprints);
     for (const f of huellasMovidas) await db.fingerprints.put({ ...f, targetId: reemplazo.get(f.targetId!)!, updatedAt: ahora, deviceId });
-    await addAudit(db, 'eliminar', 'duplicados', undefined, `Se quitaron ${total} registro(s) duplicados (documentos, préstamos o cuotas cargados dos veces)`, deviceId);
+    await addAudit(db, 'eliminar', 'duplicados', undefined, `Se quitaron ${total} registro(s) duplicados (documentos, préstamos, cuotas o consumos cargados dos veces)`, deviceId);
   });
   return total;
 }
