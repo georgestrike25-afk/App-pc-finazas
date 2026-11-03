@@ -4,7 +4,7 @@ import { computeMonth } from '../../domain/monthly';
 import { monthChecklist, type CheckItem } from '../../domain/checklist';
 import { debtByEntity, markPaidThrough } from '../../domain/obligations';
 import { goalProgress, projectGoal } from '../../domain/savings';
-import { monthLabel, todayIso } from '../../domain/dates';
+import { formatDate, monthLabel, todayIso } from '../../domain/dates';
 import { sum } from '../../domain/money';
 import { getDb } from '../../db/db';
 import { notify, saveRecord } from '../../db/repo';
@@ -12,7 +12,8 @@ import { markStatementPaid } from '../../db/cardPayments';
 import { Card, confirmDialog, Empty, Help, InHeader, Money, MonthNav, Ring } from '../components/ui';
 import { ArrowDownToLine, ArrowUpRight, ChevronRight, Plus, Receipt, Upload } from 'lucide-react';
 import { TripScene } from '../components/TripScene';
-import { occurrencesForMonth } from '../../domain/expenses';
+import { dailyOccurrencesForMonth } from '../../domain/expenses';
+import { cycleMonthOf, cycleRange, eachDay } from '../../domain/payday';
 import { startTour } from '../components/Tour';
 import { ExpenseForm, newExpenseDraft, type ExpenseDraft } from './ExpenseForm';
 import type { Obligation } from '../../domain/types';
@@ -91,6 +92,10 @@ export function EsteMesPage() {
   const goal = data.goal;
   const proj = useMemo(() => (goal.estimatedCost > 0 ? projectGoal(data, goal, today, goal.scenarios.find((s) => s.key === 'intermedio') ?? goal.scenarios[0]) : null), [data, goal, today]);
   const isCurrent = month === today;
+  // El presupuesto del día a día va de cobro a cobro: hasta cobrar, el ciclo activo es el del mes anterior.
+  const dailyMonth = isCurrent ? cycleMonthOf(todayIso(), data.settings) : month;
+  const rDaily = useMemo(() => (dailyMonth === month ? r : computeMonth(data, dailyMonth, today)), [data, dailyMonth, month, r, today]);
+  const cycle = cycleRange(dailyMonth, data.settings);
   const daysLeft = goal.targetMonth ? Math.max(0, Math.round((new Date(`${goal.targetMonth}-01T00:00:00`).getTime() - new Date(`${todayIso()}T00:00:00`).getTime()) / 86400000)) : null;
   // Si el usuario cargó cuánta plata tiene, ese es el número principal; las cuentas del mes quedan como referencia.
   const cash = isCurrent ? cashStatus(data, todayIso()) : null;
@@ -205,13 +210,14 @@ export function EsteMesPage() {
       <button className="btn primary only-mobile o-1" onClick={newExpense}><Plus aria-hidden />Anotar gasto</button>
 
       <div className="cols cols-home-2">
-        <Card title={`Día a día en ${monthLabel(month).split(' de ')[0]}`} className="chart-card o-4">
-          <DailyChart month={month} budget={r.info.dailyBudget} />
+        <Card title={`Día a día · ciclo de ${monthLabel(dailyMonth).split(' de ')[0]}`} className="chart-card o-4" help={`Va de cobro a cobro: del ${formatDate(cycle.from)} al ${formatDate(cycle.to)}.`}>
+          <DailyChart month={dailyMonth} budget={rDaily.info.dailyBudget} />
         </Card>
-        <Card title="Presupuesto del mes" className="o-2" help="Es el máximo que querés gastar en el mes en comida, transporte, salidas y demás gastos chicos. Lo cambiás en Presupuesto.">
-          <Ring value={r.info.dailyRegistered} max={r.info.dailyBudget} label="Usaste del presupuesto del día a día" />
+        <Card title="Presupuesto del ciclo" className="o-2" help="Es el máximo que querés gastar entre un cobro y el siguiente en comida, transporte, salidas y demás gastos chicos. Lo cambiás en Presupuesto.">
+          <Ring value={rDaily.info.dailyRegistered} max={rDaily.info.dailyBudget} label="Usaste del presupuesto del día a día" />
           <div className="hero-budget" style={{ textAlign: 'center' }}>
-            <a href="#/presupuesto" className="small">Día a día: gastaste <Money value={r.info.dailyRegistered} /> de <Money value={r.info.dailyBudget} /></a>
+            <a href="#/presupuesto" className="small">Día a día: gastaste <Money value={rDaily.info.dailyRegistered} /> de <Money value={rDaily.info.dailyBudget} /></a>
+            <small className="muted d-block">Ciclo: del {formatDate(cycle.from).slice(0, 5)} al {formatDate(cycle.to).slice(0, 5)}</small>
           </div>
           <a className="card-link" href="#/presupuesto">Ver por categoría<ChevronRight aria-hidden /></a>
         </Card>
@@ -261,34 +267,37 @@ function DailyChart({ month, budget }: { month: string; budget: number }) {
   const { data } = useApp();
   const byDay = useMemo(() => {
     const ids = new Map(data.expenses.map((e) => [e.id, e]));
-    const days = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
-    const out = new Array<number>(days).fill(0);
-    for (const o of occurrencesForMonth(data.expenses.filter((e) => e.kind === 'cotidiano'), month)) {
+    // Del cobro de este mes al cobro del siguiente. Lo que no tiene fecha dentro del ciclo (tarjeta) va al primer día.
+    const range = cycleRange(month, data.settings);
+    const dates = eachDay(range.from, range.to);
+    const out = new Array<number>(dates.length).fill(0);
+    for (const o of dailyOccurrencesForMonth(data.expenses, month, data.settings)) {
       const e = ids.get(o.expenseId);
-      const d = e && e.month === month ? Number(e.date.slice(8, 10)) : 1;
-      out[Math.min(days, Math.max(1, d)) - 1] += o.userShare;
+      const i = e ? dates.indexOf(e.date) : -1;
+      out[i >= 0 ? i : 0] += o.userShare;
     }
-    return out;
-  }, [data.expenses, month]);
-  const n = byDay.length;
+    return { out, dates };
+  }, [data.expenses, data.settings, month]);
+  const { out: days, dates } = byDay;
+  const n = days.length;
   const avg = budget > 0 ? budget / n : 0;
-  const max = Math.max(1, avg * 1.6, ...byDay);
+  const max = Math.max(1, avg * 1.6, ...days);
   const W = 560, H = 220, pad = 30, bw = (W - pad) / n;
   const y = (v: number) => H - 20 - (v / max) * (H - 34);
   const k = (v: number) => (v >= 100_000_00 ? `${Math.round(v / 100_000_00)} M` : `${Math.round(v / 100_000)} k`);
-  if (!byDay.some(Boolean)) return <Empty title="Todavía no hay gastos del día a día" icon={Receipt}>Lo que anotes o detecte la app aparece acá, día por día.</Empty>;
+  if (!days.some(Boolean)) return <Empty title="Todavía no hay gastos del día a día" icon={Receipt}>Lo que anotes o detecte la app aparece acá, día por día.</Empty>;
   return (
     <>
-      <svg className="daily-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gastos del día a día por día del mes">
+      <svg className="daily-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gastos del día a día, día por día, del ciclo">
         {[0, max / 2, max].map((v) => (
           <g key={v}>
             <line x1={pad} x2={W} y1={y(v)} y2={y(v)} stroke="var(--border)" />
             <text x={0} y={y(v) + 3} fontSize="10" fill="var(--muted)">{k(v)}</text>
           </g>
         ))}
-        {byDay.map((v, i) => v > 0 && <rect key={i} x={pad + i * bw + bw * 0.2} y={y(v)} width={bw * 0.6} height={H - 20 - y(v)} rx={2} fill="var(--bar)"><title>{`Día ${i + 1}: ${formatARS(v)}`}</title></rect>)}
+        {days.map((v, i) => v > 0 && <rect key={i} x={pad + i * bw + bw * 0.2} y={y(v)} width={bw * 0.6} height={H - 20 - y(v)} rx={2} fill="var(--bar)"><title>{`${formatDate(dates[i])}: ${formatARS(v)}`}</title></rect>)}
         {avg > 0 && <line x1={pad} x2={W} y1={y(avg)} y2={y(avg)} stroke="var(--lime)" strokeWidth={2} strokeDasharray="5 4" />}
-        {[1, 5, 10, 15, 20, 25, n].map((d) => <text key={d} x={pad + (d - 1) * bw + bw / 2} y={H - 4} fontSize="10" textAnchor="middle" fill="var(--muted)">{d}</text>)}
+        {[1, 5, 10, 15, 20, 25, n].filter((d, i, a) => d >= 1 && d <= n && a.indexOf(d) === i).map((d) => <text key={d} x={pad + (d - 1) * bw + bw / 2} y={H - 4} fontSize="10" textAnchor="middle" fill="var(--muted)">{Number(dates[d - 1].slice(8, 10))}</text>)}
       </svg>
       <div className="legend"><span><i className="sw" style={{ background: 'var(--bar)' }} />Gastos del día</span>{avg > 0 && <span><i className="sw" style={{ background: 'var(--lime)' }} />Promedio que permite el presupuesto</span>}</div>
     </>

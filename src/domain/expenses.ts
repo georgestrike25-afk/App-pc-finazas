@@ -1,6 +1,8 @@
 import { monthDiff, type MonthKey } from './dates';
 import { splitAmount, type Cents } from './money';
-import type { Expense, Frequency } from './types';
+import { countsByCycle, cycleMonthOf } from './payday';
+import { netOfRefund } from './refunds';
+import type { Expense, Frequency, Settings } from './types';
 
 export const FREQUENCY_LABEL: Record<Frequency, string> = {
   unica: 'Única vez',
@@ -46,7 +48,8 @@ export function occurrenceFor(e: Expense, month: MonthKey): ExpenseOccurrence | 
   }
   const ov = e.overrides?.[month];
   if (ov?.skip) return null;
-  const total = ov?.amount ?? e.totalAmount;
+  // Lo que te devuelve otra persona (p. ej. el hospital) no es un gasto tuyo.
+  const total = netOfRefund(ov?.amount ?? e.totalAmount, e);
   const userPct = e.kind === 'hogar' ? e.userPct : 100;
   const { user, partner } = splitShared(total, userPct);
   const isFirst = month === e.month;
@@ -70,6 +73,20 @@ export function occurrencesForMonth(expenses: Expense[], month: MonthKey): Expen
   const out: ExpenseOccurrence[] = [];
   for (const e of expenses) {
     const o = occurrenceFor(e, month);
+    if (o) out.push(o);
+  }
+  return out;
+}
+
+/**
+ * Gastos del día a día del ciclo de ese mes (del cobro de ese mes al cobro del siguiente).
+ * Los de efectivo, débito o transferencia cuentan por su fecha; los de tarjeta, en el mes del resumen.
+ */
+export function dailyOccurrencesForMonth(expenses: Expense[], month: MonthKey, s: Pick<Settings, 'paydayNth' | 'paydays'>): ExpenseOccurrence[] {
+  const out: ExpenseOccurrence[] = [];
+  for (const e of expenses) {
+    if (e.deleted || e.kind !== 'cotidiano') continue;
+    const o = occurrenceFor(countsByCycle(e) ? { ...e, month: cycleMonthOf(e.date, s) } : e, month);
     if (o) out.push(o);
   }
   return out;

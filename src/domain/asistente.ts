@@ -4,7 +4,9 @@ import { savingsCapacity } from './capacity';
 import { occurrencesForMonth, otherPerson, partnerBalance } from './expenses';
 import { formatARS, sum, type Cents } from './money';
 import { computeMonth, type DataSet } from './monthly';
-import { debtByEntity, monthToPay } from './obligations';
+import { debtByEntity } from './obligations';
+import { needForMonth } from './necesito';
+import { refundSummary } from './refunds';
 import { goalProgress, projectGoal } from './savings';
 import { normalizeText } from './text';
 import type { SavingsGoal } from './types';
@@ -45,8 +47,9 @@ export function liveAnswers(data: DataSet & { goal: SavingsGoal }, today: MonthK
   const get = (k: string) => r.sections.find((s) => s.key === k)!.total;
   const cash = cashStatus(data, todayIso);
   const debts = debtByEntity(data.obligations, today, data);
-  const pay = monthToPay(debts, today, data.statements);
-  const toPay = sum(pay.map((e) => e.total));
+  const need = needForMonth(data, today, today);
+  const pay = need.groups;
+  const toPay = need.total;
   const s = data.settings;
   const budget = s.dailyBudgetRange ?? { min: s.dailyBudgetDefault, max: s.dailyBudgetDefault };
   const dailyLeft = (b: Cents) => Math.max(0, b - r.info.dailyRegistered);
@@ -104,9 +107,9 @@ export function liveAnswers(data: DataSet & { goal: SavingsGoal }, today: MonthK
   // 3. Qué pago este mes
   out.push({
     id: 'pagar', topic: T, live: true, q: '¿Qué tengo que pagar este mes y cuándo?', keywords: 'pagar pago vence vencimiento resumen tarjeta prestamo cuota este mes cuando',
-    short: pay.length ? `Este mes pagás ${f(toPay)} en total.` : 'No tenés pagos pendientes cargados para este mes.',
-    lines: pay.flatMap((e) => e.lines.map((l): AnswerLine => ({ label: `${e.group}: ${l.label}${l.due ? ` (vence ${formatDate(l.due).slice(0, 5)})` : ''}`, amount: l.amount }))).concat(pay.length ? [{ label: 'Total', amount: toPay, strong: true } as AnswerLine] : []),
-    href: '#/entidades', hrefLabel: 'Ver Deudas',
+    short: pay.length ? `Este mes necesitás ${f(toPay)} para pagar todo${need.arca ? ` (más ${f(need.arca.plan)} si pagás ARCA)` : ''}.` : 'No tenés pagos pendientes cargados para este mes.',
+    lines: pay.flatMap((e) => e.lines.map((l): AnswerLine => ({ label: `${e.group}: ${l.label}${l.due ? ` (vence ${formatDate(l.due).slice(0, 5)})` : ''}${l.overdue ? ' · vencido' : ''}`, amount: l.amount }))).concat(pay.length ? [{ label: 'Total sin ARCA', amount: toPay, strong: true } as AnswerLine] : []),
+    href: '#/necesito', hrefLabel: 'Ver Cuánto necesito',
   });
 
   // 4. Cuánto debo
@@ -196,6 +199,16 @@ export function liveAnswers(data: DataSet & { goal: SavingsGoal }, today: MonthK
     href: '#/compartidos', hrefLabel: 'Ver Compartidos',
   });
 
+  // 10b. Lo que te tienen que devolver
+  const rs = refundSummary(data.expenses);
+  out.push({
+    id: 'devoluciones', topic: T, live: true, q: '¿Cuánto me tienen que devolver?', keywords: 'devolver devuelven devolucion hospital uber taxi ticket reintegro pendiente',
+    short: rs.pending.length ? `Te tienen que devolver ${f(rs.pendingTotal)} (${rs.pending.length} gasto${rs.pending.length === 1 ? '' : 's'}).` : 'No te deben nada por ahora.',
+    lines: rs.byFrom.map((g) => ({ label: `${g.from} (${g.items.length})`, amount: g.total })),
+    note: 'Eso no cuenta como gasto tuyo mientras no te lo devuelven, pero sí te baja la plata que tenés.',
+    href: '#/devoluciones', hrefLabel: 'Ver Devoluciones',
+  });
+
   // 11. El mes que viene
   const next = savingsCapacity(data, today).months[0];
   if (next && next.income > 0)
@@ -245,6 +258,9 @@ export const GUIDE: Answer[] = [
   { id: 'g-compartir', topic: 'Subir documentos', q: '¿Puedo mandar un PDF desde otra app?', keywords: 'compartir share whatsapp gmail enviar pdf', short: 'Sí: en el celular usá "Compartir" desde el mail, WhatsApp o el banco y elegí Brote. Se abre directo para importarlo.' },
   { id: 'g-arca', topic: 'Subir documentos', q: '¿Cómo cargo lo que debo de ARCA (monotributo)?', keywords: 'arca afip monotributo deuda saldo cuenta corriente ccma', short: 'Bajá de ARCA el PDF "Cuenta corriente monotributistas" y subilo. Queda en Deudas como "ARCA · Monotributo" con el saldo (cuotas + intereses). Cada vez que subas el PDF nuevo se actualiza el saldo, no se suma otra deuda.', href: '#/importar', hrefLabel: 'Subir documento' },
   { id: 'g-claro', topic: 'Subir documentos', q: '¿Cómo cargo la factura de Claro?', keywords: 'claro factura celular linea telefono servicio pagar', short: 'Subí la factura (PDF o captura). Se anota como gasto del mes en Telefonía con su vencimiento; si no está pagada, aparece en Pendientes con "Ya lo pagué". La misma factura dos veces no se repite.', href: '#/importar', hrefLabel: 'Subir documento' },
+  { id: 'g-devuelven', topic: 'Gastos', q: '¿Cómo anoto lo que me devuelve el hospital (Uber, taxi)?', keywords: 'me devuelven devolver hospital uber taxi ticket reintegro pendiente devolucion transferencia', short: 'En Gastos tocá "Me devuelven" en cada viaje o gasto que te reintegran: pasa a Devoluciones y deja de ser un gasto tuyo. Un ticket de taxi lo anotás con "+ Gasto que me devuelven" (podés sacarle una foto). Cuando te pagan, en Devoluciones elegís los que cobraste y tocás "Me devolvieron". Una transferencia sin importe, en "Detectados para revisar", tiene su botón "Me lo devuelven".', href: '#/devoluciones', hrefLabel: 'Ver Devoluciones' },
+  { id: 'g-necesito', topic: 'Deudas', q: '¿Qué es "Cuánto necesito"?', keywords: 'cuanto necesito tener pagar todo mes deudas total arca monotributo opcional', short: 'En Deudas, la pestaña "Cuánto necesito" suma todo lo que tenés que pagar en el mes: cada tarjeta por el total de su resumen, cada préstamo aparte, las facturas sin pagar y lo que venció antes. Si anotaste tu plata, te dice cuánto te sobra o te falta. ARCA va aparte, con el monto que vos pongas.', href: '#/necesito', hrefLabel: 'Ver Cuánto necesito' },
+  { id: 'g-ciclo', topic: 'Gastos', q: '¿Desde cuándo cuenta el presupuesto del día a día?', keywords: 'ciclo cobro dia a dia presupuesto cuarto dia habil sueldo empieza arranca', short: 'Desde que cobrás: el día hábil que pusiste en Configuración (por defecto el 4.º) hasta el día anterior al cobro siguiente. Un gasto de efectivo, débito o transferencia hecho antes de cobrar cuenta en el ciclo anterior; los de tarjeta cuentan en el mes del resumen. En Presupuesto ves el ciclo y podés corregir la fecha de cobro de un mes.', href: '#/presupuesto', hrefLabel: 'Ver Presupuesto' },
   // Viajes y ahorros
   { id: 'g-necesitas', topic: 'Viajes y ahorros', q: '¿Cómo se calcula cuánto necesito ahorrar por mes?', keywords: 'necesitas ahorrar por mes viaje calculo', short: 'Lo que falta para el costo del viaje (descontando lo que ya tenés) dividido por los meses desde el que viene hasta el del viaje, inclusive.', href: '#/viaje', hrefLabel: 'Ir a Viajes y ahorros' },
   { id: 'g-podes', topic: 'Viajes y ahorros', q: '¿Cómo se calcula cuánto puedo ahorrar cada mes?', keywords: 'podes ahorrar cada mes capacidad calculo sueldo fijos dia a dia', short: 'Sueldo − cuotas y deudas del mes − gastos fijos − día a día. Sale un rango: gastando el máximo y el mínimo del día a día.' },

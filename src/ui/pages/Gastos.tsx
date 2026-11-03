@@ -8,6 +8,7 @@ import type { Expense, ExpenseKind } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Money, MonthNav, useNarrow } from '../components/ui';
 import { DAILY_CATEGORIES, ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
 import { NotifReviewCard } from './Notificaciones';
+import { RefundButton } from './Devoluciones';
 import { categoryIcon } from '../components/categoryIcon';
 
 /** Gasto que pagaste vos entero y tu pareja te devuelve la mitad (marcado con el botón rápido). */
@@ -39,7 +40,8 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
   const items = useMemo(() => {
     const ids = new Map(data.expenses.map((e) => [e.id, e]));
     const fecha = (e: Expense) => (e.month === month ? e.date : `${month}-${e.date.slice(8, 10)}`);
-    return occurrencesForMonth(data.expenses.filter((e) => kinds.includes(e.kind)), month).sort((a, b) => {
+    // Lo que te devuelve otra persona (hospital) no es un gasto tuyo: está en Devoluciones.
+    return occurrencesForMonth(data.expenses.filter((e) => kinds.includes(e.kind) && !e.refund), month).sort((a, b) => {
       const x = ids.get(a.expenseId)!;
       const y = ids.get(b.expenseId)!;
       return fecha(y).localeCompare(fecha(x)) || y.createdAt.localeCompare(x.createdAt);
@@ -83,6 +85,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                     </span>
                     <span className="exp-acts">
                       {canSplit && <HalfButton e={e} partner={partner} />}
+                      {canSplit && e.kind !== 'hogar' && e.frequency === 'unica' && <RefundButton e={e} />}
                       {e.frequency !== 'unica' && <button className="btn small ghost" onClick={() => setOcc(e)}>Este mes</button>}
                       <button className="btn small ghost" onClick={() => setEditing(e)} aria-label={`Editar ${e.concept}`}>Editar</button>
                       <button className="btn small ghost danger" onClick={() => remove(e)} aria-label={`Eliminar ${e.concept}`}>✕</button>
@@ -135,6 +138,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                     </td>
                     <td className="actions">
                       {canSplit && <HalfButton e={e} partner={partner} />}
+                      {canSplit && e.kind !== 'hogar' && e.frequency === 'unica' && <RefundButton e={e} />}
                       {e.frequency !== 'unica' && <button className="btn small" onClick={() => setOcc(e)}>Ajustar mes</button>}
                       <button className="btn small" onClick={() => setEditing(e)}>Editar</button>
                       <button className="btn small ghost danger" onClick={() => remove(e)}>

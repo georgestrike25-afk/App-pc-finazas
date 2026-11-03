@@ -2,6 +2,7 @@ import { getDb, type FinanzasDB } from '../db/db';
 import { addAudit, getDeviceId, getSettings, notify, nowIso } from '../db/repo';
 import { monthOf } from '../domain/dates';
 import { detectDecimalFormat, parseAmount, type Cents } from '../domain/money';
+import { ARCA_FINGERPRINT } from '../domain/necesito';
 import { uid } from '../domain/text';
 import type { DocumentMeta, Expense, Obligation } from '../domain/types';
 import type { SourceLine } from './statementParser';
@@ -87,7 +88,7 @@ export function detectBill(lines: SourceLine[]): BillDoc | null {
   return null;
 }
 
-export const ARCA_FINGERPRINT = 'arca|monotributo';
+export { ARCA_FINGERPRINT };
 export const billFingerprint = (b: ServiceBill) => `factura|${b.provider.toLowerCase()}|${b.invoice ?? `${b.due}|${b.total}`}`;
 
 export interface BillCheck {

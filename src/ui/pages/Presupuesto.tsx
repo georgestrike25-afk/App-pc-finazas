@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord } from '../../db/repo';
 import { budgetForMonth } from '../../domain/monthly';
-import { occurrencesForMonth } from '../../domain/expenses';
-import { monthLabel, todayIso } from '../../domain/dates';
+import { dailyOccurrencesForMonth } from '../../domain/expenses';
+import { cycleMonthOf, cycleRange, paydayOf } from '../../domain/payday';
+import { formatDate, monthLabel, todayIso } from '../../domain/dates';
 import { cashStatus } from '../../domain/cash';
 import { formatARS } from '../../domain/money';
 import { sum, type Cents } from '../../domain/money';
@@ -20,7 +21,10 @@ export function PresupuestoPage() {
   const [asDefault, setAsDefault] = useState(false);
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   useEffect(() => setAmount(b.amount), [b.amount, month]);
-  const occ = useMemo(() => occurrencesForMonth(data.expenses.filter((e) => e.kind === 'cotidiano'), month), [data.expenses, month]);
+  const occ = useMemo(() => dailyOccurrencesForMonth(data.expenses, month, s), [data.expenses, month, s]);
+  const cycle = cycleRange(month, s);
+  // Antes de cobrar este mes, lo que se gasta todavía cuenta en el ciclo anterior.
+  const active = cycleMonthOf(todayIso(), s);
   const registered = sum(occ.map((o) => o.userShare));
   const byCat = new Map<string, number>();
   for (const o of occ) byCat.set(o.category, (byCat.get(o.category) ?? 0) + o.userShare);
@@ -35,6 +39,25 @@ export function PresupuestoPage() {
   return (
     <div className="page">
       <MonthNav month={month} setMonth={setMonth} />
+      <Card className="cycle-card" title="Ciclo del día a día" help="El presupuesto del día a día va de un cobro al siguiente. El cobro es el día hábil que pusiste en Configuración (por defecto el 4.º). Un gasto de efectivo, débito o transferencia hecho antes de cobrar cuenta en el ciclo anterior; los de tarjeta cuentan en el mes del resumen.">
+        <p style={{ margin: 0 }} data-testid="ciclo">Del <strong>{formatDate(cycle.from)}</strong> al <strong>{formatDate(cycle.to)}</strong></p>
+        {month === today && active !== month && (
+          <p className="small" style={{ margin: '8px 0 0' }} data-testid="ciclo-activo">
+            Todavía no cobraste {monthLabel(month).split(' de ')[0]}: hasta el {formatDate(paydayOf(month, s)).slice(0, 5)}, lo que gastes en efectivo, débito o transferencia cuenta en el ciclo de {monthLabel(active).split(' de ')[0]}.{' '}
+            <button type="button" className="linklike" onClick={() => setMonth(active)}>Ver el ciclo de {monthLabel(active).split(' de ')[0]}</button>
+          </p>
+        )}
+        <Field label="Cobré el" hint={s.paydays?.[month] ? 'Fecha cargada a mano para este mes.' : `Calculado: ${s.paydayNth ?? 4}.º día hábil. Cambialo si cobraste otro día.`}>
+          {(id) => (
+            <input
+              id={id}
+              type="date"
+              value={paydayOf(month, s)}
+              onChange={(e) => e.target.value && saveSettings({ paydays: { ...(s.paydays ?? {}), [month]: e.target.value } }, `Fecha de cobro de ${monthLabel(month)}: ${e.target.value}`)}
+            />
+          )}
+        </Field>
+      </Card>
       <div className="kpis">
         <div className="kpi"><span>Presupuesto</span><Money value={b.amount} /></div>
         <div className="kpi"><span>Gastado</span><Money value={registered} /></div>

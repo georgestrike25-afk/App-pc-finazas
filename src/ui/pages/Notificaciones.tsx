@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../store';
 import { getDb } from '../../db/db';
-import { getDeviceId, notify, nowIso, subscribe } from '../../db/repo';
+import { getDeviceId, notify, nowIso, saveRecord, subscribe } from '../../db/repo';
+import { markRefund } from '../../domain/refunds';
+import type { Settings } from '../../domain/types';
+import { RefundAskModal } from './Devoluciones';
 import { isNative } from '../../platform';
 import { formatARS } from '../../domain/money';
 import { expenseFromDetected } from '../../notifications/ingest';
@@ -89,9 +92,10 @@ export function NotificationsSettingsCard() {
 
 /** Movimientos detectados que necesitan una decisión (p. ej. transferencias enviadas). */
 export function NotifReviewCard() {
-  const { toast } = useApp();
+  const { data, toast } = useApp();
   const [items, setItems] = useState<ReviewNotif[]>([]);
   const [amounts, setAmounts] = useState<Record<string, Cents | undefined>>({});
+  const [refunding, setRefunding] = useState<ReviewNotif | null>(null);
   useEffect(() => {
     if (!isNative()) return;
     const load = () => getNotifReview().then(setItems);
@@ -117,6 +121,16 @@ export function NotifReviewCard() {
     await registrarIngresoDetectado({ monto, descripcion: r.descripcion, cuenta: r.cuenta, fecha: r.fecha, clave: r.clave ?? `rev-${r.id}` });
     await drop(r.id);
     toast(`Ingreso anotado: ${r.descripcion} (${formatARS(monto)}).`);
+  };
+  const asRefund = async (r: ReviewNotif, from: string, monto: Cents) => {
+    const db = getDb();
+    const transfer = /^Transferencia/.test(r.descripcion);
+    const exp = expenseFromDetected({ fecha: r.fecha, monto, tipo: 'GASTO', descripcion: r.descripcion, cuenta: r.cuenta, textoOriginal: r.texto, transferencia: transfer ? 'ENVIADA' : undefined }, nowIso(), await getDeviceId(db));
+    await db.expenses.put(markRefund(exp, from, monto));
+    if (data.settings.refundFrom !== from) await saveRecord<Settings>('settings', { ...data.settings, refundFrom: from }, `Quién te devuelve gastos: ${from}`);
+    await drop(r.id);
+    notify();
+    toast(`Pasó a Devoluciones: ${r.descripcion} (${formatARS(monto)}).`);
   };
   const asExpense = async (r: ReviewNotif) => {
     const monto = r.monto || amounts[r.id];
@@ -154,6 +168,7 @@ export function NotifReviewCard() {
                 ) : (
                   <>
                     <button className="btn small primary" onClick={() => asExpense(r)}>Es un gasto</button>
+                    <button className="btn small" onClick={() => (r.monto || amounts[r.id] ? setRefunding(r) : toast('Poné cuánto fue la transferencia.', 'error'))}>Me lo devuelven</button>
                     <button className="btn small ghost" onClick={() => drop(r.id)}>No es gasto</button>
                   </>
                 )}
@@ -162,6 +177,18 @@ export function NotifReviewCard() {
           </li>
         ))}
       </ul>
+      {refunding && (
+        <RefundAskModal
+          title="Me lo devuelven"
+          initialFrom={data.settings.refundFrom ?? 'Hospital'}
+          initialAmount={refunding.monto || amounts[refunding.id]}
+          onClose={() => setRefunding(null)}
+          onConfirm={async (from, monto) => {
+            await asRefund(refunding, from, monto);
+            setRefunding(null);
+          }}
+        />
+      )}
     </Card>
   );
 }

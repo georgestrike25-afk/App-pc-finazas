@@ -40,7 +40,9 @@ export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'se
   const spent = sum(items.map((i) => i.amount));
   // Lo que te devuelve tu pareja (Sancor) después de anotar tu plata: vuelve a tu bolsillo.
   const back = (data.sancor ?? []).filter((x) => !x.deleted).flatMap((x) => x.received.filter((r) => r.date > since || (r.date === since && (r.at ?? '') > c.setAt)));
-  const returned = sum(back.map((r) => r.amount));
+  // Lo que te devolvieron por gastos que te reintegran (p. ej. el hospital) después de anotar tu plata.
+  const refunded = sum((data.expenses ?? []).filter((e) => !e.deleted && e.refund?.status === 'devuelto' && (e.refund.receivedAt ?? '') > c.setAt).map((e) => e.refund!.receivedAmount ?? e.refund!.amount));
+  const returned = sum(back.map((r) => r.amount)) + refunded;
   // Otros ingresos anotados después (widget "+ Ingreso", Ingresos → ingresos adicionales). Los anotados
   // antes de que existiera la fecha de cada renglón cuentan si el registro del mes se creó después.
   const ingresos = sum(

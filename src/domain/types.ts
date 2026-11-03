@@ -82,7 +82,24 @@ export interface Expense extends BaseRecord {
   cashAdjust?: boolean;
   /** Gasto traído del historial de otra app (Mis Finanzas). */
   importedFrom?: 'mis-finanzas' | 'notificacion';
+  /**
+   * Gasto que te devuelve otra persona o entidad (p. ej. el hospital). Mientras está pendiente no es un
+   * gasto tuyo (no cuenta en el mes ni en el presupuesto), pero la plata sí salió de tu bolsillo.
+   */
+  refund?: Refund;
   notes?: string;
+}
+
+export interface Refund {
+  /** Quién te lo devuelve. */
+  from: string;
+  /** Cuánto te tienen que devolver. */
+  amount: Cents;
+  status: 'pendiente' | 'devuelto';
+  /** Cuánto te devolvieron de verdad y cuándo (para sumarlo a tu plata ese día). */
+  receivedAmount?: Cents;
+  receivedDate?: string;
+  receivedAt?: string;
 }
 
 export type ObligationType =
@@ -272,6 +289,14 @@ export interface Settings extends BaseRecord {
   dailyBudgetRange?: { min: Cents; max: Cents };
   /** Tu nombre y apellido: para reconocer transferencias entre tus propias cuentas. */
   ownNames?: string;
+  /** Día de cobro: N-ésimo día hábil del mes (por defecto 4). El ciclo del día a día va de un cobro al siguiente. */
+  paydayNth?: number;
+  /** Fecha exacta de cobro de un mes, si no fue la calculada. */
+  paydays?: Record<MonthKey, string>;
+  /** Lo que pensás pagar por mes a ARCA (monotributo), opcional. */
+  arcaMonthly?: Cents;
+  /** Quién te devuelve gastos por defecto (p. ej. "Hospital"): con eso, "Me devuelven" es un solo toque. */
+  refundFrom?: string;
 }
 
 export const SYNC_TABLES = [

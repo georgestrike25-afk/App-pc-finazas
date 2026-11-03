@@ -622,3 +622,12 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .answer-lines li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .answer-lines li > span:last-child { white-space: nowrap; }
 .answer-lines li.strong { font-weight: 700; border-bottom: 0; border-top: 2px solid var(--border); }
+
+/* Devoluciones */
+.refund-bar { position: sticky; bottom: calc(var(--bottom-nav-h, 72px) + 8px); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border-strong); box-shadow: 0 6px 20px rgba(0,0,0,.25); z-index: 5; }
+.devoluciones .list li { display: block; padding: 10px 0; }
+.devoluciones .refund-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.devoluciones .refund-txt { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; }
+.devoluciones .refund-txt > span { min-width: 0; overflow-wrap: anywhere; }
+.devoluciones .refund-row > .money, .devoluciones .refund-row > span.money { white-space: nowrap; font-weight: 600; }
+.devoluciones .refund-acts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; padding-left: 30px; }

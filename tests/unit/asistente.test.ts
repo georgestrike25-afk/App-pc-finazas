@@ -22,7 +22,7 @@ describe('Preguntale a Brote', () => {
   });
 
   it('qué pago este mes y cuánto debo', () => {
-    expect(get('pagar').lines!.at(-1)).toMatchObject({ label: 'Total', amount: 10000000 });
+    expect(get('pagar').lines!.at(-1)).toMatchObject({ label: 'Total sin ARCA', amount: 10000000 });
     expect(get('deuda').short).toMatch(/200\.000,00.*diciembre de 2026/);
   });
 

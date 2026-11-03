@@ -218,6 +218,8 @@ test('13. exportación y restauración de una copia de seguridad cifrada', async
 });
 
 test('14. funcionamiento sin conexión de las funciones esenciales', async ({ page, context }) => {
+  // A mitad de ciclo de cobro (el presupuesto del día a día cuenta desde el cuarto día hábil).
+  await page.clock.setFixedTime(new Date('2026-11-15T12:00:00'));
   await openFresh(page);
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
@@ -252,4 +254,73 @@ test('botón rápido "½" divide un gasto a medias y se puede quitar', async ({ 
   await row.getByRole('button', { name: /^Quitar a medias:/ }).click();
   await expect(row).not.toContainText('5.000,00');
   await expect(row).toContainText('10.000,00');
+});
+
+test('15. un gasto de antes de cobrar cuenta en el ciclo anterior y después en el nuevo', async ({ page }) => {
+  // Hoy es 3/11: el cobro de noviembre es el 5/11 (cuarto día hábil), así que todavía rige el ciclo de octubre.
+  await page.clock.setFixedTime(new Date('2026-11-03T12:00:00'));
+  await openFresh(page);
+  await go(page, 'gastos');
+  await page.getByRole('button', { name: '+ Anotar gasto' }).click();
+  await page.locator('input[name="concept"]').fill('Almuerzo antes de cobrar');
+  await page.locator('input[name="amount"]').fill('4.500');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.locator('tr', { hasText: 'Almuerzo antes de cobrar' })).toContainText('4.500,00');
+  await go(page, 'presupuesto');
+  await expect(page.getByTestId('ciclo')).toContainText('05/11/2026');
+  await expect(page.getByTestId('ciclo-activo')).toContainText('cuenta en el ciclo de octubre');
+  await expect(kpi(page, 'Gastado')).toContainText('$ 0,00'); // noviembre todavía no empezó
+  await page.getByRole('button', { name: /Ver el ciclo de octubre/ }).click();
+  await expect(kpi(page, 'Gastado')).toContainText('4.500,00');
+});
+
+test('16. gastos que te devuelve el hospital: salen de Gastos, no tocan el presupuesto y se cierran con "Me devolvieron"', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-15T12:00:00'));
+  await openFresh(page);
+  await go(page, 'gastos');
+  for (const [c, a] of [['Uber al hospital', '10.000'], ['Uber de vuelta', '8.000'], ['Verdulería', '5.000']]) {
+    await page.getByRole('button', { name: '+ Anotar gasto' }).click();
+    await page.locator('input[name="concept"]').fill(c);
+    await page.locator('input[name="amount"]').fill(a);
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.locator('.modal')).toHaveCount(0);
+  }
+  await go(page, 'presupuesto');
+  await expect(kpi(page, 'Gastado')).toContainText('23.000,00');
+  await go(page, 'gastos');
+  // La primera vez pregunta quién te lo devuelve; después es un solo toque.
+  await page.locator('tr', { hasText: 'Uber al hospital' }).getByRole('button', { name: /^Me devuelven/ }).click();
+  await page.locator('.modal').getByRole('button', { name: 'Guardar' }).click();
+  await page.locator('tr', { hasText: 'Uber de vuelta' }).getByRole('button', { name: /^Me devuelven/ }).click();
+  await expect(page.locator('tr', { hasText: 'Uber al hospital' })).toHaveCount(0);
+  await expect(page.locator('tr', { hasText: 'Uber de vuelta' })).toHaveCount(0);
+  await expect(page.locator('tr', { hasText: 'Verdulería' })).toBeVisible();
+  // No es gasto tuyo: el presupuesto del día a día solo cuenta lo propio.
+  await go(page, 'presupuesto');
+  await expect(kpi(page, 'Gastado')).toContainText('5.000,00');
+  // Devoluciones: te deben 18.000.
+  await go(page, 'devoluciones');
+  await expect(kpi(page, 'Te tienen que devolver')).toContainText('18.000,00');
+  await expect(page.getByTestId('devoluciones-pendientes').locator('li')).toHaveCount(2);
+  // Un ticket de taxi con foto.
+  await page.getByRole('button', { name: '+ Gasto que me devuelven' }).click();
+  await page.locator('.modal input').first().fill('Taxi jueves');
+  await page.getByLabel('Importe').fill('7.000');
+  await page.getByLabel('Importe').blur();
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await page.locator('.modal input[type="file"]').setInputFiles({ name: 'ticket.png', mimeType: 'image/png', buffer: png });
+  await page.locator('.modal').getByRole('button', { name: 'Guardar' }).click();
+  await expect(kpi(page, 'Te tienen que devolver')).toContainText('25.000,00');
+  await expect(page.getByRole('button', { name: 'Ver la foto del ticket' })).toBeVisible();
+  // El hospital paga todo junto.
+  await page.getByText('Elegir todos').click();
+  await page.getByRole('button', { name: 'Me devolvieron' }).click();
+  await expect(page.locator('.modal input').first()).toHaveValue(/25\.000,00/);
+  await page.locator('.modal').getByRole('button', { name: 'Confirmar' }).click();
+  await expect(kpi(page, 'Te tienen que devolver')).toContainText('$ 0,00');
+  await expect(kpi(page, /Te devolvieron/)).toContainText('25.000,00');
+  await expect(page.getByText('Ya te los devolvieron')).toBeVisible();
+  // Nunca fue gasto tuyo.
+  await go(page, 'presupuesto');
+  await expect(kpi(page, 'Gastado')).toContainText('5.000,00');
 });

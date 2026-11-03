@@ -1,5 +1,5 @@
 import type { MonthKey } from './dates';
-import { occurrencesForMonth } from './expenses';
+import { dailyOccurrencesForMonth, occurrencesForMonth } from './expenses';
 import { incomeNet } from './income';
 import { sum, type Cents } from './money';
 import { installmentsForMonth, obligationIssues } from './obligations';
@@ -107,7 +107,8 @@ export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey, op
     warnings.push('El ingreso de este mes es una estimación: no se incluye como ingreso cobrado.');
 
   // 2-4. Gastos
-  const occ = occurrencesForMonth(live(data.expenses), month);
+  // El día a día va por ciclo de cobro (del cobro de este mes al del siguiente); lo demás, por mes calendario.
+  const occ = occurrencesForMonth(live(data.expenses).filter((e) => e.kind !== 'cotidiano'), month);
   const fixedLines: CalcLine[] = occ
     .filter((o) => o.kind === 'hogar')
     .map((o) => ({
@@ -132,7 +133,7 @@ export function computeMonth(data: DataSet, month: MonthKey, today: MonthKey, op
     .filter((o) => o.kind === 'personal')
     .map((o) => ({ label: o.concept, amount: o.userShare, estimated: o.estimated, ref: { table: 'expenses', id: o.expenseId } }));
 
-  const dailyOcc = occ.filter((o) => o.kind === 'cotidiano');
+  const dailyOcc = dailyOccurrencesForMonth(live(data.expenses), month, data.settings);
   const dailyRegistered = sum(dailyOcc.map((o) => o.userShare));
   const b0 = budgetForMonth(data.settings, month, today);
   // Las proyecciones (viaje) completan el mes actual con el presupuesto aún no gastado.

@@ -13,6 +13,8 @@ import { getSyncStatus, onSyncStatus, type SyncStatus } from '../sync/autoSync';
 
 // "Este mes" se carga con la app; el resto de las pantallas, recién cuando se abren (la app arranca más rápido).
 const ResumenPage = lazy(() => import('./pages/Resumen').then((m) => ({ default: m.ResumenPage })));
+const DevolucionesPage = lazy(() => import('./pages/Devoluciones').then((m) => ({ default: m.DevolucionesPage })));
+const NecesitoPage = lazy(() => import('./pages/Necesito').then((m) => ({ default: m.NecesitoPage })));
 const AsistentePage = lazy(() => import('./pages/Asistente').then((m) => ({ default: m.AsistentePage })));
 const AyudaPage = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.AyudaPage })));
 const IngresosPage = lazy(() => import('./pages/Ingresos').then((m) => ({ default: m.IngresosPage })));
@@ -64,16 +66,18 @@ export const ROUTES: RouteDef[] = [
   { path: 'historial', label: 'Historial', icon: History, el: HistorialPage, nav: 'more', help: 'Todo lo que se cargó o se cambió, con fecha, y los documentos que subiste.' },
   // Pantallas a las que se llega desde las pestañas o desde "Este mes".
   { path: 'cuotas', label: 'Cuotas futuras', icon: CalendarClock, el: CuotasPage, nav: 'hidden', group: 'deudas', help: 'Cuánto vas a pagar de cuotas cada mes que viene, y si quedó alguna cuota vencida sin pagar.' },
+  { path: 'necesito', label: 'Cuánto necesito', icon: Wallet, el: NecesitoPage, nav: 'hidden', group: 'deudas', help: 'Cuánto tenés que tener este mes para pagar todas tus deudas: tarjetas, préstamos, facturas y lo vencido. El monotributo va aparte porque es opcional.' },
   { path: 'deudas', label: 'Tarjetas y deudas', icon: CreditCard, el: DeudasPage, nav: 'hidden', group: 'deudas', help: 'Cada préstamo, compra en cuotas o plan, y los resúmenes de tarjeta. Tocá "Ver cuotas" para ver en qué cuota vas o corregir una cuota marcada por error.' },
   { path: 'ingresos', label: 'Ingresos', icon: ArrowDownToLine, el: IngresosPage, nav: 'hidden', group: 'plata', help: 'Tu sueldo y otros ingresos de cada mes. Si subís la captura de los movimientos del banco, el sueldo se carga solo.' },
   { path: 'compartidos', label: 'Compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con otra persona (alquiler, luz, súper…). Solo se cuenta tu parte. También el cargo de Sancor Salud y lo que te devuelve.' },
+  { path: 'devoluciones', label: 'Devoluciones', icon: Receipt, el: DevolucionesPage, nav: 'hidden', group: 'plata', help: 'Gastos que pagaste vos y te devuelve otra persona o el hospital (viajes de Uber, tickets de taxi, transferencias). No cuentan como gasto tuyo hasta que se resuelva: acá ves cuánto te deben y marcás cuando te lo devuelven.' },
   { path: 'presupuesto', label: 'Presupuesto mensual', icon: PiggyBank, el: PresupuestoPage, nav: 'hidden', group: 'plata', help: 'Cuánto querés gastar como máximo en el día a día (comida, transporte, salidas) y cuánto llevás.' },
   { path: 'resumen', label: 'Detalle del mes', icon: ListChecks, el: ResumenPage, nav: 'hidden', help: 'La cuenta completa del mes, línea por línea: de dónde sale el número de "Te quedan".' },
 ];
 
 const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
-  deudas: [['entidades', 'Por entidad'], ['cuotas', 'Cuotas por mes'], ['deudas', 'Préstamos y tarjetas']],
-  plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['presupuesto', 'Presupuesto']],
+  deudas: [['entidades', 'Por entidad'], ['cuotas', 'Cuotas por mes'], ['deudas', 'Préstamos y tarjetas'], ['necesito', 'Cuánto necesito']],
+  plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['devoluciones', 'Devoluciones'], ['presupuesto', 'Presupuesto']],
 };
 /** Menú lateral (escritorio): las secciones de uso diario a la vista. */
 const SIDE_MAIN = ['inicio', 'gastos', 'ingresos', 'compartidos', 'presupuesto', 'entidades', 'viaje', 'resumen', 'importar'];
