@@ -152,21 +152,22 @@ class WidgetRenderer(private val context: Context) {
     }
 
     private fun applyClock(v: RemoteViews, r: Request, style: WidgetStyle, size: SizeClass) {
+        val c: (String) -> String = { ClockPatterns.colon(it, style.showColon) }
         val format = if (style.hourFormat != HourFormat.SYSTEM) style.hourFormat else r.settings.hourFormat
         when (format) {
             // Formato del sistema: TextClock elige 12/24 h por sí mismo y reacciona si el usuario lo cambia.
             HourFormat.SYSTEM -> {
-                setClockFormat(v, R.id.w_time, ClockPatterns.TIME_12, ClockPatterns.TIME_24)
+                setClockFormat(v, R.id.w_time, c(ClockPatterns.TIME_12), c(ClockPatterns.TIME_24))
                 // En 24 h el indicador AM/PM queda vacío; así no hay que re-renderizar si cambia el ajuste.
                 setClockFormat(v, R.id.w_ampm, ClockPatterns.AM_PM, "")
                 v.setViewVisibility(R.id.w_ampm, View.VISIBLE)
             }
             HourFormat.H24 -> {
-                setClockFormat(v, R.id.w_time, ClockPatterns.TIME_24, ClockPatterns.TIME_24)
+                setClockFormat(v, R.id.w_time, c(ClockPatterns.TIME_24), c(ClockPatterns.TIME_24))
                 v.setViewVisibility(R.id.w_ampm, View.GONE)
             }
             HourFormat.H12 -> {
-                setClockFormat(v, R.id.w_time, ClockPatterns.TIME_12, ClockPatterns.TIME_12)
+                setClockFormat(v, R.id.w_time, c(ClockPatterns.TIME_12), c(ClockPatterns.TIME_12))
                 setClockFormat(v, R.id.w_ampm, ClockPatterns.AM_PM, ClockPatterns.AM_PM)
                 v.setViewVisibility(R.id.w_ampm, View.VISIBLE)
             }
@@ -178,7 +179,7 @@ class WidgetRenderer(private val context: Context) {
         }
         // Horas en negrita: «HH» + «:mm» en dos TextClock; ambos siguen avanzando solos.
         setClockFormat(v, R.id.w_time_h, if (is24 == true) "HH" else "h", if (is24 == false) "h" else "HH")
-        setClockFormat(v, R.id.w_time_m, ":mm", ":mm")
+        setClockFormat(v, R.id.w_time_m, c(":mm"), c(":mm"))
         v.setViewVisibility(R.id.w_time, if (style.boldHours) View.GONE else View.VISIBLE)
         v.setViewVisibility(R.id.w_time_h, if (style.boldHours) View.VISIBLE else View.GONE)
         v.setViewVisibility(R.id.w_time_m, if (style.boldHours) View.VISIBLE else View.GONE)

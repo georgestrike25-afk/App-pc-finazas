@@ -76,6 +76,8 @@ data class WidgetStyle(
     val hourFormat: HourFormat = HourFormat.SYSTEM,
     /** Horas en negrita y minutos con la tipografía elegida (p. ej. **02**:45). */
     val boldHours: Boolean = false,
+    /** Dos puntos entre horas y minutos; false = «09 50». */
+    val showColon: Boolean = true,
     /** Color propio de la hora; null = el mismo que el texto. */
     val timeColor: Int? = null,
 ) {

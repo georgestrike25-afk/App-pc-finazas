@@ -213,7 +213,7 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
             paint.reset(textSize, face, d.letterSpacing)
             return paint.measureText(text)
         }
-        val hasColon = extras.minutes.startsWith(":")
+        val hasColon = extras.minutes.startsWith(":") && d.showColon
         val minutes = extras.minutes.removePrefix(":")
         val hW = measure(extras.hours, hoursFace)
         val mW = measure(minutes, family)
@@ -242,7 +242,8 @@ class ClockPainter(private val fonts: (String) -> Typeface? = { null }) {
             return Layout(runs, box, textSize, transform, bM)
         }
 
-        val sW = if (hasColon) measure(":", family) else 0f
+        // Sin los dos puntos queda su hueco, así las cifras no se pegan.
+        val sW = if (extras.minutes.startsWith(":")) measure(":", family) else 0f
         val total = hW + sW + mW
         val (shiftH, shiftM) = spreadShifts(d, cx, total, width)
         val startX = cx - total / 2f

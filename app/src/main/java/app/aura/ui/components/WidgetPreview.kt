@@ -188,9 +188,9 @@ fun WidgetPreview(
     val condition = if (type == WidgetType.NIGHT) WidgetRenderer.nightVariant(content.condition) else content.condition
     val format = if (s.hourFormat != HourFormat.SYSTEM) s.hourFormat else settings.hourFormat
     val is24 = ClockPatterns.is24(format, system24h)
-    val time = now.format(DateTimeFormatter.ofPattern(if (is24) ClockPatterns.TIME_24 else ClockPatterns.TIME_12))
+    val time = now.format(DateTimeFormatter.ofPattern(ClockPatterns.colon(if (is24) ClockPatterns.TIME_24 else ClockPatterns.TIME_12, s.showColon)))
     val hoursPart = now.format(DateTimeFormatter.ofPattern(if (is24) "HH" else "h"))
-    val minutesPart = now.format(DateTimeFormatter.ofPattern(":mm"))
+    val minutesPart = now.format(DateTimeFormatter.ofPattern(ClockPatterns.colon(":mm", s.showColon)))
     val ampm = if (is24) null else now.format(DateTimeFormatter.ofPattern(ClockPatterns.AM_PM, Locale.getDefault()))
     val datePattern = ClockPatterns.datePattern(s.dateStyle, long = size == SizeClass.LARGE) {
         android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), it)

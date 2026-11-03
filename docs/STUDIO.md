@@ -10,9 +10,10 @@ Mockups previos a la implementación: [`docs/mockups/`](mockups/).
 |---|---|
 | Importar foto | Selector oficial de fotos de Android (`PickVisualMedia`): sin permiso de galería; Aura solo recibe la imagen elegida y guarda una copia reducida (lado mayor ≤ 3200 px) |
 | Recortar y encuadrar | Ajuste «cubrir» a la resolución real de la pantalla + zoom (1–5×) y desplazamiento con gestos; nunca deja bordes vacíos (`Framing`) |
-| Fuentes para números | 20 tipografías abiertas incluidas (Bebas Neue, Anton, Oswald, Teko, Rajdhani, Orbitron, Audiowide, Michroma, Russo One, Black Ops, Monoton, Bungee, Righteous, Share Tech, Major Mono, Poiret One, Comfortaa, Abril Fatface, Playfair, Pacifico), recortadas a los caracteres del reloj (≈100 KB en total), más las 8 del sistema |
+| Fuentes para números | 41 tipografías abiertas incluidas (Bebas Neue, Anton, Oswald, Teko, Rajdhani, Orbitron, Audiowide, Michroma, Russo One, Black Ops, Monoton, Bungee, Righteous, Share Tech, Major Mono, Poiret One, Comfortaa, Abril Fatface, Playfair, Pacifico, Archivo Black, Staatliches, Alfa Slab, Bowlby One, Rubik Mono, Saira Stencil, Zen Dots, Wallpoet, Bungee Inline/Outline/Shade, Rampart 3D, Train One, Faster One, Monofett, Codystar, Pixel 8-bit, Silkscreen, VT323, Lobster, Great Vibes), recortadas a los caracteres del reloj (≈400 KB en total), más las 8 del sistema |
 | Ancho, alto y rotación | Estiramiento independiente (50–250 %), giro de −45° a 45° (deslizador, botones de 0,5° o dos dedos) |
 | Orientación | Horizontal (`09:50` en una línea) o vertical (horas arriba y minutos abajo, sin los dos puntos) |
+| Dos puntos | Se pueden quitar («09 50»); las cifras no se mueven. También en los widgets (Personalizar) |
 | Separar desde el centro | Las horas se alejan hacia el borde izquierdo y los minutos hacia el derecho (en vertical, hacia arriba y abajo); los dos puntos quedan siempre en el medio (0–100 %); botón «Llenar el ancho» |
 | Deformación libre | Pestaña Deformar: 4 esquinas arrastrables (perspectiva, inclinación); atajos de perspectiva; el camaleón sigue la deformación |
 | Ajuste fino | Posición con deslizadores y flechas de 0,25 % de la pantalla, para encajar los números en la foto |

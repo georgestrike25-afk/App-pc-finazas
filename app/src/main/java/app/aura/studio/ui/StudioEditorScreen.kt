@@ -287,6 +287,9 @@ private fun ColumnScope.ClockPanel(vm: StudioViewModel, p: StudioProject) {
         listOf(ClockLayout.HORIZONTAL to "Horizontal  09:50", ClockLayout.VERTICAL to "Vertical  09 / 50"),
         d.layout, { l -> vm.design { it.copy(layout = l) } },
     )
+    if (d.layout == ClockLayout.HORIZONTAL) {
+        LabeledRow("Dos puntos", supporting = "Apagado: 09 50") { Switch(d.showColon, { v -> vm.design { it.copy(showColon = v) } }) }
+    }
     LabeledRow("Horas en negrita") { Switch(d.boldHours, { v -> vm.design { it.copy(boldHours = v) } }) }
     Text("Color", style = MaterialTheme.typography.bodyMedium)
     ColorSwatches(INKS.map { Color(it) }, Color(d.color), { c -> vm.design { it.copy(color = c.toArgb()) } }, Modifier.padding(vertical = 8.dp))

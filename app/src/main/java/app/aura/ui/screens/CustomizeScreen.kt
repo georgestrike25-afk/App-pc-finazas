@@ -284,6 +284,9 @@ fun CustomizeScreen(
             LabeledRow("Horas en negrita", supporting = "Horas gruesas y minutos finos, p. ej. 02:45") {
                 Switch(checked = style.boldHours, onCheckedChange = { v -> edit { it.copy(boldHours = v) } })
             }
+            LabeledRow("Dos puntos", supporting = "Apagado: 09 50") {
+                Switch(checked = style.showColon, onCheckedChange = { v -> edit { it.copy(showColon = v) } })
+            }
             Text("Color de la hora", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
             ColorPicker(style.effectiveTimeColor, INK_COLORS) { c -> edit { it.copy(timeColor = c) } }

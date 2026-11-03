@@ -171,6 +171,20 @@ class WidgetRenderingTest {
     }
 
     @Test
+    fun colonCanBeHiddenInWidgetClocks() {
+        listOf(false, true).forEach { bold ->
+            val style = Profiles.MINIMAL.copy(showColon = false, boldHours = bold)
+            val (view, bmp) = inflate(WidgetType.CLOCK, SizeClass.MEDIUM, style, 220, 96)
+            save("clock_no_colon${if (bold) "_bold" else ""}", bmp)
+            val ids = if (bold) listOf(R.id.w_time_h, R.id.w_time_m) else listOf(R.id.w_time)
+            val text = ids.joinToString("") { view.findViewById<TextClock>(it).text.toString() }
+            assertTrue("bold=$bold: «$text» no debería tener «:»", ':' !in text && text.any { it.isDigit() })
+        }
+        val (withColon, _) = inflate(WidgetType.CLOCK, SizeClass.MEDIUM, Profiles.MINIMAL, 220, 96)
+        assertTrue(':' in withColon.findViewById<TextClock>(R.id.w_time).text)
+    }
+
+    @Test
     fun numericDateFormatShowsDayMonthYear() {
         val today = java.time.LocalDate.now()
         val numeric = "%02d/%02d/%04d".format(today.dayOfMonth, today.monthValue, today.year)

@@ -38,7 +38,7 @@ sin telemetría; las fotos se procesan solo en el teléfono.
 ## Estado (2026-11)
 Hecho: widgets Clock/Weather/Duo/Forecast/Night en 3 tamaños, iconos 3D y escenas, 8 fuentes,
 pronóstico de mañana, fecha en Weather y formato de fecha (palabras, dd/mm/aaaa, día + dd/mm/aaaa);
-Aura Studio con 20 fuentes, estirar, deformar, separar (con «:» fijo al medio), orientación vertical,
+Aura Studio con 41 fuentes, dos puntos opcionales (también en widgets), estirar, deformar, separar (con «:» fijo al medio), orientación vertical,
 camaleón, máscara de sujeto, proyectos, exportar, fondo estático y animado.
 
 ## Pendiente / conocido

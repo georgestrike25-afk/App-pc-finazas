@@ -26,6 +26,8 @@ data class ClockDesign(
     val customFont: String? = null,
     val boldHours: Boolean = true,
     val layout: ClockLayout = ClockLayout.HORIZONTAL,
+    /** Dos puntos entre horas y minutos (solo en horizontal); false = «09 50». */
+    val showColon: Boolean = true,
     val color: Int = Brand.WHITE,
     /** Tinte del metal, brillo del neón y vetas de la piedra. */
     val accentColor: Int = Brand.SOLAR,

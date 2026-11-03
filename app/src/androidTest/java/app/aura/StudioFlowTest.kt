@@ -218,6 +218,46 @@ class StudioFlowTest {
         listOf(spread, horizontal, vertical).forEach { it.recycle() }
     }
 
+    @Test
+    fun everyBundledFontDrawsTheClockAndTheColonCanBeHidden() {
+        val fonts = app.aura.studio.render.StudioFonts
+        val painter = app.aura.studio.render.ClockPainter(fonts.resolver(context))
+        val w = 1080
+        val h = 1200
+        val base = app.aura.core.studio.ClockDesign(centerY = 0.5f, size = 0.2f).withMaterial(ClockMaterial.MINIMAL).copy(shadow = 0)
+        // Muestrario: todas las fuentes, en dos columnas, en una sola imagen.
+        val rows = fonts.all.size
+        val sheet = Bitmap.createBitmap(w, (rows + 1) / 2 * 120, Bitmap.Config.ARGB_8888)
+        val label = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 20f }
+        val sc = Canvas(sheet).apply { drawColor(0xFF101D2B.toInt()) }
+        fonts.all.forEachIndexed { i, f ->
+            assertNotNull("no carga ${f.id}", fonts.resolver(context)(f.id))
+            val tile = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            painter.draw(Canvas(tile), w, h, base.copy(customFont = f.id), extras.copy(subtitle = null))
+            assertTrue("${f.id} no dibuja nada", inkColumns(tile, 400, 800).count { it } > 50)
+            val x = (i % 2) * w / 2
+            val y = (i / 2) * 120
+            sc.drawBitmap(tile, android.graphics.Rect(0, 480, w, 720), android.graphics.Rect(x, y, x + w / 2, y + 120), null)
+            sc.drawText(f.label, x + 10f, y + 22f, label)
+            tile.recycle()
+        }
+        save("studio_fonts_all", sheet)
+        sheet.recycle()
+
+        // Sin dos puntos: el centro del reloj queda vacío y las cifras no se mueven.
+        val with = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        painter.draw(Canvas(with), w, h, base, extras.copy(subtitle = null))
+        val without = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        painter.draw(Canvas(without), w, h, base.copy(showColon = false), extras.copy(subtitle = null))
+        save("studio_no_colon", without)
+        val a = inkColumns(with, 450, 750)
+        val b = inkColumns(without, 450, 750)
+        assertTrue("sin «:» debería haber menos tinta", b.count { it } < a.count { it })
+        assertEquals("las cifras no se mueven", a.indexOfFirst { it }, b.indexOfFirst { it })
+        assertEquals(a.indexOfLast { it }, b.indexOfLast { it })
+        listOf(with, without).forEach { it.recycle() }
+    }
+
     /** Columnas con tinta (alfa visible) entre las filas indicadas. */
     private fun inkColumns(b: Bitmap, top: Int, bottom: Int): List<Boolean> = List(b.width) { x ->
         (top until bottom step 3).any { y -> Color.alpha(b.getPixel(x, y)) > 128 }

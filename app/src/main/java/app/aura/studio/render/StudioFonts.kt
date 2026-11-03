@@ -9,7 +9,7 @@ import app.aura.R
 /**
  * Fuentes para números incluidas en Aura (Google Fonts, licencia SIL OFL 1.1; ver
  * docs/licencias/fuentes). Están recortadas a los caracteres del reloj (0–9, «:», a. m./p. m.),
- * por eso las 20 ocupan ≈100 KB.
+ * por eso las 41 ocupan ≈400 KB.
  */
 object StudioFonts {
     data class Entry(val id: String, val label: String, @FontRes val res: Int)
@@ -35,6 +35,27 @@ object StudioFonts {
         Entry("clock_abril", "Abril Fatface", R.font.clock_abril),
         Entry("clock_playfair", "Playfair", R.font.clock_playfair),
         Entry("clock_pacifico", "Pacifico", R.font.clock_pacifico),
+        Entry("clock_archivoblack", "Archivo Black", R.font.clock_archivoblack),
+        Entry("clock_staatliches", "Staatliches", R.font.clock_staatliches),
+        Entry("clock_alfaslabone", "Alfa Slab", R.font.clock_alfaslabone),
+        Entry("clock_bowlbyone", "Bowlby One", R.font.clock_bowlbyone),
+        Entry("clock_rubikmonoone", "Rubik Mono", R.font.clock_rubikmonoone),
+        Entry("clock_sairastencilone", "Saira Stencil", R.font.clock_sairastencilone),
+        Entry("clock_zendots", "Zen Dots", R.font.clock_zendots),
+        Entry("clock_wallpoet", "Wallpoet", R.font.clock_wallpoet),
+        Entry("clock_bungeeinline", "Bungee Inline", R.font.clock_bungeeinline),
+        Entry("clock_bungeeoutline", "Bungee Outline", R.font.clock_bungeeoutline),
+        Entry("clock_bungeeshade", "Bungee Shade", R.font.clock_bungeeshade),
+        Entry("clock_rampartone", "Rampart 3D", R.font.clock_rampartone),
+        Entry("clock_trainone", "Train One", R.font.clock_trainone),
+        Entry("clock_fasterone", "Faster One", R.font.clock_fasterone),
+        Entry("clock_monofett", "Monofett", R.font.clock_monofett),
+        Entry("clock_codystar", "Codystar", R.font.clock_codystar),
+        Entry("clock_pressstart2p", "Pixel 8-bit", R.font.clock_pressstart2p),
+        Entry("clock_silkscreen", "Silkscreen", R.font.clock_silkscreen),
+        Entry("clock_vt323", "VT323", R.font.clock_vt323),
+        Entry("clock_lobster", "Lobster", R.font.clock_lobster),
+        Entry("clock_greatvibes", "Great Vibes", R.font.clock_greatvibes),
     )
 
     private val cache = HashMap<String, Typeface>()

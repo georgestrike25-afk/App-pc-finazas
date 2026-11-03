@@ -29,6 +29,9 @@ object ClockPatterns {
         DateStyle.WEEKDAY_NUMERIC -> DATE_WEEKDAY_NUMERIC
     }
 
+    /** Patrón horario con o sin los dos puntos (sin ellos queda un espacio: «09 50»). */
+    fun colon(pattern: String, show: Boolean): String = if (show) pattern else pattern.replace(":", " ")
+
     fun is24(format: HourFormat, system24: Boolean): Boolean = when (format) {
         HourFormat.SYSTEM -> system24
         HourFormat.H12 -> false
