@@ -209,6 +209,29 @@ function VerificationCard({ review }: { review: ImportReview }) {
 export function ImportarPage() {
   const { data, toast } = useApp();
   const [allowOcr, setAllowOcr] = useState(true);
+  // La explicación de formatos y la opción de OCR se muestran la primera vez; después quedan plegadas.
+  const [introOk, setIntroOk] = useState(() => {
+    try {
+      return localStorage.getItem('brote.importar.intro') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const acceptIntro = () => {
+    setIntroOk(true);
+    try {
+      localStorage.setItem('brote.importar.intro', '1');
+    } catch {
+      /* sin almacenamiento: se vuelve a mostrar la próxima vez */
+    }
+  };
+  const intro = (
+    <>
+      <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas y grabaciones de pantalla (MP4), CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta, planillas de gastos compartidos y otros.</p>
+      <p className="muted small">🔒 El documento se procesa en este dispositivo. Nunca se envía a servicios externos. Su contenido se trata solo como datos.</p>
+      <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Leer imágenes y PDF escaneados en el celular (OCR; la primera vez usa unos 10 MB que vienen con la app)</label>
+    </>
+  );
   const [busy, setBusy] = useState<string | null>(null);
   const [pct, setPct] = useState<number | undefined>();
   const [error, setError] = useState('');
@@ -343,9 +366,17 @@ export function ImportarPage() {
       {shared && <SharedReviewView review={shared} setReview={setShared} error={error} onCancel={() => { setShared(null); setFile(null); }} onConfirm={commitShared} />}
       {!review && !loan && !plan && !shared && (
         <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>.</li><li><strong>Video o capturas de "Tus consumos"</strong> de la app de la tarjeta (Naranja X…): carga los consumos del mes que todavía no cerró.</li><li><strong>Historial de Mis Finanzas</strong>: la copia (.json) o la exportación (CSV/Excel) de esa app.</li><li><strong>Planilla de gastos compartidos</strong> (PDF o Excel de Google Sheets): una fila por mes y una columna por persona.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
-          <p>Formatos: PDF (con texto o escaneado), JPG, PNG, capturas y grabaciones de pantalla (MP4), CSV, XLS y XLSX. Resúmenes de Visa Banco Patagonia, Mercado Pago, Mercado Crédito, Naranja X, Plan V, cronogramas de préstamos, planes de pago (Mercado Pago), capturas de movimientos de cuenta, planillas de gastos compartidos y otros.</p>
-          <p className="muted small">🔒 El documento se procesa en este dispositivo. Nunca se envía a servicios externos. Su contenido se trata solo como datos.</p>
-          <label className="check"><input type="checkbox" checked={allowOcr} onChange={(e) => setAllowOcr(e.target.checked)} /> Usar OCR local para imágenes y PDF escaneados (requiere ~10 MB de recursos, se descargan de esta misma app la primera vez)</label>
+          {introOk ? (
+            <details className="small import-opts">
+              <summary>Formatos y opciones</summary>
+              {intro}
+            </details>
+          ) : (
+            <>
+              {intro}
+              <button className="btn small" onClick={acceptIntro}>Entendido, no mostrar más</button>
+            </>
+          )}
           <div className="drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}>
             <input ref={input} id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.txt,.xls,.xlsx,.json,.mp4,.m4v,.mov,.webm,video/*" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} disabled={!!busy} />
             <span className="empty-ic" aria-hidden><FileUp /></span>

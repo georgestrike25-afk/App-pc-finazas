@@ -1,4 +1,4 @@
-import { ArrowDownToLine, CalendarClock, CircleHelp, CreditCard, History, Landmark, ListChecks, Menu, PiggyBank, Plane, Receipt, RefreshCw, Settings, Upload, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { ArrowDownToLine, CalendarClock, CircleHelp, MessageCircleQuestion, CreditCard, History, Landmark, ListChecks, Menu, PiggyBank, Plane, Receipt, RefreshCw, Settings, Upload, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, lazy, Suspense, type ComponentType } from 'react';
 import { AppProvider, useAppMaybe } from './store';
 import { ConfirmHost, Help } from './components/ui';
@@ -13,6 +13,7 @@ import { getSyncStatus, onSyncStatus, type SyncStatus } from '../sync/autoSync';
 
 // "Este mes" se carga con la app; el resto de las pantallas, recién cuando se abren (la app arranca más rápido).
 const ResumenPage = lazy(() => import('./pages/Resumen').then((m) => ({ default: m.ResumenPage })));
+const AsistentePage = lazy(() => import('./pages/Asistente').then((m) => ({ default: m.AsistentePage })));
 const AyudaPage = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.AyudaPage })));
 const IngresosPage = lazy(() => import('./pages/Ingresos').then((m) => ({ default: m.IngresosPage })));
 const GastosPage = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.GastosPage })));
@@ -56,6 +57,7 @@ export const ROUTES: RouteDef[] = [
   { path: 'entidades', label: 'Deuda por entidad', short: 'Deudas', icon: Landmark, el: EntidadesPage, nav: 'main', group: 'deudas', help: 'Cuánto le debés en total a cada banco o billetera, sumando préstamos, cuotas, planes de pago, resúmenes sin pagar y los consumos que vienen en el próximo resumen, y en qué mes terminás de pagar.' },
   { path: 'gastos', label: 'Gastos', icon: Receipt, el: GastosPage, nav: 'main', group: 'plata', help: 'Todos los gastos del mes. Lo de la tarjeta llega solo con el resumen; acá anotás lo que pagás en efectivo o transferencia.' },
   { path: 'viaje', label: 'Viajes y ahorros', short: 'Viajes', icon: Plane, el: ViajePage, nav: 'main', help: 'Tus viajes y ahorros: cuánto cuesta el viaje, cuánto llevás ahorrado y si llegás a la fecha.' },
+  { path: 'preguntas', label: 'Preguntale a Brote', short: 'Preguntas', icon: MessageCircleQuestion, el: AsistentePage, nav: 'more', help: 'Preguntas con tus números (cuánto podés juntar, qué pagás este mes, cuánto debés, si llegás al viaje) y cómo funciona cada parte de la app. Sin internet: todo se calcula en este dispositivo.' },
   { path: 'ayuda', label: 'Cómo usar', icon: CircleHelp, el: AyudaPage, nav: 'more', help: 'Explicación corta de cómo usar la app y la guía paso a paso.' },
   { path: 'configuracion', label: 'Configuración', icon: Settings, el: ConfiguracionPage, nav: 'more', help: 'Cómo se reparten los gastos compartidos, el presupuesto diario, el PIN de bloqueo y otras opciones.' },
   { path: 'copias', label: 'Copias y sincronización', icon: RefreshCw, el: CopiasPage, nav: 'more', help: 'Guardá una copia de tus datos en un archivo (hacé una por mes) o conectá el celular con la PC para que tengan los mismos datos.' },

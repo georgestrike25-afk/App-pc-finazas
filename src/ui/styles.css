@@ -601,3 +601,24 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .trip-facts li:last-child { border-bottom: 0; }
 .trip-facts li > span:first-child { color: var(--muted); flex: 1 1 11rem; }
 .trip-facts li > :last-child { font-weight: 700; white-space: nowrap; margin-left: auto; }
+
+.import-opts { margin: 0 0 12px; }
+.import-opts summary { cursor: pointer; color: var(--muted); }
+
+/* Preguntale a Brote */
+.asistente .ask { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border-strong); border-radius: 14px; padding: 10px 14px; background: var(--bg); }
+.asistente .ask svg { width: 20px; height: 20px; color: var(--muted); flex: none; }
+.asistente .ask input { border: 0; outline: 0; background: transparent; flex: 1; font: inherit; color: inherit; min-width: 0; padding: 0; }
+.q-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.q-chip { border: 1px solid var(--border-strong); background: transparent; color: inherit; border-radius: 999px; padding: 8px 14px; font: inherit; font-size: .92rem; text-align: left; cursor: pointer; }
+.q-chip:hover { border-color: var(--accent, currentColor); }
+.q-topic { border-top: 1px solid var(--border); padding: 10px 0; }
+.q-topic:first-of-type { border-top: 0; }
+.q-topic summary { cursor: pointer; font-weight: 600; }
+.q-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.q-item { text-align: left; padding: 6px 0; }
+.answer-short { font-size: 1.08rem; font-weight: 600; margin-top: 0; }
+.answer-lines { list-style: none; margin: 0 0 10px; padding: 0; }
+.answer-lines li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.answer-lines li > span:last-child { white-space: nowrap; }
+.answer-lines li.strong { font-weight: 700; border-bottom: 0; border-top: 2px solid var(--border); }
