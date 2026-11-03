@@ -146,6 +146,7 @@ export async function buildReview(
   const incomes = (await db.incomes.toArray()).filter((s) => !s.deleted);
   const isAccount = parsed.docType === 'cuenta';
   const usedManual = new Set<string>();
+  const usedIncome = new Set<string>();
   const seen = new Map<string, number>();
 
   const items: ReviewItem[] = [];
@@ -193,6 +194,16 @@ export async function buildReview(
           label: m.provisional ? `Ya estaba cargado como consumo provisorio ("${m.concept}"): se confirma con este resumen.` : `Coincide con el gasto cargado manualmente "${m.concept}" (${m.date}).`,
         };
         action = 'vincular';
+      } else if (isAccount) {
+        // Capturas de movimientos que se superponen, o un gasto que ya entró por el widget, un aviso o a mano
+        // y quedó vinculado: mismo importe y misma fecha (±2 días) → ya está cargado, no se repite.
+        const ya = allExpenses.find((e) => !usedManual.has(e.id) && Math.abs(e.totalAmount) === Math.abs(p.amount!) && Math.abs(daysBetween(e.date, p.date!)) <= 2);
+        if (ya) {
+          usedManual.add(ya.id);
+          duplicate = { type: 'linea', label: `Ya está cargado: "${ya.concept}" del ${ya.date.split('-').reverse().join('/')}.` };
+          action = 'ignorar';
+          include = false;
+        }
       }
     } else if (action === 'cuota' && p.installment && p.amount !== undefined) {
       const ob = findMatchingObligation(obligations, { entity, concept: p.concept, n: p.installment.n, total: p.installment.total, amount: p.amount, dueMonth: itemMonth });
@@ -236,7 +247,19 @@ export async function buildReview(
     } else if (isHistory && action === 'ingreso') {
       include = false;
     } else if (!duplicate && action === 'ingreso' && p.amount !== undefined) {
-      const inc = incomes.find((x) => x.month === itemMonth && x.status === 'confirmado' && (x.amountReceived === p.amount || x.extras.some((e) => e.amount === p.amount)));
+      // Cada ingreso ya anotado (sueldo o extra, p. ej. una transferencia que se anotó sola) cubre una sola línea:
+      // si entraron dos transferencias iguales en el mes y solo una estaba anotada, la otra se suma.
+      let inc: Income | undefined;
+      for (const x of incomes) {
+        if (x.month !== itemMonth || x.status !== 'confirmado') continue;
+        const partes = [x.amountReceived, ...x.extras.map((e) => e.amount)];
+        const i = partes.findIndex((a, k) => a === p.amount && !usedIncome.has(`${x.id}|${k}`));
+        if (i >= 0) {
+          usedIncome.add(`${x.id}|${i}`);
+          inc = x;
+          break;
+        }
+      }
       if (inc) {
         duplicate = { type: 'ingreso', targetId: inc.id, label: `Ya está registrado en el ingreso de ${monthLabel(itemMonth)}.` };
         action = 'ignorar';

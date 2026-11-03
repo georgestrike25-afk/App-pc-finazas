@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { parseWalletMovements } from '../../src/importers/walletMovements';
 import { parseAccountMovements } from '../../src/importers/accountMovements';
 import type { SourceLine } from '../../src/importers/statementParser';
+import { buildReview, commitReview } from '../../src/importers/review';
+import type { FinanzasDB } from '../../src/db/db';
+import { expense, freshDb } from './helpers';
 
 // OCR FICTICIO de tres cuadros de "Mis movimientos" (se superponen al desplazar).
 const f = (page: number, rows: string[]): SourceLine[] => rows.map((text) => ({ text, ocrConfidence: 92, page }));
@@ -41,5 +44,33 @@ describe('movimientos de billetera (video o capturas de "Mis movimientos")', () 
     const pata: SourceLine[] = ['Otorgamiento adelanto  + $ 644.979,46', '13/10/2026', 'Pago visa electronico  - $ 799.252,39', '13/10/2026', 'Compra en comercio  - $ 1.000,00', '12/10/2026'].map((text) => ({ text, ocrConfidence: 90 }));
     expect(parseWalletMovements(pata, {})).toBeNull();
     expect(parseAccountMovements(pata)).not.toBeNull();
+  });
+});
+
+describe('capturas de Ualá que repiten lo que ya está cargado', () => {
+  const cap = (rows: string[]): SourceLine[] => rows.map((text) => ({ text, ocrConfidence: 92, page: 1 }));
+  const meta = (hash: string) => ({ name: `${hash}.jpg`, size: 1, mime: 'image/jpeg', kind: 'imagen' as const, hash });
+  const vivos = async (db: FinanzasDB) => (await db.expenses.toArray()).filter((e) => !e.deleted);
+
+  it('la segunda captura (que se superpone y el OCR leyó distinto) solo agrega lo nuevo', async () => {
+    const db = await freshDb();
+    const uno = parseWalletMovements(cap(['< Mis movimientos', 'Dlo*uber Rides  $4.000,00', 'Compra  22/10', 'Barrica  $7.400,00', 'Compra  21/10', 'Sube Viajes  $2.150,00', 'Compra  21/10']), { today: '2026-10-22', fileName: 'Screenshot_Ual.jpg' })!;
+    await commitReview(await buildReview(uno, meta('a'), true, db, '2026-10'), null, db);
+    expect(await vivos(db)).toHaveLength(3);
+    // Otra captura: la de Barrica se leyó "Barrlca" y hay una compra nueva.
+    const dos = parseWalletMovements(cap(['< Mis movimientos', 'Barrlca  $7.400,00', 'Compra  21/10', 'Sube Viajes  $2.150,00', 'Compra  21/10', 'Hp Farma  $1.600,00', 'Compra  20/10']), { today: '2026-10-22', fileName: 'Screenshot_Ual.jpg' })!;
+    const r = await buildReview(dos, meta('b'), true, db, '2026-10');
+    expect(r.items.find((i) => i.amount === 740000)!).toMatchObject({ include: false, action: 'ignorar' });
+    await commitReview(r, null, db);
+    expect((await vivos(db)).map((e) => e.totalAmount).sort()).toEqual([160000, 215000, 400000, 740000]);
+  });
+
+  it('un gasto anotado a mano que ya quedó vinculado a otra captura no se repite', async () => {
+    const db = await freshDb();
+    await db.expenses.put(expense({ kind: 'cotidiano', month: '2026-10', date: '2026-10-22', totalAmount: 400000, concept: 'Uber', paymentMethod: 'debito', linkedLineFingerprints: ['otra'] }));
+    const d = parseWalletMovements(cap(['< Mis movimientos', 'Dlo*uber Rides  $4.000,00', 'Compra  22/10', 'Barrica  $7.400,00', 'Compra  21/10', 'Sube Viajes  $2.150,00', 'Compra  21/10']), { today: '2026-10-22', fileName: 'Screenshot_Ual.jpg' })!;
+    await commitReview(await buildReview(d, meta('c'), true, db, '2026-10'), null, db);
+    expect((await vivos(db)).filter((e) => e.totalAmount === 400000)).toHaveLength(1);
+    expect(await vivos(db)).toHaveLength(3);
   });
 });

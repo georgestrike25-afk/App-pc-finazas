@@ -115,4 +115,18 @@ describe('movimientos de cuenta (capturas de home banking, datos ficticios)', ()
     expect(inc.revisions).toHaveLength(1);
     expect(parseStatementText(ACCOUNT_LINES).items.length).toBeGreaterThanOrEqual(0);
   });
+
+  it('un ingreso ya anotado cubre una sola línea: otro igual en el mes se suma', async () => {
+    const d = parseAccountMovements(ACCOUNT_LINES)!;
+    const { saveRecord: save } = await import('../../src/db/repo');
+    // Ya estaba anotado uno de ese importe (p. ej. por el aviso); la captura trae ese mismo y nada más.
+    await save<Income>('incomes', { month: '2026-09', status: 'confirmado', amountReceived: 20000000, extras: [{ concept: 'Transferencia', amount: 100000000 }], deductions: [], revisions: [] }, 't', db);
+    const r = await buildReview(d, { name: 'a.jpg', size: 1, mime: 'image/jpeg', kind: 'imagen', hash: 'a' }, true, db, '2026-09');
+    expect(r.items.find((i) => i.action === 'ignorar' && i.amount === 100000000)?.duplicate?.type).toBe('ingreso');
+    // Con dos líneas iguales, la segunda ya no tiene con qué coincidir y se suma.
+    const doble = { ...d, items: [...d.items, ...d.items.filter((i) => i.amount === 100000000).map((i) => ({ ...i, index: 99, date: '2026-09-20' }))] };
+    const r2 = await buildReview(doble, { name: 'b.jpg', size: 1, mime: 'image/jpeg', kind: 'imagen', hash: 'b' }, true, db, '2026-09');
+    const lineas = r2.items.filter((i) => i.amount === 100000000);
+    expect(lineas.map((i) => i.action)).toEqual(['ignorar', 'ingreso']);
+  });
 });
