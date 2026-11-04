@@ -11,6 +11,12 @@ import { NotifReviewCard } from './Notificaciones';
 import { RefundButton } from './Devoluciones';
 import { categoryIcon } from '../components/categoryIcon';
 
+/** Cómo se pagó, o de qué aviso vino si lo detectó la app (para reconocer un repetido: mismo aviso, misma hora). */
+const origin = (e: Expense) => {
+  const m = e.importedFrom === 'notificacion' ? e.notes?.match(/^Notificación de (.+?) · (\d{1,2}:\d{2})/) : null;
+  return m ? `aviso de ${m[1]} ${m[2]}` : METHOD_LABEL[e.paymentMethod];
+};
+
 /** Gasto que pagaste vos entero y tu pareja te devuelve la mitad (marcado con el botón rápido). */
 const isHalf = (e: Expense) => e.kind === 'hogar' && e.userPct === 50 && e.paidBy === 'usuario';
 
@@ -74,7 +80,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                     <Money value={o.userShare} estimated={o.estimated} className="exp-amount" />
                   </div>
                   <div className="exp-sub">
-                    {o.category} · {formatDate(e.date)} · {METHOD_LABEL[e.paymentMethod]}
+                    {o.category} · {formatDate(e.date)} · {origin(e)}
                     {shared && o.userPct !== 100 && <> · tu parte {o.userPct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} % de <Money value={o.total} /></>}
                   </div>
                   <div className="exp-foot">
@@ -88,7 +94,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                       {canSplit && e.kind !== 'hogar' && e.frequency === 'unica' && <RefundButton e={e} />}
                       {e.frequency !== 'unica' && <button className="btn small ghost" onClick={() => setOcc(e)}>Este mes</button>}
                       <button className="btn small ghost" onClick={() => setEditing(e)} aria-label={`Editar ${e.concept}`}>Editar</button>
-                      <button className="btn small ghost danger" onClick={() => remove(e)} aria-label={`Eliminar ${e.concept}`}>✕</button>
+                      <button className="btn small ghost danger" onClick={() => remove(e)} aria-label={`Eliminar ${e.concept}`}>Borrar</button>
                     </span>
                   </div>
                   </div>
@@ -125,7 +131,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                           {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
                           {e.source === 'importado' && <Badge tone="neutral">{e.provisional ? 'provisorio' : 'importado'}</Badge>}
                           {!!e.linkedLineFingerprints?.length && e.source === 'manual' && <Badge tone="ok">vinculado a resumen</Badge>}
-                          <small className="muted d-block">{o.category} · {formatDate(e.date)} · {METHOD_LABEL[e.paymentMethod]}{!shared && o.kind !== 'cotidiano' ? ` · ${KIND_LABEL[o.kind].split(' (')[0]}` : ''}</small>
+                          <small className="muted d-block">{o.category} · {formatDate(e.date)} · {origin(e)}{!shared && o.kind !== 'cotidiano' ? ` · ${KIND_LABEL[o.kind].split(' (')[0]}` : ''}</small>
                         </div>
                       </div>
                     </td>

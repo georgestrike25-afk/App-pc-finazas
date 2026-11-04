@@ -65,3 +65,21 @@ describe('gastos que te devuelve el hospital', () => {
     expect(netOfRefund(1500, {})).toBe(1500);
   });
 });
+
+describe('gasto repetido por el mismo aviso', () => {
+  it('la limpieza deja uno solo si salió del mismo aviso; dos viajes iguales a distinta hora quedan', async () => {
+    const { freshDb } = await import('./helpers');
+    const { repararDuplicados } = await import('../../src/db/repo');
+    const { expenseFromDetected } = await import('../../src/notifications/ingest');
+    const db = await freshDb();
+    const t = Date.parse('2026-11-03T14:30:00');
+    const aviso = { fecha: t, monto: 2414000, tipo: 'GASTO' as const, descripcion: 'Dlo*uber Rides', cuenta: 'Ualá', textoOriginal: 'x' };
+    const a = expenseFromDetected(aviso, '2026-11-03T14:30:05.000Z', 'cel', 'k1');
+    const b = expenseFromDetected(aviso, '2026-11-03T14:31:00.000Z', 'cel', 'k2'); // el mismo aviso otra vez
+    const c = expenseFromDetected({ ...aviso, fecha: t + 3 * 3600 * 1000 }, '2026-11-03T17:30:05.000Z', 'cel', 'k3'); // otro viaje, mismo precio
+    await db.expenses.bulkPut([a, b, c]);
+    expect(await repararDuplicados(db)).toBe(1);
+    const vivos = (await db.expenses.toArray()).filter((e) => !e.deleted).map((e) => e.id).sort();
+    expect(vivos).toEqual([a.id, c.id].sort());
+  });
+});

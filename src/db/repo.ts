@@ -186,6 +186,19 @@ export async function repararDuplicados(db: FinanzasDB = getDb()): Promise<numbe
     for (const f of vivos(fingerprints)) if (f.targetId === p.id) quitar.fingerprints.add(f.id);
   }
 
+  // 5. Gastos anotados dos veces desde el mismo aviso (misma app, mismo momento exacto y mismo importe).
+  const porAviso = new Map<string, typeof expenses>();
+  for (const e of vivos(expenses)) {
+    if (e.importedFrom !== 'notificacion' || quitar.expenses.has(e.id)) continue;
+    const k = (e.linkedLineFingerprints ?? []).find((f) => f.startsWith('notif|'));
+    if (k) porAviso.set(k, [...(porAviso.get(k) ?? []), e]);
+  }
+  for (const grupo of porAviso.values()) {
+    if (grupo.length < 2) continue;
+    const conserva = elegirCopia(grupo).id;
+    for (const e of grupo) if (e.id !== conserva) quitar.expenses.add(e.id);
+  }
+
   const total = quitar.expenses.size + quitar.obligations.size + quitar.statements.size + quitar.cardPayments.size + quitar.sancor.size;
   if (!total && !quitar.documents.size) return 0;
   const deviceId = await getDeviceId(db);
@@ -202,7 +215,7 @@ export async function repararDuplicados(db: FinanzasDB = getDb()): Promise<numbe
     await marcar(db.sancor, sancor, quitar.sancor);
     await marcar(db.fingerprints, fingerprints, quitar.fingerprints);
     for (const f of huellasMovidas) await db.fingerprints.put({ ...f, targetId: reemplazo.get(f.targetId!)!, updatedAt: ahora, deviceId });
-    await addAudit(db, 'eliminar', 'duplicados', undefined, `Se quitaron ${total} registro(s) duplicados (documentos, préstamos, cuotas o consumos cargados dos veces)`, deviceId);
+    await addAudit(db, 'eliminar', 'duplicados', undefined, `Se quitaron ${total} registro(s) duplicados (documentos, préstamos, cuotas, consumos o avisos cargados dos veces)`, deviceId);
   });
   return total;
 }

@@ -226,6 +226,7 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; }
 .btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
 .btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 :root[data-theme='dark'] .btn.danger { color: #3b0a10; }
+:root[data-theme='dark'] .btn.ghost.danger { color: var(--danger); }
 .btn.ghost { background: transparent; border-color: transparent; }
 .btn.ghost:hover { background: var(--surface-2); }
 .btn.ghost.danger { color: var(--danger); background: transparent; }
@@ -321,7 +322,7 @@ tr.dim { opacity: 0.5; }
 .exp-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .exp-badges { display: flex; gap: 4px; flex-wrap: wrap; }
 .exp-badges .badge { margin: 0; }
-.exp-acts { display: flex; gap: 2px; margin-left: auto; }
+.exp-acts { display: flex; gap: 2px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
 .exp-acts .btn { min-height: 36px; padding: 0 10px; }
 .exp-total { display: flex; justify-content: space-between; padding: 12px 0 2px; font-weight: 650; border-top: 1px solid var(--border-strong); margin-top: 4px; }
 .cat-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; background: var(--surface-2); color: var(--text); }
