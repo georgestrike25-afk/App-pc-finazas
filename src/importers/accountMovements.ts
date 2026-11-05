@@ -25,7 +25,7 @@ function conf(l: SourceLine): Confidence {
  * Reconoce listados de movimientos de cuenta (capturas de home banking o apps):
  * ingresos y egresos con signo, fecha debajo. Devuelve null si el documento no tiene ese formato.
  */
-export function parseAccountMovements(lines: SourceLine[]): ParsedDocument | null {
+export function parseAccountMovements(lines: SourceLine[], opts: { minItems?: number } = {}): ParsedDocument | null {
   const clean = lines.map((l) => ({ ...l, text: (l.text ?? '').replace(/\s+/g, ' ').trim() })).filter((l) => l.text);
   const items: ParsedItem[] = [];
   for (let i = 0; i < clean.length; i++) {
@@ -89,7 +89,7 @@ export function parseAccountMovements(lines: SourceLine[]): ParsedDocument | nul
       page: clean[i].page,
     });
   }
-  if (items.length < 3) return null;
+  if (items.length < (opts.minItems ?? 3)) return null;
   const full = clean.map((l) => l.text).join('\n');
   const months = items.filter((i) => i.date).map((i) => monthOf(i.date!)).sort();
   const latest = months.at(-1);
@@ -113,5 +113,47 @@ export function parseAccountMovements(lines: SourceLine[]): ParsedDocument | nul
     warnings: ['Movimientos de cuenta bancaria: cada línea se imputa al mes de su fecha. Por defecto solo se incluye el mes más reciente.'],
     undetermined: entity ? [] : ['Entidad financiera'],
     lineCount: clean.length,
+  };
+}
+
+/**
+ * Ficha de un solo movimiento ("Detalle de movimiento" del home banking): Cuenta, Fecha, Concepto e Importe
+ * con su signo, uno debajo de otro. Se lee como un movimiento de cuenta más (un "ACREDIT. PLAN SUELDOS" positivo es el sueldo).
+ */
+export function parseMovementDetail(lines: SourceLine[]): ParsedDocument | null {
+  const clean = lines.map((l) => ({ ...l, text: (l.text ?? '').replace(/\s+/g, ' ').trim() })).filter((l) => l.text);
+  const full = clean.map((l) => l.text).join('\n');
+  if (!/detalle de movimiento/i.test(normalizeText(full))) return null;
+  // El valor de cada etiqueta es la línea que sigue (o el resto de la misma línea).
+  const after = (label: RegExp) => {
+    for (let i = 0; i < clean.length; i++) {
+      const t = normalizeText(clean[i].text);
+      const m = t.match(new RegExp(`^${label.source}\\b\\s*:?\\s*(.*)$`));
+      if (!m) continue;
+      if (m[1]) return { text: clean[i].text.slice(clean[i].text.length - m[1].length), line: clean[i] };
+      const next = clean[i + 1];
+      if (next) return { text: next.text, line: next };
+    }
+    return null;
+  };
+  const concept = after(/concepto/);
+  const amount = after(/importe/);
+  const date = after(/fecha/);
+  if (!concept || !amount || !date) return null;
+  const sign = amount.text.match(/^([+\-−–])\s*\$?\s*([\d.]+,\d{2})/);
+  const dm = date.text.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/);
+  if (!sign || !dm) return null;
+  const synthetic: SourceLine[] = [
+    { text: `${concept.text} ${sign[1]} $ ${sign[2]}`, ocrConfidence: Math.min(concept.line.ocrConfidence ?? 100, amount.line.ocrConfidence ?? 100) },
+    { text: dm[0], ocrConfidence: date.line.ocrConfidence },
+  ];
+  const doc = parseAccountMovements(synthetic, { minItems: 1 });
+  if (!doc) return null;
+  const entity = /patagonia/i.test(full) ? 'Banco Patagonia' : doc.entity.value;
+  return {
+    ...doc,
+    entity: { value: entity, confidence: entity ? 'media' : 'baja' },
+    warnings: ['Movimiento suelto leído de la pantalla "Detalle de movimiento".', ...doc.warnings],
+    lineCount: lines.length,
   };
 }

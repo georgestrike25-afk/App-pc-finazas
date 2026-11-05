@@ -2,7 +2,7 @@ import { parseCardBalance } from './cardBalance';
 import { sha256Hex } from '../domain/text';
 import { extractPdfText, type PdfLib } from './pdf';
 import { parseStatementText, type ParsedDocument, type SourceLine } from './statementParser';
-import { parseAccountMovements } from './accountMovements';
+import { parseAccountMovements, parseMovementDetail } from './accountMovements';
 import { parseBankExtract } from './bankExtract';
 import { parseCardActivity } from './cardActivity';
 import { parseWalletMovements } from './walletMovements';
@@ -114,6 +114,7 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     history ??
     parseCardActivity(lines) ??
     parseCardBalance(lines, { fileName: file.name }) ??
+    parseMovementDetail(lines) ??
     parseBankExtract(lines) ??
     parseWalletMovements(lines, { partnerName: opts.names?.partner, ownNames: opts.names?.own, fileName: file.name, today: new Date().toISOString().slice(0, 10) }) ??
     parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });

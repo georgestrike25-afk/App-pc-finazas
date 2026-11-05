@@ -33,7 +33,7 @@ export function monthChecklist(data: DataSet, today: MonthKey, todayIso: string,
     key: 'sueldo',
     done: !!inc,
     title: inc ? `Sueldo de ${monthLabel(today)} cargado` : `Cargar el sueldo de ${monthLabel(today)}`,
-    detail: inc ? undefined : 'Subí la captura de los movimientos de tu cuenta (se detecta solo) o cargalo a mano.',
+    detail: inc ? undefined : 'Subí la captura del sueldo (el "Detalle de movimiento" del banco o los movimientos de tu cuenta) o cargalo a mano.',
     href: inc ? undefined : '#/importar',
     hrefLabel: 'Subir captura',
   });
