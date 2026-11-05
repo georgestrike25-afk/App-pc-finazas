@@ -56,3 +56,4 @@ App de finanzas personales de Jorge (es-AR). Una sola base web que se publica co
 - La cuota de préstamo debitada de la cuenta (al subir movimientos) también genera el pago `cashOnly` que baja la plata hasta cobrar.
 - Ideas: `docs/ideas-pendientes.md`.
 - Deudas terminadas (Deudas.tsx): las obligaciones con estado `pagada`/`cancelada` salen de la lista de "Préstamos y tarjetas" y quedan en el plegable "Ya pagadas (N)" (`data-testid="ob-terminadas"`) al final, sin borrarse. El aviso de cuotas pagadas antes de vencer revisa todas (también las terminadas).
+- Deshacer pagos (`dropUndonePayments` en `src/db/repo.ts`, lo llama `saveRecord` de obligaciones): si una deuda baja de cuotas pagadas (Deshacer, Corregir, Editar), se eliminan los pagos `cashOnly` "Cuota N de {concepto}" de las cuotas que dejan de estar pagadas, así la plata hasta cobrar vuelve. Mercado Pago en la app: dos deudas del plan de pagos ("Préstamos" y "Tarjeta de crédito"), no cada préstamo.

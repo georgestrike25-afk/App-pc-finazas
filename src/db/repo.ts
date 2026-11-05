@@ -245,8 +245,25 @@ export async function saveRecord<T extends BaseRecord>(
     await table(db, name).put(full);
     if (name !== 'audit') await addAudit(db, existing ? 'modificar' : 'crear', name, full.id, summary, deviceId);
   });
+  if (name === 'obligations' && existing) await dropUndonePayments(existing as unknown as Obligation, full as unknown as Obligation, db);
   notify();
   return full;
+}
+
+/**
+ * Si se corrigió una deuda a menos cuotas pagadas (Deshacer, Corregir, Editar), los pagos "Cuota N de …" que había
+ * generado "Ya la pagué" (o el débito del banco) para las cuotas que ya no cuentan como pagadas se eliminan:
+ * si no, la plata hasta cobrar seguiría descontando un pago que no se hizo.
+ */
+export async function dropUndonePayments(before: Obligation, after: Obligation, db: FinanzasDB = getDb()) {
+  if (after.paidInstallments >= before.paidInstallments) return;
+  const concepts = new Set([before.concept, after.concept]);
+  const stale = (await db.expenses.toArray()).filter((e) => {
+    if (e.deleted || !e.cashOnly || e.settlement) return false;
+    const m = e.concept.match(/^Cuota (\d+) de (.+)$/);
+    return !!m && concepts.has(m[2]) && Number(m[1]) > after.paidInstallments && Number(m[1]) <= before.paidInstallments;
+  });
+  for (const e of stale) await softDelete('expenses', e.id, `Se deshizo el pago "${e.concept}" (vuelve a la plata hasta cobrar)`, db);
 }
 
 export async function softDelete(name: SyncTable, id: string, summary: string, db: FinanzasDB = getDb()) {
