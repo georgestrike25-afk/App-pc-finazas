@@ -227,7 +227,11 @@ export function DeudasPage() {
   const [editing, setEditing] = useState<ObDraft | null>(null);
   const [detail, setDetail] = useState<Obligation | null>(null);
   const [paying, setPaying] = useState<{ statement?: Statement } | null>(null);
-  const obs = [...data.obligations].sort((a, b) => (a.nextDueMonth ?? '').localeCompare(b.nextDueMonth ?? ''));
+  const all = [...data.obligations].sort((a, b) => (a.nextDueMonth ?? '').localeCompare(b.nextDueMonth ?? ''));
+  // Las que ya se pagaron enteras (o se cancelaron) salen de la lista: quedan guardadas en "Ya pagadas" para que
+  // las cuentas de los meses pasados sigan bien y un resumen viejo no las vuelva a crear.
+  const finished = all.filter((o) => ['pagada', 'cancelada'].includes(derivedStatus(o, today)));
+  const obs = all.filter((o) => !finished.includes(o));
   const statements = [...data.statements].sort((a, b) => b.month.localeCompare(a.month));
   const payments = [...data.cardPayments].sort((a, b) => b.date.localeCompare(a.date));
   const newOb = (): ObDraft => ({ entity: '', type: 'compra_cuotas', concept: '', paidInstallments: 0, frequency: 'mensual', status: 'pendiente', variableAmount: false, nextDueMonth: today });
@@ -244,7 +248,7 @@ export function DeudasPage() {
     await saveRecord('obligations', payNextInstallment(o, now()), `Pago de cuota ${n} de "${o.concept}"`);
     toast(`Cuota ${n} registrada como pagada. Si fue un error, use "Deshacer último pago" en Calendario.`);
   };
-  const ahead = obs.filter((o) => o.status !== 'cancelada' && o.paidInstallments > installmentsDueBy(o, todayIso()));
+  const ahead = all.filter((o) => o.status !== 'cancelada' && o.paidInstallments > installmentsDueBy(o, todayIso()));
   const fixAhead = async () => {
     const list = ahead.map((o) => `• ${o.concept}: ${o.paidInstallments} → ${installmentsDueBy(o, todayIso())} pagadas`).join('\n');
     if (!(await confirmDialog(`Se dejarán como pagadas solo las cuotas vencidas hasta hoy:\n${list}`, { ok: 'Corregir' }))) return;
@@ -311,7 +315,7 @@ export function DeudasPage() {
           </div>
         )}
         {obs.length === 0 ? (
-          <Empty title="No hay obligaciones registradas">Agregue compras en cuotas, Plan V, préstamos o financiaciones, o impórtelas desde un resumen.</Empty>
+          finished.length ? <p className="muted small">No te queda ninguna cuota por pagar.</p> : <Empty title="No hay obligaciones registradas">Agregue compras en cuotas, Plan V, préstamos o financiaciones, o impórtelas desde un resumen.</Empty>
         ) : (
           <div className="table-wrap ob-table">
             <table>
@@ -350,6 +354,22 @@ export function DeudasPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {finished.length > 0 && (
+          <details className="ob-done" data-testid="ob-terminadas">
+            <summary>Ya pagadas ({finished.length})</summary>
+            <ul className="list">
+              {finished.map((o) => {
+                const st = derivedStatus(o, today);
+                return (
+                  <li key={o.id}>
+                    <span>{o.concept}<small className="muted d-block">{o.entity} · {OBLIGATION_TYPE_LABEL[o.type]} · {STATUS_LABEL[st]}</small></span>
+                    <span className="row-actions">{actions(o, st)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
         )}
       </Card>
 

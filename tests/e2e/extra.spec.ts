@@ -165,11 +165,15 @@ test('cuotas pagadas por error: aviso antes de pagar y corrección en un toque',
   await page.locator('.modal').getByRole('button', { name: 'Marcar la cuota 6 como pagada' }).click();
   await expect(page.locator('.modal')).toContainText('todavía no venció');
   await page.locator('.modal').getByRole('button', { name: 'Sí, la pagué' }).click();
-  await expect(row).toContainText('6/6 pagadas');
+  // Pagado entero: sale de la lista y queda en "Ya pagadas"
+  await expect(row).toHaveCount(0);
+  await expect(page.getByTestId('ob-terminadas')).toContainText('Ya pagadas (1)');
+  await expect(page.getByTestId('ob-terminadas')).toContainText('Préstamo personal');
   await expect(page.getByText('Hay cuotas marcadas como pagadas antes de vencer')).toBeVisible();
   await page.getByRole('button', { name: 'Dejar pagadas solo las vencidas hasta hoy' }).click();
   await page.locator('.modal').getByRole('button', { name: 'Corregir' }).click();
   await expect(row).toContainText('5/6 pagadas');
+  await expect(page.getByTestId('ob-terminadas')).toHaveCount(0);
   await expect(page.getByText('Hay cuotas marcadas como pagadas antes de vencer')).toHaveCount(0);
   // Deshacer último pago desde el calendario
   await row.getByRole('button', { name: 'Ver cuotas' }).click();

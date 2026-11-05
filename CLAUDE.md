@@ -55,3 +55,4 @@ App de finanzas personales de Jorge (es-AR). Una sola base web que se publica co
 - Saldo con la otra persona (`partnerLedger` en `expenses.ts`, tarjeta "Saldo con …" en Compartidos): suma acumulada de `partnerBalance` por mes + pagos (`Expense.settlement`, `cashOnly`): "Le pagué" baja la deuda y la plata; "Ya estamos a mano" pone el saldo en cero con `cashAdjust` (no toca la plata). Lo que le debés entra en "Cuánto necesito" del mes actual.
 - La cuota de préstamo debitada de la cuenta (al subir movimientos) también genera el pago `cashOnly` que baja la plata hasta cobrar.
 - Ideas: `docs/ideas-pendientes.md`.
+- Deudas terminadas (Deudas.tsx): las obligaciones con estado `pagada`/`cancelada` salen de la lista de "Préstamos y tarjetas" y quedan en el plegable "Ya pagadas (N)" (`data-testid="ob-terminadas"`) al final, sin borrarse. El aviso de cuotas pagadas antes de vencer revisa todas (también las terminadas).

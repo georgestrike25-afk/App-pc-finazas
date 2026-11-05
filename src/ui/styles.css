@@ -636,3 +636,7 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 /* Saldo con la otra persona (Compartidos) */
 .saldo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .saldo-row .big-money { display: block; font-size: 1.8rem; font-weight: 800; }
+
+.ob-done { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.ob-done summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.ob-done .list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
