@@ -513,14 +513,14 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           if (inc) await db.incomes.put(inc);
           await fp(it, 'ingreso', cur?.id ?? inc!.id);
         } else if (!cur) {
-          const inc: Income = { ...base(), month: it.month, status: 'confirmado', amountReceived: it.amount, receivedDate: date, extras: [], deductions: [], notes: `Importado: ${it.concept}`, revisions: [] };
+          const inc: Income = { ...base(), month: it.month, status: 'confirmado', amountReceived: it.amount, receivedDate: date, salaryAt: now, extras: [], deductions: [], notes: `Importado: ${it.concept}`, revisions: [] };
           await db.incomes.put(inc);
           await fp(it, 'ingreso', inc.id);
         } else {
           const changes: Partial<Income> =
             cur.status === 'estimado' || cur.amountReceived === 0
-              ? { status: 'confirmado', amountReceived: it.amount, receivedDate: date, notes: [cur.notes, `Importado: ${it.concept}`].filter(Boolean).join(' · ') }
-              : { extras: [...cur.extras, { concept: it.concept, amount: it.amount }] };
+              ? { status: 'confirmado', amountReceived: it.amount, receivedDate: date, salaryAt: now, notes: [cur.notes, `Importado: ${it.concept}`].filter(Boolean).join(' · ') }
+              : { extras: [...cur.extras, { concept: it.concept, amount: it.amount, at: now }] };
           await db.incomes.put({ ...reviseIncome(cur, changes, now), deviceId });
           await fp(it, 'ingreso', cur.id);
         }

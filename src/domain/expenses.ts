@@ -38,7 +38,7 @@ export function splitShared(total: Cents, userPct: number): { user: Cents; partn
 }
 
 export function occurrenceFor(e: Expense, month: MonthKey): ExpenseOccurrence | null {
-  if (e.deleted) return null;
+  if (e.deleted || e.cashOnly) return null;
   if (e.frequency === 'unica') {
     if (e.month !== month) return null;
   } else {

@@ -33,7 +33,11 @@ export function IncomeForm({ initial, onClose }: { initial: Draft; onClose: () =
     if (d.amountReceived === undefined || d.amountReceived < 0) return setErr('Ingrese el importe (puede ser 0).');
     const existing = d.id ? data.incomes.find((i) => i.id === d.id) : undefined;
     const clean = { ...d, extras: d.extras.filter((x) => x.amount || x.concept), deductions: d.deductions.filter((x) => x.amount || x.concept) };
-    const rec = existing ? reviseIncome(existing, clean, new Date().toISOString()) : { ...clean, revisions: [] };
+    const now = new Date().toISOString();
+    // Si el sueldo es nuevo o cambió, se marca cuándo se cargó: así entra a "Plata hasta cobrar" una sola vez.
+    const salaryChanged = clean.status === 'confirmado' && clean.amountReceived > 0 && (!existing || existing.amountReceived !== clean.amountReceived || existing.status !== 'confirmado');
+    const base = existing ? reviseIncome(existing, clean, now) : { ...clean, revisions: [] };
+    const rec = salaryChanged ? { ...base, salaryAt: now } : base;
     await saveRecord<Income>('incomes', rec, `${existing ? 'Modificación' : 'Registro'} de ingreso de ${monthLabel(d.month)}`);
     toast('Ingreso guardado');
     onClose();

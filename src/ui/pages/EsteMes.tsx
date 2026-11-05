@@ -7,7 +7,8 @@ import { goalProgress, projectGoal } from '../../domain/savings';
 import { formatDate, monthLabel, todayIso } from '../../domain/dates';
 import { sum } from '../../domain/money';
 import { getDb } from '../../db/db';
-import { notify, saveRecord } from '../../db/repo';
+import { getDeviceId, notify, saveRecord } from '../../db/repo';
+import { debtPaymentExpense, installmentAmountFor } from '../../domain/payments';
 import { markStatementPaid } from '../../db/cardPayments';
 import { Card, confirmDialog, Empty, Help, InHeader, Money, MonthNav, Ring } from '../components/ui';
 import { ArrowDownToLine, ArrowUpRight, ChevronRight, Plus, Receipt, Upload } from 'lucide-react';
@@ -40,14 +41,18 @@ function Pendientes({ items }: { items: CheckItem[] }) {
     const e = data.expenses.find((x) => x.id === id);
     if (!e) return;
     if (!(await confirmDialog(`¿Ya pagaste ${e.concept} (${formatARS(e.totalAmount)})?`, { ok: 'Sí, ya lo pagué' }))) return;
-    await saveRecord<Expense>('expenses', { ...e, paid: true }, `Pago de "${e.concept}"`);
+    // Recién cuando lo marcás pagado baja tu plata hasta cobrar.
+    await saveRecord<Expense>('expenses', { ...e, paid: true, paidAt: new Date().toISOString() }, `Pago de "${e.concept}"`);
     toast('Marcado como pagado.');
   };
   const payInstallment = async (obId: string, n: number) => {
     const ob = data.obligations.find((o) => o.id === obId);
     if (!ob) return;
-    if (!(await confirmDialog(`¿Ya pagaste la cuota ${n} de ${ob.concept}?`, { ok: 'Sí, la pagué' }))) return;
-    await saveRecord<Obligation>('obligations', markPaidThrough(ob, n, new Date().toISOString(), `Pago de cuota ${n} (confirmado por el usuario)`), `Pago de cuota ${n} de "${ob.concept}"`);
+    const amount = installmentAmountFor(ob, n);
+    if (!(await confirmDialog(`¿Ya pagaste la cuota ${n} de ${ob.concept}?${amount ? `\nSe descuentan ${formatARS(amount)} de tu plata hasta cobrar.` : ''}`, { ok: 'Sí, la pagué' }))) return;
+    const now = new Date().toISOString();
+    await saveRecord<Obligation>('obligations', markPaidThrough(ob, n, now, `Pago de cuota ${n} (confirmado por el usuario)`), `Pago de cuota ${n} de "${ob.concept}"`);
+    if (amount > 0) await saveRecord<Expense>('expenses', debtPaymentExpense(`Cuota ${n} de ${ob.concept}`, amount, todayIso(), now, await getDeviceId(getDb())), `Pago de la cuota ${n} de "${ob.concept}" (baja la plata hasta cobrar)`);
     toast('Cuota marcada como pagada.');
   };
   return (

@@ -111,7 +111,7 @@ describe('movimientos de cuenta (capturas de home banking, datos ficticios)', ()
     await commitReview(await buildReview(d, { name: 'a.jpg', size: 1, mime: 'image/jpeg', kind: 'imagen', hash: 'a' }, true, db, '2026-09'), null, db);
     const inc = (await loadDataSet(db)).incomes[0];
     expect(inc.amountReceived).toBe(20000000);
-    expect(inc.extras).toEqual([{ concept: 'Acredit. plan sueldos c 0001', amount: 100000000 }]);
+    expect(inc.extras).toEqual([expect.objectContaining({ concept: 'Acredit. plan sueldos c 0001', amount: 100000000 })]);
     expect(inc.revisions).toHaveLength(1);
     expect(parseStatementText(ACCOUNT_LINES).items.length).toBeGreaterThanOrEqual(0);
   });

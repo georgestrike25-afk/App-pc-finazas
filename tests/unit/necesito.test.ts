@@ -39,11 +39,17 @@ describe('cuánto necesito este mes', () => {
   });
 
   it('ARCA va aparte: $ 100.000 por defecto, editable, y nunca más que lo que se debe', () => {
-    expect(n.arca).toEqual({ balance: 50000000, plan: ARCA_DEFAULT_MONTHLY });
+    expect(n.arca).toEqual({ balance: 50000000, plan: ARCA_DEFAULT_MONTHLY, paid: 0 });
     expect(n.totalWithArca).toBe(n.total + 10000000);
     const d = data();
     d.settings = { ...d.settings, arcaMonthly: 30000000 };
     expect(needForMonth(d, '2026-11', '2026-11').arca!.plan).toBe(30000000);
+    // Lo que ya pagaste a ARCA en el mes no se vuelve a sumar.
+    d.settings = { ...d.settings, arcaPaid: { '2026-11': 30000000 } };
+    const hecho = needForMonth(d, '2026-11', '2026-11');
+    expect(hecho.arca!.paid).toBe(30000000);
+    expect(hecho.totalWithArca).toBe(hecho.total);
+    d.settings = { ...d.settings, arcaPaid: undefined };
     d.settings = { ...d.settings, arcaMonthly: 90000000 };
     expect(needForMonth(d, '2026-11', '2026-11').arca!.plan).toBe(50000000);
   });

@@ -34,6 +34,8 @@ export interface Income extends BaseRecord {
   /** Ingreso principal efectivamente cobrado (o estimado, según status). */
   amountReceived: Cents;
   receivedDate?: string;
+  /** Cuándo se cargó el sueldo en la app: si fue después de anotar tu plata, entra a "Plata hasta cobrar". */
+  salaryAt?: string;
   extras: IncomeLine[];
   deductions: IncomeLine[];
   notes?: string;
@@ -87,6 +89,10 @@ export interface Expense extends BaseRecord {
    * gasto tuyo (no cuenta en el mes ni en el presupuesto), pero la plata sí salió de tu bolsillo.
    */
   refund?: Refund;
+  /** Cuándo se marcó como pagado (facturas): recién ahí baja la plata hasta cobrar. */
+  paidAt?: string;
+  /** Pago de una deuda (cuota, ARCA…): baja la plata hasta cobrar, pero no es un gasto del mes (ya está en las cuotas). */
+  cashOnly?: boolean;
   notes?: string;
 }
 
@@ -206,6 +212,8 @@ export interface SancorCharge extends BaseRecord {
 
 export interface Contribution {
   id: string;
+  /** Cuándo se anotó (baja la plata hasta cobrar si fue después de anotarla). */
+  at?: string;
   date: string;
   month: MonthKey;
   amount: Cents;
@@ -295,6 +303,8 @@ export interface Settings extends BaseRecord {
   paydays?: Record<MonthKey, string>;
   /** Lo que pensás pagar por mes a ARCA (monotributo), opcional. */
   arcaMonthly?: Cents;
+  /** Lo que ya pagaste a ARCA en cada mes (para no volver a sumarlo a lo que necesitás). */
+  arcaPaid?: Record<MonthKey, Cents>;
   /** Quién te devuelve gastos por defecto (p. ej. "Hospital"): con eso, "Me devuelven" es un solo toque. */
   refundFrom?: string;
 }

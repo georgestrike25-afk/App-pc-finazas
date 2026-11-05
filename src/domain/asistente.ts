@@ -63,6 +63,7 @@ export function liveAnswers(data: DataSet & { goal: SavingsGoal }, today: MonthK
           short: `Te quedan ${f(cash.left)}${cash.perDay !== undefined && cash.days ? `: unos ${f(cash.perDay)} por día durante ${cash.days} días` : ''}.`,
           lines: [
             { label: 'Plata que anotaste', amount: cash.start },
+            ...(cash.salary ? [{ label: 'Sueldo cargado después', amount: cash.salary }] : []),
             ...(cash.ingresos ? [{ label: 'Ingresos después de anotarla', amount: cash.ingresos }] : []),
             ...(cash.returned ? [{ label: 'Lo que te devolvieron', amount: cash.returned }] : []),
             { label: 'Gastado desde entonces (sin tarjeta de crédito)', amount: cash.spent, minus: true },
@@ -231,7 +232,7 @@ export function liveAnswers(data: DataSet & { goal: SavingsGoal }, today: MonthK
 export const GUIDE: Answer[] = [
   // Este mes
   { id: 'g-quedan', topic: 'Este mes', q: '¿Qué es "Te quedan este mes"?', keywords: 'te quedan resultado mes cuenta', short: 'Es lo que entró en el mes menos lo que gastaste (tu parte) menos las cuotas y préstamos del mes. Solo cuenta lo ya cargado.', href: '#/resumen', hrefLabel: 'Ver Detalle del mes' },
-  { id: 'g-plata', topic: 'Este mes', q: '¿Para qué sirve anotar "¿Cuánta plata tenés hoy?"', keywords: 'plata hasta cobrar anotar cuanta plata tenes hoy', short: 'Anotás lo que tenés en el bolsillo y en las cuentas. Desde ahí la app resta lo que gastás (menos lo de tarjeta de crédito, que va al resumen) y suma lo que te entra, y te dice cuánto podés gastar por día hasta cobrar. Volvé a anotarla cuando cobres.', href: '#/inicio', hrefLabel: 'Ir a Este mes' },
+  { id: 'g-plata', topic: 'Este mes', q: '¿Para qué sirve anotar "¿Cuánta plata tenés hoy?"', keywords: 'plata hasta cobrar anotar cuanta plata tenes hoy', short: 'Anotás lo que tenés en el bolsillo y en las cuentas. Desde ahí la app resta lo que gastás (menos lo de tarjeta de crédito, que va al resumen) y suma lo que te entra, y te dice cuánto podés gastar por día hasta cobrar. El sueldo que cargues después entra entero, y a medida que marcás pagado un resumen, una cuota, una factura, ARCA o un aporte de ahorro, se descuenta. Abajo ves cuánto falta pagar y cuánto queda libre para el día a día. Si el número no coincide con lo que tenés, tocá Corregir.', href: '#/inicio', hrefLabel: 'Ir a Este mes' },
   { id: 'g-segun', topic: 'Este mes', q: '¿Qué es "Según lo cargado este mes" y por qué no coincide con mi plata?', keywords: 'segun lo cargado no coincide diferencia ajuste gastos sin detalle', short: 'Es la cuenta del mes con lo que cargaste. Si no coincide con tu plata real es porque falta anotar algún gasto. Podés tocar "Anotar la diferencia" para que se cargue como "gastos sin detalle".' },
   { id: 'g-pendientes', topic: 'Este mes', q: '¿Qué es la lista de Pendientes?', keywords: 'pendientes lista tilde check verde ya lo pague', short: 'Lo que falta hacer en el mes: cargar el sueldo, pagar resúmenes y cuotas, registrar lo de Sancor, hacer la copia. El círculo vacío es pendiente; la tilde verde es hecho o pagado. "Ya lo pagué" marca un pago sin subir comprobante.' },
   { id: 'g-flechas', topic: 'Este mes', q: '¿Cómo veo otro mes?', keywords: 'otro mes anterior flechas cambiar mes', short: 'Con las flechas de arriba (‹ ›) en Este mes, Gastos, Ingresos y Compartidos.' },

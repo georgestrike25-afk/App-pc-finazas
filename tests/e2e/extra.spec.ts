@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
-import { go, GUIA_VISTA } from './helpers';
+import { fillMoney, go, GUIA_VISTA } from './helpers';
 
 test('PDF escaneado (solo imagen) se lee con OCR local', async ({ page }) => {
   test.setTimeout(240_000);
@@ -350,4 +350,35 @@ test('tema: claro, oscuro o el del sistema, y se recuerda al volver a abrir', as
   await expect(html).toHaveAttribute('data-theme', 'light');
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(html).toHaveAttribute('data-theme', 'dark');
+});
+
+test('plata hasta cobrar: el sueldo entra entero y lo que marcás pagado baja', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-05T12:00:00'));
+  await go(page, 'inicio');
+  const card = page.locator('.cash-card');
+  await card.getByLabel('¿Cuánta plata tenés hoy?').fill('50.000');
+  await card.getByRole('button', { name: 'Guardar' }).click();
+  await expect(card).toContainText('50.000,00');
+  // Se carga el sueldo: entra entero a la plata y se estira hasta el próximo cobro.
+  await page.clock.setFixedTime(new Date('2026-11-05T12:05:00'));
+  await go(page, 'ingresos');
+  await page.getByRole('button', { name: '+ Registrar ingreso' }).click();
+  await fillMoney(page, 'Ingreso efectivamente cobrado', '2.000.000');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await expect(page.locator('table')).toContainText('2.000.000,00');
+  await go(page, 'inicio');
+  await expect(card).toContainText('2.050.000,00');
+  await expect(card).toContainText('de tu sueldo');
+  await expect(card).toContainText('04/12/2026'); // próximo cobro (cuarto día hábil de diciembre)
+  // Una deuda con cuota este mes: falta pagar, y al marcarla pagada baja la plata.
+  await go(page, 'deudas');
+  await page.getByRole('button', { name: '+ Nueva deuda' }).click();
+  await page.locator('input[name="concept"]').fill('Préstamo de prueba');
+  await page.locator('input[name="totalInstallments"]').fill('6');
+  await page.locator('input[name="installmentAmount"]').fill('100.000');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.locator('.ob-table').getByText('Préstamo de prueba')).toBeVisible();
+  await go(page, 'inicio');
+  await expect(page.getByTestId('cash-libre')).toContainText('Falta pagar');
 });

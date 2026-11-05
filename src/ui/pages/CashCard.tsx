@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { saveRecord } from '../../db/repo';
 import { cashStatus } from '../../domain/cash';
+import { needForMonth } from '../../domain/necesito';
 import { addMonths, formatDate, todayIso } from '../../domain/dates';
 import type { Cents } from '../../domain/money';
 import type { Settings } from '../../domain/types';
@@ -19,9 +20,11 @@ function nextPayday(data: ReturnType<typeof useApp>['data'], today: string): str
 
 /** "Plata hasta cobrar": cuánto tenés hoy y cuánto podés gastar por día. */
 export function CashCard() {
-  const { data, toast } = useApp();
+  const { data, toast, today: monthKey } = useApp();
   const today = todayIso();
   const st = useMemo(() => cashStatus(data, today), [data, today]);
+  // Lo que todavía falta pagar este mes (tarjetas, préstamos, facturas): ya está en tu plata, pero no es para gastar.
+  const need = useMemo(() => needForMonth(data, monthKey, monthKey).total, [data, monthKey]);
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState<Cents | undefined>();
   const [until, setUntil] = useState('');
@@ -55,12 +58,18 @@ export function CashCard() {
     <Card className="cash-card" title="Plata hasta cobrar" actions={<button className="btn small ghost" onClick={open}>Corregir</button>} help="Se descuenta cada gasto que anotes o que la app detecte desde que pusiste el monto (efectivo, débito, transferencias, billeteras y pagos de resumen). Las compras con tarjeta de crédito no, porque se pagan con el resumen. Si el número no coincide con lo que tenés, tocá Corregir.">
       <span className="hero-label">{st.left >= 0 ? 'Te quedan' : 'Te pasaste por'}</span>
       <Money value={Math.abs(st.left)} className={`hero-money ${st.left < 0 ? 'neg' : ''}`} />
-      {st.days !== undefined && c.until && (
+      {st.days !== undefined && st.until && (
         <p className="cash-days">
-          hasta el {formatDate(c.until)} · {st.days} día{st.days === 1 ? '' : 's'} · <strong><Money value={st.perDay!} /> por día</strong>
+          hasta el {formatDate(st.until)} · {st.days} día{st.days === 1 ? '' : 's'} · <strong><Money value={need > 0 ? Math.floor(Math.max(0, st.left - need) / st.days) : st.perDay!} /> por día</strong>
         </p>
       )}
-      {st.items.length > 0 && <Progress value={st.spent} max={st.start + st.returned + st.ingresos} />}
+      {need > 0 && (
+        <small className="muted d-block" data-testid="cash-libre">
+          Falta pagar <Money value={need} /> (tarjetas, préstamos y facturas) · libre para el día a día <Money value={st.left - need} />
+        </small>
+      )}
+      {st.salary > 0 && <small className="ok-text">+ <Money value={st.salary} /> de tu sueldo</small>}
+      {st.items.length > 0 && <Progress value={st.spent} max={st.start + st.returned + st.ingresos + st.salary} />}
       {st.ingresos > 0 && <small className="ok-text">+ <Money value={st.ingresos} /> que te entraron (ingresos anotados)</small>}
       {st.returned > 0 && <small className="ok-text">+ <Money value={st.returned} /> que te devolvieron o te pasaron</small>}
       {st.items.length === 0 ? (

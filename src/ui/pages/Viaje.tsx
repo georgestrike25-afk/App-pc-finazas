@@ -52,7 +52,7 @@ export function ViajePage() {
   };
   const addContribution = async () => {
     if (!cAmount || cAmount <= 0) return;
-    await saveRecord<SavingsGoal>('goals', { ...saved, contributions: [...saved.contributions, { id: uid(), date: cDate, month: monthOf(cDate), amount: cAmount }] }, `Aporte al viaje (${formatARS(cAmount)})`);
+    await saveRecord<SavingsGoal>('goals', { ...saved, contributions: [...saved.contributions, { id: uid(), at: new Date().toISOString(), date: cDate, month: monthOf(cDate), amount: cAmount }] }, `Aporte al viaje (${formatARS(cAmount)})`);
     setCAmount(undefined);
     toast('Aporte registrado');
   };

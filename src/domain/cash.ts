@@ -1,8 +1,9 @@
-import { daysBetween } from './dates';
+import { addMonths, daysBetween } from './dates';
 import { splitShared } from './expenses';
 import { sum, type Cents } from './money';
 import type { DataSet } from './monthly';
-import type { Expense } from './types';
+import { paydayOf } from './payday';
+import type { Contribution, Expense } from './types';
 
 export interface CashStatus {
   start: Cents;
@@ -11,12 +12,16 @@ export interface CashStatus {
   returned: Cents;
   /** Ingresos que anotaste después de anotar tu plata (no el sueldo: con el sueldo se vuelve a anotar la plata). */
   ingresos: Cents;
+  /** Sueldo cargado después de anotar tu plata: entra entero (lo que ya pagaste se va descontando). */
+  salary: Cents;
   left: Cents;
   /** Gastos que se descontaron (para mostrarlos). */
   items: Array<{ concept: string; amount: Cents; date: string }>;
   /** Días que faltan contando hoy (si se indicó hasta cuándo). */
   days?: number;
   perDay?: Cents;
+  /** Hasta cuándo te tiene que alcanzar: si cargaste un sueldo nuevo, hasta el cobro siguiente. */
+  until?: string;
 }
 
 /** Lo que sale de tu bolsillo por un gasto: tu parte si es compartido. */
@@ -27,15 +32,22 @@ const outOfPocket = (e: Expense) => (e.kind === 'hogar' ? splitShared(e.totalAmo
  * los gastos que anota o que detecta la app (efectivo, débito, transferencias, billeteras) y
  * los pagos de resumen. Las compras con tarjeta de crédito no: se pagan con el resumen.
  */
-export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'settings'> & Partial<Pick<DataSet, 'sancor' | 'incomes'>>, todayIso: string): CashStatus | null {
+/** Factura de un servicio subida y todavía sin pagar: no baja tu plata hasta que la marques como pagada. */
+const isUnpaidBill = (e: Expense) => e.source === 'importado' && /^Factura /.test(e.notes ?? '') && !e.paid;
+
+export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'settings'> & Partial<Pick<DataSet, 'sancor' | 'incomes'>> & { goal?: { contributions: Contribution[] } }, todayIso: string): CashStatus | null {
   const c = data.settings.cash;
   if (!c) return null;
   const since = c.setAt.slice(0, 10);
-  const counted = data.expenses.filter((e) => !e.deleted && e.createdAt > c.setAt && e.date >= since && e.paymentMethod !== 'tarjeta' && !e.provisional && !e.cashAdjust);
+  // Un pago marcado después cuenta desde que se marcó (paidAt), aunque su vencimiento sea otro día.
+  const counted = data.expenses.filter((e) => !e.deleted && !isUnpaidBill(e) && (e.paidAt ?? e.createdAt) > c.setAt && (!!e.paidAt || e.date >= since) && e.paymentMethod !== 'tarjeta' && !e.provisional && !e.cashAdjust);
+  // Lo que separaste para ahorrar (viaje) también sale de tu plata.
+  const saved = (data.goal?.contributions ?? []).filter((x) => x.at && x.at > c.setAt && x.date >= since);
   const payments = data.cardPayments.filter((p) => !p.deleted && p.createdAt > c.setAt && p.date >= since);
   const items = [
     ...counted.map((e) => ({ concept: e.concept, amount: outOfPocket(e), date: e.date })),
     ...payments.map((p) => ({ concept: `Pago del resumen de ${p.entity}`, amount: p.amount, date: p.date })),
+    ...saved.map((x) => ({ concept: 'Ahorro para el viaje', amount: x.amount, date: x.date })),
   ].sort((a, b) => b.date.localeCompare(a.date));
   const spent = sum(items.map((i) => i.amount));
   // Lo que te devuelve tu pareja (Sancor) después de anotar tu plata: vuelve a tu bolsillo.
@@ -50,7 +62,15 @@ export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'se
       .filter((i) => !i.deleted)
       .flatMap((i) => i.extras.filter((x) => x.amount > 0 && (x.at ? x.at > c.setAt : i.createdAt > c.setAt)).map((x) => x.amount)),
   );
-  const left = c.amount - spent + returned + ingresos;
-  const days = c.until && c.until >= todayIso ? daysBetween(todayIso, c.until) + 1 : undefined;
-  return { start: c.amount, spent, returned, ingresos, left, items, days, perDay: days ? Math.floor(Math.max(0, left) / days) : undefined };
+  // El sueldo cargado después de anotar tu plata entra entero; lo que vas pagando se descuenta de ahí.
+  const paychecks = (data.incomes ?? []).filter((i) => !i.deleted && i.status === 'confirmado' && i.amountReceived > 0 && !!i.salaryAt && i.salaryAt > c.setAt);
+  const salary = sum(paychecks.map((i) => i.amountReceived));
+  let until = c.until;
+  if (paychecks.length) {
+    const next = paydayOf(addMonths(paychecks.map((i) => i.month).sort().at(-1)!, 1), data.settings);
+    if (!until || until < next) until = next;
+  }
+  const left = c.amount - spent + returned + ingresos + salary;
+  const days = until && until >= todayIso ? daysBetween(todayIso, until) + 1 : undefined;
+  return { start: c.amount, spent, returned, ingresos, salary, left, items, days, perDay: days ? Math.floor(Math.max(0, left) / days) : undefined, until };
 }

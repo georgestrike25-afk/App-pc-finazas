@@ -32,7 +32,7 @@ export interface Need {
   /** Parte del total que venció antes y sigue sin pagar. */
   overdue: Cents;
   /** Deuda con ARCA (monotributo): opcional, va aparte. */
-  arca?: { balance: Cents; plan: Cents };
+  arca?: { balance: Cents; plan: Cents; paid: Cents };
   totalWithArca: Cents;
 }
 
@@ -73,6 +73,6 @@ export function needForMonth(data: DataSet, month: MonthKey, today: MonthKey): N
   const overdue = sum(groups.flatMap((g) => g.lines.filter((l) => l.overdue).map((l) => l.amount)));
 
   const arcaDebt = data.obligations.find((o) => !o.deleted && o.fingerprint === ARCA_FINGERPRINT && (o.knownBalance ?? 0) > 0);
-  const arca = arcaDebt ? { balance: arcaDebt.knownBalance!, plan: Math.min(arcaDebt.knownBalance!, data.settings.arcaMonthly ?? ARCA_DEFAULT_MONTHLY) } : undefined;
-  return { month, groups, total, overdue, arca, totalWithArca: total + (arca?.plan ?? 0) };
+  const arca = arcaDebt ? { balance: arcaDebt.knownBalance!, plan: Math.min(arcaDebt.knownBalance!, data.settings.arcaMonthly ?? ARCA_DEFAULT_MONTHLY), paid: data.settings.arcaPaid?.[month] ?? 0 } : undefined;
+  return { month, groups, total, overdue, arca, totalWithArca: total + (arca ? Math.max(0, arca.plan - arca.paid) : 0) };
 }

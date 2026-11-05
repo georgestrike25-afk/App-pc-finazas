@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
-import { saveRecord } from '../../db/repo';
+import { getDeviceId, saveRecord } from '../../db/repo';
+import { getDb } from '../../db/db';
+import { debtPaymentExpense } from '../../domain/payments';
+import { ARCA_FINGERPRINT } from '../../domain/necesito';
+import { formatARS } from '../../domain/money';
+import { confirmDialog } from '../components/ui';
+import type { Expense, Obligation } from '../../domain/types';
 import { cashStatus } from '../../domain/cash';
 import { formatDate, monthLabel, todayIso } from '../../domain/dates';
 import { ARCA_DEFAULT_MONTHLY, needForMonth } from '../../domain/necesito';
@@ -19,6 +25,18 @@ export function NecesitoPage() {
     if (plan === undefined) return;
     await saveRecord<Settings>('settings', { ...data.settings, arcaMonthly: plan }, `Pago mensual a ARCA: ${(plan / 100).toLocaleString('es-AR')}`);
     toast('Listo: monto de ARCA actualizado.');
+  };
+  const paidArca = async () => {
+    const ob = data.obligations.find((o) => !o.deleted && o.fingerprint === ARCA_FINGERPRINT);
+    if (!ob || !need.arca) return;
+    const amount = Math.max(0, need.arca.plan - need.arca.paid);
+    if (!amount) return;
+    if (!(await confirmDialog(`¿Ya pagaste ${formatARS(amount)} a ARCA?\nSe descuentan de tu plata hasta cobrar y de lo que debés (hasta que subas el PDF nuevo).`, { ok: 'Sí, ya pagué' }))) return;
+    const now = new Date().toISOString();
+    await saveRecord<Expense>('expenses', debtPaymentExpense('Pago a ARCA (monotributo)', amount, todayIso(), now, await getDeviceId(getDb())), 'Pago a ARCA (baja la plata hasta cobrar)');
+    await saveRecord<Obligation>('obligations', { ...ob, knownBalance: Math.max(0, (ob.knownBalance ?? 0) - amount) }, `Pago de ${formatARS(amount)} a ARCA: baja el saldo`);
+    await saveRecord<Settings>('settings', { ...data.settings, arcaPaid: { ...(data.settings.arcaPaid ?? {}), [month]: (data.settings.arcaPaid?.[month] ?? 0) + amount } }, `Pago a ARCA de ${monthLabel(month)}`);
+    toast('Listo: pago a ARCA registrado.');
   };
   const diff = cash ? cash.left - need.total : 0;
   const diffArca = cash ? cash.left - need.totalWithArca : 0;
@@ -77,10 +95,13 @@ export function NecesitoPage() {
           <div className="form-grid">
             <Field label="Pensás pagar por mes">{(id) => <MoneyInput id={id} value={plan} onChange={setPlan} placeholder={String(ARCA_DEFAULT_MONTHLY / 100)} />}</Field>
           </div>
-          <button className="btn small" onClick={savePlan} disabled={plan === undefined || plan === need.arca.plan}>Guardar</button>
+          <div className="row-actions" style={{ justifyContent: 'flex-start', gap: 8 }}>
+            <button className="btn small" onClick={savePlan} disabled={plan === undefined || plan === need.arca.plan}>Guardar</button>
+            {need.arca.paid < need.arca.plan && <button className="btn small primary" onClick={paidArca}>Ya pagué <Money value={need.arca.plan - need.arca.paid} /></button>}
+          </div>
           <ul className="answer-lines" style={{ marginTop: 12 }}>
             <li><span>Total sin ARCA</span><Money value={need.total} /></li>
-            <li><span>ARCA este mes</span><span>+ <Money value={need.arca.plan} /></span></li>
+            <li><span>{need.arca.paid ? 'ARCA este mes (ya pagaste ' : 'ARCA este mes'}{need.arca.paid ? <Money value={need.arca.paid} /> : null}{need.arca.paid ? ')' : ''}</span><span>+ <Money value={Math.max(0, need.arca.plan - need.arca.paid)} /></span></li>
             <li className="strong"><span>Total con ARCA</span><Money value={need.totalWithArca} /></li>
           </ul>
         </Card>
