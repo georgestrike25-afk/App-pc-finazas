@@ -1,6 +1,6 @@
 import { monthLabel, monthOf } from '../../domain/dates';
 import { sum } from '../../domain/money';
-import { setSharedMe, type SharedReview } from '../../importers/sharedSheet';
+import { setDebtFrom, setSharedMe, type SharedReview } from '../../importers/sharedSheet';
 import { Badge, Card, Help, Money, Warnings } from '../components/ui';
 
 const pctText = (p: number) => `${p.toLocaleString('es-AR', { maximumFractionDigits: 1 })} %`;
@@ -39,7 +39,15 @@ export function SharedReviewView({ review, setReview, onConfirm, onCancel, error
             <ul className="list" data-testid="planilla-resumen">
               <li><span>Tu parte de los gastos compartidos (pagados por {partner})</span><Money value={sum(included.filter((r) => r.kind === 'hogar').map((r) => r.user))} /></li>
               <li><span>Gastos solo tuyos</span><Money value={sum(included.filter((r) => r.kind !== 'hogar').map((r) => r.user))} /></li>
+              <li className="strong"><span>Le vas a deber a {partner}</span><Money value={sum(included.filter((r) => r.debt).map((r) => r.user))} /></li>
             </ul>
+            <label className="field" style={{ marginTop: 10 }}>
+              <span className="small">Lo que pagó {partner} cuenta como deuda desde</span>
+              <select value={review.debtFrom} onChange={(e) => setReview(setDebtFrom(review, e.target.value))} data-testid="planilla-deuda-desde">
+                {[...months].sort().map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
+              </select>
+              <small className="muted">Los meses anteriores se toman como ya saldados. Lo que le vayas pagando lo anotás en Compartidos → "Le pagué".</small>
+            </label>
             {review.skipped.length > 0 && (
               <div className="small muted">
                 <p style={{ margin: '0.5rem 0 0.25rem' }}>No se cargan:</p>
@@ -69,9 +77,9 @@ export function SharedReviewView({ review, setReview, onConfirm, onCancel, error
                     <div className="exp-sub">
                       {r.kind === 'hogar' ? <>Total <Money value={r.total} /> · tu parte {pctText(r.userPct)}</> : 'Solo tuyo'} · {r.category}
                     </div>
-                    {(r.note || r.existing) && (
+                    {(r.note || r.existing || r.estimated || (r.debt && r.include)) && (
                       <div className="exp-foot">
-                        <span className="exp-badges">{r.existing && <Badge tone="info">{r.note === 'Ya estaba cargado.' ? 'Ya cargado' : 'Se actualiza'}</Badge>}</span>
+                        <span className="exp-badges">{r.existing && <Badge tone="info">{r.note === 'Ya estaba cargado.' ? 'Ya cargado' : 'Se actualiza'}</Badge>}{r.estimated && <Badge tone="est">Estimado</Badge>}{r.debt && r.include && <Badge tone="warn">Le debés</Badge>}</span>
                         {r.note && r.note !== 'Ya estaba cargado.' && !r.note.startsWith('Ya estaba cargado con') && <small className="muted" style={{ flexBasis: '100%' }}>{r.note}</small>}
                       </div>
                     )}

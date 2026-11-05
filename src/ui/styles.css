@@ -632,3 +632,7 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .devoluciones .refund-txt > span { min-width: 0; overflow-wrap: anywhere; }
 .devoluciones .refund-row > .money, .devoluciones .refund-row > span.money { white-space: nowrap; font-weight: 600; }
 .devoluciones .refund-acts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; padding-left: 30px; }
+
+/* Saldo con la otra persona (Compartidos) */
+.saldo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.saldo-row .big-money { display: block; font-size: 1.8rem; font-weight: 800; }

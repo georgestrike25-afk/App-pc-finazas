@@ -1,7 +1,7 @@
 import { addMonths, formatDate, monthLabel, type MonthKey } from './dates';
 import { cashStatus } from './cash';
 import { savingsCapacity } from './capacity';
-import { occurrencesForMonth, otherPerson, partnerBalance } from './expenses';
+import { occurrencesForMonth, otherPerson, partnerLedger } from './expenses';
 import { formatARS, sum, type Cents } from './money';
 import { computeMonth, type DataSet } from './monthly';
 import { debtByEntity } from './obligations';
@@ -192,11 +192,12 @@ export function liveAnswers(data: DataSet & { goal: SavingsGoal }, today: MonthK
   });
 
   // 10. Compartidos y Sancor
-  const bal = partnerBalance(occurrencesForMonth(data.expenses.filter((e) => !e.deleted && e.kind === 'hogar'), today));
+  // Saldo acumulado con la otra persona (lo que pagó ella y te toca, menos lo que le pagaste).
+  const bal = partnerLedger(data.expenses, today).net;
   const who = otherPerson(s.partnerName);
   out.push({
-    id: 'compartidos', topic: T, live: true, q: '¿Cuánto me deben de los compartidos y de Sancor?', keywords: 'compartidos medias deben debo sancor devolver reintegro mitad',
-    short: `${bal === 0 ? 'Los compartidos de este mes están a mano' : bal > 0 ? `De los compartidos, ${who} te debe ${f(bal)}` : `De los compartidos, le debés ${f(-bal)} a ${who}`}${r.info.sancorPending ? `; de Sancor te tienen que devolver ${f(r.info.sancorPending)}` : ''}.`,
+    id: 'compartidos', topic: T, live: true, q: '¿Cuánto le debo a la otra persona (compartidos) y qué me devuelve Sancor?', keywords: 'compartidos medias deben debo debes saldo antonella pareja planilla sancor devolver reintegro mitad',
+    short: `${bal === 0 ? `Con ${who} están a mano` : bal > 0 ? `${who} te debe ${f(bal)}` : `Le debés ${f(-bal)} a ${who}`}${r.info.sancorPending ? `; de Sancor te tienen que devolver ${f(r.info.sancorPending)}` : ''}.`,
     href: '#/compartidos', hrefLabel: 'Ver Compartidos',
   });
 
@@ -271,6 +272,7 @@ export const GUIDE: Answer[] = [
   { id: 'g-aporte', topic: 'Viajes y ahorros', q: '¿Cómo anoto que separé plata para el viaje?', keywords: 'aporte separar guardar viaje registrar ahorro', short: 'En Viajes y ahorros, en "Aportes", poné el importe y la fecha y tocá Agregar. Cuenta como ya ahorrado.', href: '#/viaje', hrefLabel: 'Ir a Viajes y ahorros' },
   // Compartidos
   { id: 'g-compart', topic: 'Compartidos', q: '¿Cómo funcionan los gastos compartidos?', keywords: 'compartidos hogar alquiler mitad quien pago debe', short: 'Son gastos que dividís con otra persona. En cada uno elegís qué parte es tuya (por defecto 50 %) y quién lo pagó; arriba ves quién le debe a quién. Solo se cuenta tu parte.', href: '#/compartidos', hrefLabel: 'Ir a Compartidos' },
+  { id: 'g-saldo', topic: 'Compartidos', q: '¿Cómo llevo lo que le debo por los gastos compartidos?', keywords: 'saldo debo deuda antonella pareja planilla le pague a mano compartidos', short: 'Subí la planilla de gastos compartidos (el archivo, no una captura): tu parte es la mitad de lo que pagó ella, y lo que es todo tuyo (el consultorio) no se divide. Desde el mes que elijas, eso suma a lo que le debés. En Compartidos ves "Le debés $ X" y tocás "Le pagué" cada vez que le pasás plata (también baja tu plata hasta cobrar). Si ella no cargó el mes, se estima igual que el anterior.', href: '#/compartidos', hrefLabel: 'Ir a Compartidos' },
   { id: 'g-sancor', topic: 'Compartidos', q: '¿Cómo funciona lo de Sancor Salud?', keywords: 'sancor salud cupon reintegro devolver', short: 'La tarjeta te cobra la cuota entera; te devuelven la parte que no es tuya. En Compartidos ves cuánto te tienen que devolver y anotás cuando te lo dan.' },
   // Celular y PC
   { id: 'g-sync', topic: 'Celular y PC', q: '¿Cómo conecto el celular con la PC?', keywords: 'sincronizar conectar pc celular qr frase wifi', short: 'En la PC, Copias y sincronización muestra un QR. En el celular, Copias → "Escanear el QR de la PC" y poné la misma frase. Con los dos en el mismo wifi se sincronizan solos.', href: '#/copias', hrefLabel: 'Ir a Copias' },

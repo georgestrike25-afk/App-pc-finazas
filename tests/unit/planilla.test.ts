@@ -6,7 +6,10 @@ import { detectLoanSchedule } from '../../src/importers/loanSchedule';
 import { rowsToLines } from '../../src/importers/tabular';
 import { getSettings, loadDataSet } from '../../src/db/repo';
 import { computeMonth } from '../../src/domain/monthly';
-import { occurrencesForMonth } from '../../src/domain/expenses';
+import { occurrencesForMonth, partnerLedger } from '../../src/domain/expenses';
+import { debtPaymentExpense } from '../../src/domain/payments';
+import { needForMonth } from '../../src/domain/necesito';
+import { setDebtFrom } from '../../src/importers/sharedSheet';
 import { freshDb } from './helpers';
 
 const CH = 4; // ancho aproximado de cada carácter
@@ -115,8 +118,12 @@ describe('planilla de gastos compartidos', () => {
       const m = computeMonth(data, '2026-10', '2026-10');
       expect(m.sections.find((s) => s.key === 'fijos')!.total).toBe(15500000 + 1250000);
       expect(m.sections.find((s) => s.key === 'personales')!.total).toBe(1500000);
-      // Ya pagado: no queda deuda con la pareja
-      expect(oct.filter((o) => o.kind === 'hogar').every((o) => o.paidBy === 'cada_uno')).toBe(true);
+      // El mes actual cuenta como deuda con la pareja: tu mitad de lo compartido y lo tuyo entero (cochera).
+      expect(oct.filter((o) => o.kind === 'hogar').every((o) => o.paidBy === 'pareja')).toBe(true);
+      expect(partnerLedger(data.expenses, '2026-10').net).toBe(-(15500000 + 1250000 + 1500000));
+      // Los meses anteriores se toman como saldados.
+      const sep = occurrencesForMonth(data.expenses, '2026-09');
+      expect(sep.filter((o) => o.kind === 'hogar').every((o) => o.paidBy === 'cada_uno')).toBe(true);
 
       // Segunda vez: ahora reconoce a Leo y deja todo desmarcado
       const again = await buildSharedReview(sh, { ...file, hash: 'h2' }, db, '2026-10');
@@ -131,6 +138,48 @@ describe('planilla de gastos compartidos', () => {
       const luz = occurrencesForMonth((await loadDataSet(db)).expenses, '2026-10').filter((o) => o.concept === 'Luz');
       expect(luz).toHaveLength(1);
       expect(luz[0].userShare).toBe(1300000);
+    });
+
+    it('tu parte es la mitad de lo que pagó la pareja; lo tuyo no se divide; el mes que no cargó se estima', () => {
+      const sh = detectSharedSheet(PLANILLA, { fileName: 'x 2026.pdf', fallbackYear: 2026 })!;
+      // Su columna dice otra cosa: igual se toma la mitad de lo que pagó ella.
+      const raro = { ...sh, values: sh.values.map((v) => (v.month === '2026-10' && v.group === 'Alquiler' && v.person === 'Leo' ? { ...v, amount: 100 } : v)) };
+      const { rows } = sheetRows(raro, 'Leo', [], '2026-12', { userPct: 50, debtFrom: '2026-12' });
+      const r = (m: string, c: string) => rows.find((x) => x.month === m && x.concept === c)!;
+      expect(r('2026-10', 'Alquiler')).toMatchObject({ total: 31000000, user: 15500000, debt: false });
+      expect(r('2026-10', 'Cochera')).toMatchObject({ total: 1500000, user: 1500000, userPct: 100 });
+      // Noviembre: la pareja solo cargó la prepaga → alquiler, luz y cochera estimados como octubre.
+      expect(r('2026-11', 'Alquiler')).toMatchObject({ estimated: true, total: 31000000, user: 15500000 });
+      expect(r('2026-11', 'Alquiler').note).toMatch(/Estimado igual que octubre/);
+      // Diciembre (el mes actual) también, y cuenta como deuda.
+      expect(r('2026-12', 'Luz')).toMatchObject({ estimated: true, total: 2500000, user: 1250000, debt: true, include: true });
+      expect(r('2026-12', 'Cochera')).toMatchObject({ debt: true, user: 1500000 });
+      // La obra social no se estima ni es deuda.
+      expect(rows.some((x) => x.concept === 'Prepaga' && (x.estimated || x.debt))).toBe(false);
+    });
+
+    it('elegir desde qué mes es deuda, pagarle y quedar a mano', async () => {
+      const db = await freshDb();
+      const sh = detectSharedSheet(PLANILLA, { fileName: 'x 2026.pdf', fallbackYear: 2026 })!;
+      const file = { name: 'planilla.pdf', size: 1, mime: 'application/pdf', kind: 'pdf' as const, hash: 'd1' };
+      let rv = await setSharedMe(await buildSharedReview(sh, file, db, '2026-10'), 'Leo', db, '2026-10');
+      rv = setDebtFrom(rv, '2026-09'); // septiembre todavía no se lo pagó
+      expect(rv.rows.filter((x) => x.debt).map((x) => x.key).sort()).toEqual(['Alquiler|2026-09', 'Alquiler|2026-10', 'Cochera|2026-09', 'Cochera|2026-10', 'Luz|2026-09', 'Luz|2026-10'].sort());
+      await commitSharedReview(rv, null, db);
+      let data = await loadDataSet(db);
+      const debe = -partnerLedger(data.expenses, '2026-10').net;
+      // Sept: 150.000 + 15.000 + 15.000 (cochera)… y oct: 155.000 + 12.500 + 15.000
+      expect(debe).toBe(15000000 + 1500000 + 1500000 + 15500000 + 1250000 + 1500000);
+      // También aparece en "Cuánto necesito".
+      expect(needForMonth(data, '2026-10', '2026-10').groups.find((g) => g.group === 'Caro')!.total).toBe(debe);
+      // Le paga una parte: baja la deuda (y no es un gasto del mes).
+      await db.expenses.put({ ...debtPaymentExpense('Pago a Caro', 10000000, '2026-10-20', new Date().toISOString()), settlement: 'a_pareja' });
+      data = await loadDataSet(db);
+      expect(-partnerLedger(data.expenses, '2026-10').net).toBe(debe - 10000000);
+      expect(occurrencesForMonth(data.expenses, '2026-10').some((o) => o.concept === 'Pago a Caro')).toBe(false);
+      // "Ya estamos a mano": el saldo queda en cero.
+      await db.expenses.put({ ...debtPaymentExpense('Quedamos a mano', debe - 10000000, '2026-10-21', new Date().toISOString()), settlement: 'a_pareja', cashAdjust: true });
+      expect(partnerLedger((await loadDataSet(db)).expenses, '2026-10').net).toBe(0);
     });
 
     it('no duplica un gasto que ya anotaste a mano en ese mes', async () => {

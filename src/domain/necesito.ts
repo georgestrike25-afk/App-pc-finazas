@@ -2,6 +2,7 @@ import type { MonthKey } from './dates';
 import { sum, type Cents } from './money';
 import type { DataSet } from './monthly';
 import { buildSchedule, debtByEntity, monthToPay } from './obligations';
+import { capitalize, otherPerson, partnerLedger } from './expenses';
 
 /** Huella de la deuda con ARCA (monotributo): una sola, que se actualiza con cada PDF. */
 export const ARCA_FINGERPRINT = 'arca|monotributo';
@@ -62,6 +63,12 @@ export function needForMonth(data: DataSet, month: MonthKey, today: MonthKey): N
     if (e.deleted || e.paid || e.source !== 'importado' || !/^Factura /.test(e.notes ?? '')) continue;
     if (e.month === month || (month === today && e.month < month))
       push('Facturas de servicios', { label: e.concept, detail: e.month < month ? 'Venció en un mes anterior' : undefined, due: e.date, amount: e.totalAmount, overdue: e.month < month });
+  }
+
+  // Lo que le debés a la otra persona por los gastos compartidos (planilla) y lo que es tuyo y pagó ella.
+  if (month === today) {
+    const net = partnerLedger(data.expenses, today).net;
+    if (net < 0) push(capitalize(otherPerson(data.settings.partnerName)), { label: 'Lo que le debés (gastos compartidos)', amount: -net });
   }
 
   const groups: NeedGroup[] = [...byGroup.entries()]

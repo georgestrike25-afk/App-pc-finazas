@@ -93,6 +93,8 @@ export interface Expense extends BaseRecord {
   paidAt?: string;
   /** Pago de una deuda (cuota, ARCA…): baja la plata hasta cobrar, pero no es un gasto del mes (ya está en las cuotas). */
   cashOnly?: boolean;
+  /** Pago entre vos y la otra persona para saldar lo que se deben (no es un gasto): `a_pareja` = le pagaste vos. */
+  settlement?: 'a_pareja' | 'de_pareja';
   notes?: string;
 }
 

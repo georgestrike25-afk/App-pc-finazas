@@ -89,7 +89,22 @@ describe('movimientos de cuenta (capturas de home banking, datos ficticios)', ()
     expect(data.cardPayments[0].statementId).toBe(data.statements[0].id);
     expect(data.obligations[0].paidInstallments).toBe(4);
     // Adelantos y transferencias no son ingresos ni gastos
-    expect(data.expenses).toHaveLength(0);
+    expect(data.expenses.filter((e) => !e.cashOnly)).toHaveLength(0); // el pago de la cuota solo mueve la plata
+  });
+
+  it('la cuota del préstamo debitada de la cuenta baja la plata hasta cobrar (y no es gasto del mes)', async () => {
+    const { saveRecord: save } = await import('../../src/db/repo');
+    const { cashStatus } = await import('../../src/domain/cash');
+    const { occurrencesForMonth } = await import('../../src/domain/expenses');
+    const s0 = await loadDataSet(db);
+    await save('settings', { ...s0.settings, cash: { amount: 100000000, setAt: '2026-09-01T00:00:00.000Z' } } as never, 't', db);
+    const d = parseAccountMovements(ACCOUNT_LINES)!;
+    await commitReview(await buildReview(d, { name: 'a.jpg', size: 1, mime: 'image/jpeg', kind: 'imagen', hash: 'a' }, true, db, '2026-09'), null, db);
+    const data = await loadDataSet(db);
+    const pagos = data.expenses.filter((e) => e.cashOnly);
+    expect(pagos.map((e) => e.totalAmount)).toContain(2350000);
+    expect(occurrencesForMonth(data.expenses, '2026-09').some((o) => o.expenseId === pagos[0].id)).toBe(false);
+    expect(cashStatus(data, '2026-09-20')!.items.map((i) => i.concept).join(' ')).toMatch(/Cuota \d+ de /);
   });
 
   it('subir la misma captura otra vez no duplica nada', async () => {

@@ -1,6 +1,6 @@
 import { getDb, type FinanzasDB } from '../db/db';
 import { addAudit, getDeviceId, getSettings, notify, nowIso } from '../db/repo';
-import { monthOf, type MonthKey } from '../domain/dates';
+import { addMonths, monthOf, type MonthKey } from '../domain/dates';
 import type { Cents } from '../domain/money';
 import { normalizeText, uid } from '../domain/text';
 import type { DocumentMeta, Expense, ExpenseKind } from '../domain/types';
@@ -23,6 +23,7 @@ export interface SharedSheet {
   warnings: string[];
 }
 
+const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const MONTHS: Record<string, number> = {
   enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8,
   septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
@@ -210,6 +211,12 @@ export interface SharedRow {
   note?: string;
   existing?: Expense;
   fingerprint: string;
+  /** Lo pagó la otra persona y se lo debés: suma al saldo con ella. */
+  debt: boolean;
+  /** Puede ser deuda: todo menos la obra social (va por el resumen de la tarjeta). */
+  debtEligible: boolean;
+  /** Mes que ella todavía no cargó: se estimó igual que el anterior. */
+  estimated?: boolean;
 }
 
 export interface SharedReview {
@@ -220,6 +227,8 @@ export interface SharedReview {
   skipped: string[];
   warnings: string[];
   documentDuplicateOf?: DocumentMeta;
+  /** Desde qué mes lo que pagó la otra persona cuenta como deuda con ella. */
+  debtFrom: MonthKey;
 }
 
 const isHealth = (g: string) => /obra social|sancor|prepaga|osde|swiss|galeno|medicus/i.test(g);
@@ -254,28 +263,56 @@ export function guessMe(people: string[], partnerName: string): string | null {
   return match >= 0 ? people[1 - match] : null;
 }
 
-/** Arma las filas a cargar según quién es el usuario en la planilla. */
-export function sheetRows(sheet: SharedSheet, me: string, expenses: Expense[], today: MonthKey): { rows: SharedRow[]; skipped: string[] } {
+/**
+ * Arma las filas a cargar según quién es el usuario en la planilla.
+ * - Compartidos (alquiler, luz, gas, internet…): la otra persona paga la factura y tu parte es la mitad de lo que
+ *   ella anotó (`userPct`, por defecto 50 %), no lo que diga tu columna.
+ * - Solo tuyos (consultorio): no se divide, es todo tuyo, y se le debe entero a la otra persona.
+ * - Desde `debtFrom` en adelante cuentan como deuda con la otra persona; los meses anteriores se toman como saldados.
+ * - Si la otra persona todavía no cargó el mes actual, se estima igual que el último mes que tenía.
+ */
+export function sheetRows(sheet: SharedSheet, me: string, expenses: Expense[], today: MonthKey, opts: { userPct?: number; debtFrom?: MonthKey } = {}): { rows: SharedRow[]; skipped: string[] } {
+  const pct = opts.userPct ?? 50;
+  const debtFrom = opts.debtFrom ?? today;
   const isMe = (p: string) => normalizeText(p) === normalizeText(me);
   const rows: SharedRow[] = [];
   const skipped = new Set<string>();
-  const months = [...new Set(sheet.values.map((v) => v.month))].sort();
+  const dataMonths = [...new Set(sheet.values.map((v) => v.month))].sort();
+  // Meses a estimar: los que siguen al último con datos, hasta el actual.
+  const extra: MonthKey[] = [];
+  if (dataMonths.length) for (let m = addMonths(dataMonths[dataMonths.length - 1], 1); m <= today; m = addMonths(m, 1)) extra.push(m);
+  const months = [...dataMonths, ...extra];
   for (const g of sheet.groups) {
     const hasMe = g.people.some(isMe);
     const hasPartner = g.people.some((p) => !isMe(p));
     if (/^total/i.test(normalizeText(g.name))) continue;
+    let last: { mine?: number; theirs?: number; month: MonthKey } | undefined;
     for (const month of months) {
-      const mine = sheet.values.find((v) => v.group === g.name && v.month === month && isMe(v.person));
-      const theirs = sheet.values.find((v) => v.group === g.name && v.month === month && !isMe(v.person));
-      if (theirs && isHealth(g.name)) skipped.add(`${prettyName(g.name)} de ${theirs.person}: es lo que te devuelve de su cuota; la app ya lo toma del resumen de la tarjeta (reintegro de Sancor).`);
+      const mineV = sheet.values.find((v) => v.group === g.name && v.month === month && isMe(v.person));
+      const theirsV = sheet.values.find((v) => v.group === g.name && v.month === month && !isMe(v.person));
+      if (theirsV && isHealth(g.name)) skipped.add(`${prettyName(g.name)} de ${theirsV.person}: es lo que te devuelve de su cuota; la app ya lo toma del resumen de la tarjeta (reintegro de Sancor).`);
       if (!hasMe) {
-        if (theirs) skipped.add(`${prettyName(g.name)}: solo tiene importes de ${theirs.person}.`);
+        if (theirsV) skipped.add(`${prettyName(g.name)}: solo tiene importes de ${theirsV.person}.`);
         continue;
       }
-      if (!mine) continue;
-      const shared = hasPartner && !isHealth(g.name) && !!theirs && theirs.amount >= mine.amount;
-      const total = shared ? theirs!.amount : mine.amount;
-      const userPct = shared ? Math.round((mine.amount / total) * 1_000_000) / 10_000 : 100;
+      let mine = mineV?.amount;
+      let theirs = theirsV?.amount;
+      let estimatedFrom: MonthKey | undefined;
+      if (mine === undefined && theirs === undefined) {
+        // La otra persona todavía no cargó este mes: se estima con el último que tenía este gasto.
+        if (!last || isHealth(g.name) || month > today) continue;
+        mine = last.mine;
+        theirs = last.theirs;
+        estimatedFrom = last.month;
+      } else {
+        last = { mine, theirs, month };
+      }
+      if (mine === undefined && theirs === undefined) continue;
+      const shared = hasPartner && !isHealth(g.name) && theirs !== undefined;
+      if (!shared && mine === undefined) continue;
+      const total = shared ? theirs! : mine!;
+      const userPct = shared ? pct : 100;
+      const user = shared ? Math.round((total * pct) / 100) : total;
       const fingerprint = sheetFingerprint(g.name, month);
       const existing = expenses.find((e) => !e.deleted && e.linkedLineFingerprints?.includes(fingerprint));
       const concept = prettyName(g.name);
@@ -283,6 +320,7 @@ export function sheetRows(sheet: SharedSheet, me: string, expenses: Expense[], t
       let include = month <= today;
       let note: string | undefined;
       if (month > today) note = 'Mes que todavía no llegó: marcalo si querés cargarlo igual.';
+      if (estimatedFrom) note = `Estimado igual que ${MONTH_NAMES[Number(estimatedFrom.slice(5, 7)) - 1]}: ${hasPartner ? 'todavía no cargó este mes' : 'sin dato de este mes'}. Cuando subas la planilla con el mes real, se actualiza solo.`;
       if (existing) {
         const same = existing.totalAmount === total && Math.abs(existing.userPct - userPct) < 0.001;
         include = !same && month <= today;
@@ -305,11 +343,16 @@ export function sheetRows(sheet: SharedSheet, me: string, expenses: Expense[], t
         category: categoryFor(g.name),
         kind: shared ? 'hogar' : 'personal',
         total,
-        user: mine.amount,
+        user,
         userPct,
         note,
         existing,
         fingerprint,
+        // Lo compartido lo paga la otra persona y le devolvés tu parte; lo que es solo tuyo (el consultorio) no se divide
+        // pero se lo debés entero. Cuenta como deuda desde el mes elegido. La obra social no (va por la tarjeta).
+        debt: !isHealth(g.name) && month >= debtFrom,
+        debtEligible: !isHealth(g.name),
+        estimated: !!estimatedFrom,
       });
     }
   }
@@ -322,15 +365,21 @@ export async function buildSharedReview(sheet: SharedSheet, file: SharedReview['
   const docs = (await db.documents.where('hash').equals(file.hash).toArray()).filter((d) => !d.deleted);
   const me = guessMe(sheet.people, settings.partnerName);
   const expenses = await db.expenses.toArray();
-  const r = me ? sheetRows(sheet, me, expenses, today) : { rows: [], skipped: [] };
+  const r = me ? sheetRows(sheet, me, expenses, today, { userPct: settings.defaultUserPct, debtFrom: today }) : { rows: [], skipped: [] };
   const warnings = [...sheet.warnings];
   if (docs.length) warnings.unshift('Este documento ya fue importado: lo que ya estaba cargado queda desmarcado.');
-  return { file, sheet, me, rows: r.rows, skipped: r.skipped, warnings, documentDuplicateOf: docs[0] };
+  return { file, sheet, me, rows: r.rows, skipped: r.skipped, warnings, documentDuplicateOf: docs[0], debtFrom: today };
 }
 
 export async function setSharedMe(review: SharedReview, me: string, db: FinanzasDB = getDb(), today: MonthKey = monthOf(nowIso())): Promise<SharedReview> {
-  const r = sheetRows(review.sheet, me, await db.expenses.toArray(), today);
+  const settings = await getSettings(db);
+  const r = sheetRows(review.sheet, me, await db.expenses.toArray(), today, { userPct: settings.defaultUserPct, debtFrom: review.debtFrom });
   return { ...review, me, rows: r.rows, skipped: r.skipped };
+}
+
+/** Cambia desde qué mes lo que pagó la otra persona cuenta como deuda (sin perder lo que desmarcaste). */
+export function setDebtFrom(review: SharedReview, month: MonthKey): SharedReview {
+  return { ...review, debtFrom: month, rows: review.rows.map((r) => ({ ...r, debt: r.debtEligible && r.month >= month })) };
 }
 
 export async function commitSharedReview(r: SharedReview, blob: Blob | null, db: FinanzasDB = getDb()): Promise<{ created: number; updated: number }> {
@@ -354,9 +403,10 @@ export async function commitSharedReview(r: SharedReview, blob: Blob | null, db:
       const shared = x.kind === 'hogar';
       const base = {
         kind: x.kind, category: x.category, concept: x.concept, date: `${x.month}-01`, month: x.month, totalAmount: x.total, userPct: shared ? x.userPct : 100,
-        paidBy: shared ? ('cada_uno' as const) : undefined, paid: x.month <= today, frequency: 'unica' as const, paymentMethod: 'transferencia' as const, documentId,
+        // Pagó la otra persona y se lo debés: suma al saldo con ella. Antes del mes elegido se toma como saldado.
+        paidBy: x.debt ? ('pareja' as const) : shared ? ('cada_uno' as const) : undefined, paid: x.month <= today, frequency: 'unica' as const, paymentMethod: 'transferencia' as const, documentId,
         linkedLineFingerprints: [x.fingerprint], source: 'importado' as const,
-        notes: shared ? `De la planilla de gastos compartidos: ${partner} paga la factura y vos le pasás tu parte.` : 'De la planilla de gastos compartidos.',
+        notes: `${shared ? `De la planilla de gastos compartidos: ${partner} paga la factura y vos le pasás tu parte.` : 'De la planilla de gastos compartidos.'}${x.estimated ? ' Estimado: todavía no estaba cargado este mes.' : ''}`,
       };
       const cur = x.existing ? await db.expenses.get(x.existing.id) : undefined;
       if (cur && !cur.deleted) {

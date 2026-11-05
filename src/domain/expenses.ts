@@ -1,4 +1,4 @@
-import { monthDiff, type MonthKey } from './dates';
+import { addMonths, monthDiff, type MonthKey } from './dates';
 import { splitAmount, type Cents } from './money';
 import { countsByCycle, cycleMonthOf } from './payday';
 import { netOfRefund } from './refunds';
@@ -106,9 +106,34 @@ export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export function partnerBalance(occ: ExpenseOccurrence[]): Cents {
   let bal = 0;
   for (const o of occ) {
-    if (o.kind !== 'hogar') continue;
+    // Un gasto solo tuyo que pagó la otra persona (p. ej. el alquiler del consultorio) también se le debe.
+    if (o.kind !== 'hogar' && o.paidBy !== 'pareja') continue;
     if (o.paidBy === 'usuario') bal += o.partnerShare;
     else if (o.paidBy === 'pareja') bal -= o.userShare;
   }
   return bal;
+}
+
+export interface PartnerLedger {
+  /** Positivo: la otra persona te debe. Negativo: le debés vos. */
+  net: Cents;
+  /** Lo que le fuiste pagando (o te fue pagando) para saldar. */
+  payments: Expense[];
+}
+
+/**
+ * Saldo acumulado con la otra persona: lo que pagó ella (o vos) y se reparte, menos los pagos que se hicieron
+ * para saldar. Un gasto cuenta como deuda solo si tiene quién pagó (`paidBy`); los demás se consideran ya saldados.
+ */
+export function partnerLedger(expenses: Expense[], today: MonthKey): PartnerLedger {
+  const live = expenses.filter((e) => !e.deleted);
+  const shared = live.filter((e) => !e.settlement && (e.paidBy === 'pareja' || e.paidBy === 'usuario'));
+  let net = 0;
+  if (shared.length) {
+    const first = shared.map((e) => e.month).sort()[0];
+    for (let m = first; m <= today; m = addMonths(m, 1)) net += partnerBalance(occurrencesForMonth(shared, m));
+  }
+  const payments = live.filter((e) => e.settlement).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  for (const p of payments) net += p.settlement === 'a_pareja' ? p.totalAmount : -p.totalAmount;
+  return { net, payments };
 }

@@ -382,3 +382,29 @@ test('plata hasta cobrar: el sueldo entra entero y lo que marcás pagado baja', 
   await go(page, 'inicio');
   await expect(page.getByTestId('cash-libre')).toContainText('Falta pagar');
 });
+
+test('compartidos: saldo con la otra persona, "Le pagué" y "Ya estamos a mano"', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-15T12:00:00'));
+  await go(page, 'compartidos');
+  await expect(page.getByTestId('saldo-pareja')).toContainText('Están a mano');
+  // Un gasto compartido que pagó la otra persona: te toca la mitad.
+  await page.getByRole('button', { name: '+ Gasto del hogar' }).click();
+  await page.locator('input[name="concept"]').fill('Alquiler');
+  await page.locator('input[name="amount"]').fill('400.000');
+  await page.getByLabel('¿Quién pagó?').selectOption('pareja');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await expect(page.getByTestId('saldo-pareja')).toContainText('Le debés');
+  await expect(page.getByTestId('saldo-pareja')).toContainText('200.000,00');
+  // Le paga una parte.
+  await page.getByRole('button', { name: /^Le pagué a/ }).click();
+  await fillMoney(page, 'Cuánto le pagaste', '150.000');
+  await page.locator('.modal').getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByTestId('saldo-pareja')).toContainText('50.000,00');
+  // El pago no es un gasto del mes.
+  await expect(page.locator('tr', { hasText: 'Pago a' })).toHaveCount(0);
+  // Se arreglaron por fuera.
+  await page.getByRole('button', { name: 'Ya estamos a mano' }).click();
+  await page.locator('.modal').getByRole('button', { name: 'Sí, estamos a mano' }).click();
+  await expect(page.getByTestId('saldo-pareja')).toContainText('Están a mano');
+});

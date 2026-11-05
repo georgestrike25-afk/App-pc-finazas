@@ -7,6 +7,7 @@ import { monthLabel } from '../domain/dates';
 import { formatARS } from '../domain/money';
 import { incomeNet } from '../domain/income';
 import { normalizeText, sha256Hex, uid } from '../domain/text';
+import { debtPaymentExpense } from '../domain/payments';
 import { reviseIncome } from '../domain/income';
 import type { Cents } from '../domain/money';
 import type {
@@ -568,7 +569,11 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
           await fp(it, 'sancor', id);
         } else if (it.duplicate.type === 'prestamo' && it.duplicate.installmentN) {
           const ob = await db.obligations.get(id);
-          if (ob) await db.obligations.put({ ...markPaidThrough(ob, it.duplicate.installmentN, now, `Cuota ${it.duplicate.installmentN} debitada de la cuenta (${date})`), deviceId });
+          if (ob) {
+            await db.obligations.put({ ...markPaidThrough(ob, it.duplicate.installmentN, now, `Cuota ${it.duplicate.installmentN} debitada de la cuenta (${date})`), deviceId });
+            // La plata salió de la cuenta: baja "Plata hasta cobrar" (si el débito fue antes de anotar tu plata, no cuenta).
+            await db.expenses.put({ ...debtPaymentExpense(`Cuota ${it.duplicate.installmentN} de ${ob.concept}`, Math.abs(it.amount ?? 0), date, now, deviceId), documentId });
+          }
           await fp(it, 'cuota', id);
         }
         created.vinculados++;
