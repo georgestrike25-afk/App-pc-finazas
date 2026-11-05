@@ -640,3 +640,13 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 .ob-done { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
 .ob-done summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 .ob-done .list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mp-list { list-style: none; margin: 0; padding: 0; }
+.mp-list > li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.mp-list > li:last-child { border-bottom: 0; }
+.mp-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.mp-list .answer-lines li { border-bottom: 0; padding: 3px 0; font-size: 0.92em; }
+.mp-total { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; border-top: 2px solid var(--border); padding-top: 8px; margin: 4px 0 0; }
+.mp-fix { list-style: none; margin: 0; padding: 0; }
+.mp-fix li { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.mp-pay { margin-top: 10px; align-items: flex-start; }
+.mp-total + .mp-total { border-top: 0; padding-top: 2px; font-weight: 600; }

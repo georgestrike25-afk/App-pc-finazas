@@ -19,6 +19,9 @@ import { buildPlanReview, commitPlanReview, type PlanReview } from '../../import
 import { PlanReviewView } from './PlanImport';
 import { checkBill, commitBill, detectBill, type BillCheck, type BillDoc } from '../../importers/facturas';
 import { BillReviewView } from './BillImport';
+import { detectMercadoPago } from '../../importers/mercadoPago';
+import { buildMpReview, commitMpReview, type MpReview } from '../../importers/mpReview';
+import { MpReviewView } from './MpImport';
 
 const ACTION_LABEL: Record<ReviewAction, string> = {
   gasto: 'Gasto (consumo)',
@@ -242,6 +245,7 @@ export function ImportarPage() {
   const [plan, setPlan] = useState<PlanReview | null>(null);
   const [shared, setShared] = useState<SharedReview | null>(null);
   const [bill, setBill] = useState<{ doc: BillDoc; check: BillCheck; meta: { name: string; size: number; mime: string; kind: import('../../domain/types').DocumentMeta['kind']; hash: string } } | null>(null);
+  const [mp, setMp] = useState<MpReview | null>(null);
   const [file, setFile] = useState<File | null>(null);
   // Un resumen nuevo deja la cuota en la que figura (si dice 10 de 10, la 9 ya se pagó).
   const [markPrev, setMarkPrev] = useState(true);
@@ -255,6 +259,7 @@ export function ImportarPage() {
     setPlan(null);
     setShared(null);
     setBill(null);
+    setMp(null);
     setFile(f);
     setBusy('Procesando el documento localmente…');
     try {
@@ -269,6 +274,12 @@ export function ImportarPage() {
       if (b) {
         // Deuda de ARCA (se actualiza el saldo) o factura de un servicio (Claro…).
         setBill({ doc: b, check: await checkBill(b), meta: { name: f.name, size: f.size, mime: ex.validated.mime, kind: ex.validated.kind, hash: ex.hash } });
+        return;
+      }
+      const mpScreens = detectMercadoPago(ex.lines);
+      if (mpScreens) {
+        // Pantallas de la app de Mercado Pago: créditos uno por uno y el total de la tarjeta de cada mes.
+        setMp(await buildMpReview(mpScreens, { name: f.name, size: f.size, mime: ex.validated.mime, kind: ex.validated.kind, hash: ex.hash }));
         return;
       }
       const pp = detectPaymentPlan(ex.lines);
@@ -304,7 +315,7 @@ export function ImportarPage() {
     }
   };
   // "Compartir → Importar en Brote" (Android): el archivo compartido se lee como si se hubiera elegido acá.
-  const idle = !busy && !review && !loan && !plan && !shared && !bill;
+  const idle = !busy && !review && !loan && !plan && !shared && !bill && !mp;
   useEffect(() => {
     if (!idle) return;
     const next = () => {
@@ -368,6 +379,18 @@ export function ImportarPage() {
       setError((e as Error).message);
     }
   };
+  const commitMp = async () => {
+    if (!mp) return;
+    try {
+      const r = await commitMpReview(mp);
+      toast(`Mercado Pago corregido: ${r.created} deuda(s) nueva(s), ${r.updated} actualizada(s).`);
+      setMp(null);
+      setFile(null);
+      window.location.hash = '#/entidades';
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const commitLoan = async () => {
     if (!loan) return;
     try {
@@ -388,8 +411,9 @@ export function ImportarPage() {
       {plan && <PlanReviewView review={plan} setReview={setPlan} error={error} onCancel={() => { setPlan(null); setFile(null); }} onConfirm={commitPlan} />}
       {shared && <SharedReviewView review={shared} setReview={setShared} error={error} onCancel={() => { setShared(null); setFile(null); }} onConfirm={commitShared} />}
       {bill && <BillReviewView bill={bill.doc} check={bill.check} error={error} onCancel={() => { setBill(null); setFile(null); }} onConfirm={commitBillDoc} />}
-      {!review && !loan && !plan && !shared && !bill && (
-        <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>.</li><li><strong>Video o capturas de "Tus consumos"</strong> de la app de la tarjeta (Naranja X…): carga los consumos del mes que todavía no cerró.</li><li><strong>Historial de Mis Finanzas</strong>: la copia (.json) o la exportación (CSV/Excel) de esa app.</li><li><strong>Planilla de gastos compartidos</strong> (PDF o Excel de Google Sheets): una fila por mes y una columna por persona.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
+      {mp && <MpReviewView review={mp} setReview={setMp} error={error} onCancel={() => { setMp(null); setFile(null); }} onConfirm={commitMp} />}
+      {!review && !loan && !plan && !shared && !bill && !mp && (
+        <Card title="Importar documento" tour="subir-archivo" help={<><p>Qué podés subir:</p><ul><li><strong>Resumen de tarjeta</strong> (PDF): Visa Patagonia, Naranja X, Ualá…</li><li><strong>Cronograma de un préstamo</strong> (PDF del banco).</li><li><strong>Captura de los movimientos del banco</strong>: carga el sueldo y marca pagadas las cuotas.</li><li><strong>Plan de pagos de Mercado Pago</strong>, o el <strong>video o capturas de Créditos → Detalle del pago</strong> (con la ficha de cada crédito) y de la <strong>tarjeta ("Tu total hasta hoy")</strong>: corrige cada crédito con las cuotas que ya pagaste.</li><li><strong>Video o capturas de "Tus consumos"</strong> de la app de la tarjeta (Naranja X…): carga los consumos del mes que todavía no cerró.</li><li><strong>Historial de Mis Finanzas</strong>: la copia (.json) o la exportación (CSV/Excel) de esa app.</li><li><strong>Planilla de gastos compartidos</strong> (PDF o Excel de Google Sheets): una fila por mes y una columna por persona.</li></ul><p>Nada se guarda hasta que tocás Confirmar.</p></>}>
           {introOk ? (
             <details className="small import-opts">
               <summary>Formatos y opciones</summary>
