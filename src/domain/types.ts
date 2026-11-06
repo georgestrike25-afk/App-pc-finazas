@@ -95,6 +95,8 @@ export interface Expense extends BaseRecord {
   cashOnly?: boolean;
   /** Pago entre vos y la otra persona para saldar lo que se deben (no es un gasto): `a_pareja` = le pagaste vos. */
   settlement?: 'a_pareja' | 'de_pareja';
+  /** Pago de un gasto del hogar de un mes ("Pagado" en Compartidos): de qué gasto y mes es. */
+  settles?: { expenseId: string; month: MonthKey; /** Ese mes estaba pendiente y quedó pagado con este pago. */ markedPaid?: boolean };
   notes?: string;
 }
 

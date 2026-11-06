@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store';
-import { saveRecord, softDelete } from '../../db/repo';
+import { getDeviceId, saveRecord, softDelete } from '../../db/repo';
+import { getDb } from '../../db/db';
+import { householdPayment, payHousehold, unpayHousehold } from '../../domain/payments';
 import { occurrencesForMonth, FREQUENCY_LABEL, otherPerson } from '../../domain/expenses';
-import { formatDate, monthLabel } from '../../domain/dates';
-import { sum } from '../../domain/money';
+import { formatDate, monthLabel, todayIso, type MonthKey } from '../../domain/dates';
+import { formatARS, sum, type Cents } from '../../domain/money';
 import type { Expense, ExpenseKind } from '../../domain/types';
 import { Badge, Card, confirmDialog, Empty, Money, MonthNav, useNarrow } from '../components/ui';
 import { DAILY_CATEGORIES, ExpenseForm, KIND_LABEL, METHOD_LABEL, newExpenseDraft, OccurrenceForm, type ExpenseDraft } from './ExpenseForm';
@@ -34,6 +36,44 @@ function HalfButton({ e, partner }: { e: Expense; partner: string }) {
     <button className={`btn small ${on ? 'primary' : 'ghost'}`} aria-pressed={on} onClick={toggle} title={on ? `Quitar: vuelve a ser solo tuyo` : `Lo pagaste vos y te devuelven la mitad`} aria-label={`${on ? 'Quitar a medias' : 'A medias'}: ${e.concept}`}>
       ½ {partner || 'a medias'}
     </button>
+  );
+}
+
+/**
+ * "Pagado" en un gasto del hogar: tu parte baja la plata hasta cobrar. Si lo pagó la otra persona
+ * (planilla), cuenta como pago a ella y baja lo que le debés. Ya pagado: "Pagado ✓" con Deshacer.
+ */
+function HouseholdPay({ e, month, share, paid, partner }: { e: Expense; month: MonthKey; share: Cents; paid: boolean; partner: string }) {
+  const { data, toast } = useApp();
+  if (e.kind !== 'hogar' || share <= 0) return null;
+  const done = householdPayment(data.expenses, e.id, month);
+  if (done)
+    return (
+      <>
+        <Badge tone="ok">Pagado ✓</Badge>
+        <button className="btn small ghost" aria-label={`Deshacer pago de ${e.concept}`} onClick={async () => {
+          if (!(await confirmDialog(`¿Deshacer el pago de ${e.concept} (${formatARS(done.totalAmount)})?\nVuelve a tu plata hasta cobrar.`, { ok: 'Deshacer' }))) return;
+          await softDelete('expenses', done.id, `Se deshizo el pago de "${e.concept}"`);
+          const back = unpayHousehold(e, done);
+          if (back) await saveRecord<Expense>('expenses', back, `"${e.concept}" vuelve a pendiente`);
+          toast('Pago deshecho.');
+        }}>Deshacer</button>
+      </>
+    );
+  // Ya estaba pagado de antes (lo pagaste vos al anotarlo): no hay nada que marcar.
+  if (paid && e.paidBy !== 'pareja') return null;
+  const toPartner = e.paidBy === 'pareja';
+  return (
+    <button className="btn small primary" aria-label={`Pagado: ${e.concept}`} onClick={async () => {
+      const msg = toPartner
+        ? `¿Ya le pagaste a ${partner} tu parte de ${e.concept} (${formatARS(share)})?\nSe descuenta de tu plata hasta cobrar y de lo que le debés.`
+        : `¿Ya pagaste tu parte de ${e.concept} (${formatARS(share)})?\nSe descuenta de tu plata hasta cobrar.`;
+      if (!(await confirmDialog(msg, { ok: 'Sí, pagado' }))) return;
+      const r = payHousehold(e, month, share, paid, partner, todayIso(), new Date().toISOString(), await getDeviceId(getDb()));
+      if (r.expense) await saveRecord<Expense>('expenses', r.expense, `"${e.concept}" pagado`);
+      await saveRecord<Expense>('expenses', r.payment, `Pago de "${e.concept}" (${formatARS(share)})`);
+      toast(`Listo: se descontaron ${formatARS(share)} de tu plata hasta cobrar.`);
+    }}>Pagado</button>
   );
 }
 
@@ -90,6 +130,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                       {o.estimated && <Badge tone="est">estimado</Badge>}
                     </span>
                     <span className="exp-acts">
+                      <HouseholdPay e={e} month={month} share={o.userShare} paid={o.paid} partner={partner || name} />
                       {canSplit && <HalfButton e={e} partner={partner} />}
                       {canSplit && e.kind !== 'hogar' && e.frequency === 'unica' && <RefundButton e={e} />}
                       {e.frequency !== 'unica' && <button className="btn small ghost" onClick={() => setOcc(e)}>Este mes</button>}
@@ -143,6 +184,7 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
                       {o.estimated && <Badge tone="est">estimado</Badge>}
                     </td>
                     <td className="actions">
+                      <HouseholdPay e={e} month={month} share={o.userShare} paid={o.paid} partner={partner || name} />
                       {canSplit && <HalfButton e={e} partner={partner} />}
                       {canSplit && e.kind !== 'hogar' && e.frequency === 'unica' && <RefundButton e={e} />}
                       {e.frequency !== 'unica' && <button className="btn small" onClick={() => setOcc(e)}>Ajustar mes</button>}
