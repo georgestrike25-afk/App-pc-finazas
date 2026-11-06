@@ -155,7 +155,7 @@ export function Field({ label, hint, error, help, children }: { label: string; h
 }
 
 /** Campo de importe en pesos: acepta 1.234,56 o 1234.56. */
-export function MoneyInput({ id, value, onChange, required, allowNegative, placeholder, name }: { id?: string; value: Cents | undefined; onChange: (v: Cents | undefined) => void; required?: boolean; allowNegative?: boolean; placeholder?: string; name?: string }) {
+export function MoneyInput({ id, value, onChange, required, allowNegative, placeholder, name, onEnter }: { id?: string; value: Cents | undefined; onChange: (v: Cents | undefined) => void; required?: boolean; allowNegative?: boolean; placeholder?: string; name?: string; /** Tecla "Listo" del teclado: confirma (p. ej. guarda el presupuesto). */ onEnter?: (v: Cents | undefined) => void }) {
   const [text, setText] = useState(value === undefined ? '' : formatPlain(value));
   const [err, setErr] = useState('');
   const last = useRef(value);
@@ -188,6 +188,7 @@ export function MoneyInput({ id, value, onChange, required, allowNegative, place
         id={id}
         name={name}
         inputMode="decimal"
+        enterKeyHint="done"
         autoComplete="off"
         placeholder={placeholder ?? '0,00'}
         value={text}
@@ -200,6 +201,15 @@ export function MoneyInput({ id, value, onChange, required, allowNegative, place
             last.current = v;
             onChange(v);
           }
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const t = e.currentTarget.value;
+          commit(t);
+          e.currentTarget.blur();
+          const v = parseUserAmount(t);
+          if (onEnter && (v === null || allowNegative || v >= 0)) onEnter(v ?? undefined);
         }}
         onBlur={(e) => {
           commit(e.target.value);

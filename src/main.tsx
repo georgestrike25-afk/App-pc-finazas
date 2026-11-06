@@ -8,6 +8,7 @@ import '@fontsource-variable/inter/wght.css';
 import './ui/styles.css';
 import { startNotificationIngest } from './notifications/native';
 import { getDb } from './db/db';
+import { startKeyboardHelpers } from './ui/keyboard';
 
 // Los errores no controlados se muestran sin exponer datos financieros en la consola.
 window.addEventListener('unhandledrejection', (e) => {
@@ -34,6 +35,7 @@ async function start() {
     </StrictMode>,
   );
   registerPwa();
+  startKeyboardHelpers();
   startAutoSync();
   startNotificationIngest();
   // El modo pareja se quitó: se borra su configuración guardada (los gastos que ya estaban quedan).

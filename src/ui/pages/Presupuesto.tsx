@@ -35,6 +35,8 @@ export function PresupuestoPage() {
     cash &&
     saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount: registered + Math.max(0, cash.left), mode: b.mode } } }, `Presupuesto de ${monthLabel(month)} ajustado a la plata disponible (${formatARS(cash.left)})`);
   const saveSettings = (patch: Partial<Settings>, msg: string) => saveRecord<Settings>('settings', { ...s, ...patch }, msg).then(() => toast('Presupuesto actualizado'));
+  const saveBudget = (v: Cents | undefined) =>
+    v !== undefined && saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount: v, mode: b.mode } }, ...(asDefault ? { dailyBudgetDefault: v, dailyBudgetIsInitialValue: false } : {}) }, `Presupuesto de ${monthLabel(month)}`);
 
   return (
     <div className="page">
@@ -79,7 +81,7 @@ export function PresupuestoPage() {
       <Card title={`Presupuesto de ${monthLabel(month)}`} help="Es el máximo que querés gastar en el mes en comida, transporte, salidas y demás gastos chicos. La barra muestra cuánto llevás.">
         <Ring value={registered} max={b.amount} label="Usaste del presupuesto" />
         <div className="form-grid" style={{ marginTop: '0.75rem' }}>
-          <Field label="Monto del mes">{(id) => <MoneyInput id={id} value={amount} onChange={setAmount} />}</Field>
+          <Field label="Monto del mes">{(id) => <MoneyInput id={id} value={amount} onChange={setAmount} onEnter={saveBudget} />}</Field>
           <Field label="Modo del mes" help="Real: solo cuenta lo que anotaste. Estimado: además supone que vas a gastar lo que te queda del presupuesto (sirve para planear meses que todavía no pasaron).">
             {(id) => (
               <select id={id} value={b.mode} onChange={(e) => saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount: s.monthBudgets[month]?.amount ?? b.amount, mode: e.target.value as 'real' | 'estimado' } } }, `Modo de presupuesto ${monthLabel(month)}`)}>
@@ -95,10 +97,7 @@ export function PresupuestoPage() {
         </label>
         <button
           className="btn primary"
-          onClick={() =>
-            amount !== undefined &&
-            saveSettings({ monthBudgets: { ...s.monthBudgets, [month]: { amount, mode: b.mode } }, ...(asDefault ? { dailyBudgetDefault: amount, dailyBudgetIsInitialValue: false } : {}) }, `Presupuesto de ${monthLabel(month)}`)
-          }
+          onClick={() => saveBudget(amount)}
         >
           Guardar presupuesto
         </button>

@@ -3,7 +3,11 @@ package ar.finanzas.personales;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.provider.OpenableColumns;
 
 import com.getcapacitor.BridgeActivity;
@@ -24,7 +28,29 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NotificacionesPlugin.class);
         super.onCreate(savedInstanceState);
+        dejarLugarAlTeclado();
         recibir(getIntent());
+    }
+
+    /**
+     * Android 15 dibuja la app de borde a borde: Capacitor deja lugar a las barras del sistema, pero no al
+     * teclado, que tapaba el campo donde se escribe. Se reemplaza ese ajuste por uno que también suma el teclado.
+     */
+    private void dejarLugarAlTeclado() {
+        if (Build.VERSION.SDK_INT < 35 || getBridge() == null || getBridge().getWebView() == null) return;
+        View web = getBridge().getWebView();
+        web.setOnApplyWindowInsetsListener((v, wi) -> {
+            android.graphics.Insets barras = wi.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+            android.graphics.Insets teclado = wi.getInsets(WindowInsets.Type.ime());
+            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.leftMargin = barras.left;
+            mlp.rightMargin = barras.right;
+            mlp.topMargin = barras.top;
+            mlp.bottomMargin = Math.max(barras.bottom, teclado.bottom);
+            v.setLayoutParams(mlp);
+            return WindowInsets.CONSUMED;
+        });
+        web.requestApplyInsets();
     }
 
     @Override

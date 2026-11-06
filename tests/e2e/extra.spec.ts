@@ -412,3 +412,15 @@ test('compartidos: saldo con la otra persona, "Le pagué" y "Ya estamos a mano"'
   await page.locator('.modal').getByRole('button', { name: 'Sí, estamos a mano' }).click();
   await expect(page.getByTestId('saldo-pareja')).toContainText('Están a mano');
 });
+
+test('teclado: la tecla "Listo" guarda el presupuesto y cierra el teclado', async ({ page }) => {
+  await go(page, 'presupuesto');
+  const input = page.getByLabel('Monto del mes');
+  await input.fill('123456');
+  await expect(input).toHaveAttribute('enterkeyhint', 'done');
+  await input.press('Enter');
+  await expect(page.getByText('Presupuesto actualizado')).toBeVisible();
+  await expect(input).not.toBeFocused();
+  await go(page, 'presupuesto');
+  await expect(page.getByLabel('Monto del mes')).toHaveValue('123.456,00');
+});
