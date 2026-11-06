@@ -5,6 +5,7 @@ import { parseStatementText, type ParsedDocument, type SourceLine } from './stat
 import { parseAccountMovements, parseMovementDetail } from './accountMovements';
 import { parseBankExtract } from './bankExtract';
 import { parseCardActivity } from './cardActivity';
+import { parseMpStatement } from './mpStatement';
 import { parseWalletMovements } from './walletMovements';
 import { misFinanzasToParsed, readMisFinanzasJson, readMisFinanzasRows } from './misFinanzas';
 import type { ParsedDocument as PD } from './statementParser';
@@ -112,6 +113,7 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
   // Primero se prueba el formato de movimientos de cuenta (capturas de home banking).
   const parsed =
     history ??
+    parseMpStatement(lines) ??
     parseCardActivity(lines) ??
     parseCardBalance(lines, { fileName: file.name }) ??
     parseMovementDetail(lines) ??

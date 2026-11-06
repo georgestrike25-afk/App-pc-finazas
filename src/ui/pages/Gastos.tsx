@@ -45,7 +45,8 @@ function HalfButton({ e, partner }: { e: Expense; partner: string }) {
  */
 function HouseholdPay({ e, month, share, paid, partner }: { e: Expense; month: MonthKey; share: Cents; paid: boolean; partner: string }) {
   const { data, toast } = useApp();
-  if (e.kind !== 'hogar' || share <= 0) return null;
+  // Gastos del hogar, y lo que es solo tuyo pero pagó la otra persona (el alquiler del consultorio).
+  if ((e.kind !== 'hogar' && e.paidBy !== 'pareja') || share <= 0) return null;
   const done = householdPayment(data.expenses, e.id, month);
   if (done)
     return (
@@ -77,7 +78,7 @@ function HouseholdPay({ e, month, share, paid, partner }: { e: Expense; month: M
   );
 }
 
-export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; emptyText: string }) {
+export function ExpenseTable({ kinds, emptyText, also }: { kinds: ExpenseKind[]; emptyText: string; also?: (e: Expense) => boolean }) {
   const { data, month } = useApp();
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   const [occ, setOcc] = useState<Expense | null>(null);
@@ -87,12 +88,12 @@ export function ExpenseTable({ kinds, emptyText }: { kinds: ExpenseKind[]; empty
     const ids = new Map(data.expenses.map((e) => [e.id, e]));
     const fecha = (e: Expense) => (e.month === month ? e.date : `${month}-${e.date.slice(8, 10)}`);
     // Lo que te devuelve otra persona (hospital) no es un gasto tuyo: está en Devoluciones.
-    return occurrencesForMonth(data.expenses.filter((e) => kinds.includes(e.kind) && !e.refund), month).sort((a, b) => {
+    return occurrencesForMonth(data.expenses.filter((e) => (kinds.includes(e.kind) || !!also?.(e)) && !e.refund), month).sort((a, b) => {
       const x = ids.get(a.expenseId)!;
       const y = ids.get(b.expenseId)!;
       return fecha(y).localeCompare(fecha(x)) || y.createdAt.localeCompare(x.createdAt);
     });
-  }, [data.expenses, kinds, month]);
+  }, [data.expenses, kinds, month, also]);
   // Total y porcentaje solo aportan si este mes hay algún gasto compartido.
   const shared = kinds.includes('hogar') && items.some((o) => o.userPct !== 100);
   const canSplit = kinds.includes('hogar');

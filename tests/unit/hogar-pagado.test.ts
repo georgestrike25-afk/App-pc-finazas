@@ -36,4 +36,13 @@ describe('"Pagado" en los gastos del hogar (montos ficticios)', () => {
     expect(occurrenceFor(back, '2026-11')!.paid).toBe(false);
     expect(back.overrides?.['2026-11']).toBeUndefined();
   });
+
+  it('el consultorio (solo tuyo, lo pagó la otra persona): se le paga entero', () => {
+    const cons = expense({ kind: 'personal', concept: 'Alquiler de consultorio', month: '2026-11', date: '2026-11-01', totalAmount: 20_000_00, paidBy: 'pareja', paymentMethod: 'transferencia', createdAt: '2026-11-01T10:00:00.000Z' });
+    expect(partnerLedger([cons], '2026-11').net).toBe(-20_000_00);
+    const r = payHousehold(cons, '2026-11', 20_000_00, true, 'Ana', '2026-11-06', NOW);
+    expect(r.payment.settlement).toBe('a_pareja');
+    expect(partnerLedger([cons, r.payment], '2026-11').net).toBe(0);
+    expect(cash([cons, r.payment])).toBe(980_000_00);
+  });
 });

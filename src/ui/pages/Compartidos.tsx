@@ -58,6 +58,9 @@ function ReimbursementForm({ charge, onClose }: { charge: SancorCharge; onClose:
   );
 }
 
+/** Lo que es solo tuyo pero pagó la otra persona (p. ej. el alquiler del consultorio, de la planilla): se lo debés entero. */
+const owedToPartner = (e: Expense) => e.paidBy === 'pareja' && !e.settlement;
+
 export function CompartidosPage() {
   const { data, month, setMonth, today, toast } = useApp();
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
@@ -117,8 +120,8 @@ export function CompartidosPage() {
         <div className="kpi"><span>Parte de {p}</span><Money value={sum(occ.map((o) => o.partnerShare))} /></div>
         <div className="kpi"><span>{bal >= 0 ? `${P} me debe` : `Le debo a ${p}`}</span><Money value={Math.abs(bal)} /></div>
       </div>
-      <Card title="Gastos del hogar (alquiler, servicios, supermercado compartido…)" help="Gastos que dividís con otra persona. En cada uno podés elegir qué parte es tuya (por defecto 50 %) y quién lo pagó; arriba ves quién le debe a quién.">
-        <ExpenseTable kinds={['hogar']} emptyText="Registre alquiler, electricidad, gas, internet, supermercado compartido u otros. El reparto inicial es 50/50 y se puede editar en cada gasto." />
+      <Card title="Gastos del hogar (alquiler, servicios, supermercado compartido…)" help="Gastos que dividís con otra persona, y lo que es solo tuyo pero pagó ella (como el alquiler del consultorio): ese se lo debés entero. En cada uno podés elegir qué parte es tuya (por defecto 50 %) y quién lo pagó; arriba ves quién le debe a quién.">
+        <ExpenseTable kinds={['hogar']} also={owedToPartner} emptyText="Registre alquiler, electricidad, gas, internet, supermercado compartido u otros. El reparto inicial es 50/50 y se puede editar en cada gasto." />
       </Card>
 
       <Card
