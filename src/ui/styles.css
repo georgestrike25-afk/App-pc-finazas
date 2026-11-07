@@ -654,3 +654,5 @@ details[open] > :not(summary) { animation: fade 0.2s ease-out; }
 /* Con el teclado abierto, la barra de abajo no le saca lugar al campo. */
 body.kb-open nav.bottom { display: none; }
 body.kb-open .page { padding-bottom: 24px; }
+
+.pay-entity .pay-all { margin: 4px 0 6px; }

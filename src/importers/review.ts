@@ -1,5 +1,5 @@
 import { getDb, type FinanzasDB } from '../db/db';
-import { applyStatementPayment } from '../db/cardPayments';
+import { applyCardPlanPayment, applyStatementPayment } from '../db/cardPayments';
 import { addAudit, getDeviceId, getSettings, notify, nowIso } from '../db/repo';
 import { currentMonth, daysBetween, monthOf, type MonthKey } from '../domain/dates';
 import { applyStatementInstallment, entityGroup, findLoanInstallment, findMatchingObligation, impliedStartMonth, markPaidThrough, obligationFingerprintKey } from '../domain/obligations';
@@ -532,6 +532,8 @@ export async function commitReview(r: ImportReview, blob: Blob | null, db: Finan
         await db.cardPayments.put(p);
         await fp(it, 'pago', p.id);
         if (linked) await applyStatementPayment(db, linked, p.amount, now, deviceId);
+        // Sin resumen cargado: si la tarjeta tiene su total del mes (Mercado Pago), ese mes queda pagado.
+        else await applyCardPlanPayment(db, p.entity, date, p.amount, now, deviceId);
         created.pagos++;
       } else if (it.action === 'sancor') {
         // Varios cupones en el mismo resumen (el tuyo y el de tu pareja) forman un solo cargo.

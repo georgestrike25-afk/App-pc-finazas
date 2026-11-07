@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../store';
 import { notify, saveRecord, softDelete } from '../../db/repo';
 import { getDb } from '../../db/db';
-import { applyStatementPayment } from '../../db/cardPayments';
+import { applyCardPlanPayment, applyStatementPayment } from '../../db/cardPayments';
 import {
   buildSchedule,
   cancelObligation,
@@ -202,11 +202,11 @@ function PaymentForm({ statement, onClose }: { statement?: Statement; onClose: (
   const save = async () => {
     if (!amount || amount <= 0) return setErr('Ingrese el importe pagado');
     await saveRecord<CardPayment>('cardPayments', { entity, statementId: statement?.id, date, month: monthOf(date), amount, source: 'manual' } as CardPayment, `Pago de resumen ${entity} (${formatARS(amount)})`);
-    if (statement) {
-      const db = getDb();
-      await db.transaction('rw', db.obligations, () => applyStatementPayment(db, statement, amount, new Date().toISOString()));
-      notify();
-    }
+    const db = getDb();
+    if (statement) await db.transaction('rw', db.obligations, () => applyStatementPayment(db, statement, amount, new Date().toISOString()));
+    // Sin resumen: si la tarjeta tiene su total del mes (Mercado Pago), ese mes queda pagado.
+    else if (entity) await db.transaction('rw', db.obligations, () => applyCardPlanPayment(db, entity, date, amount, new Date().toISOString()));
+    notify();
     onClose();
   };
   return (

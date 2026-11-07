@@ -448,6 +448,25 @@ export function onCardOf(statements: Statement[]) {
   return (ob: Obligation) => (!!ob.documentId && docs.has(ob.documentId)) || (!ob.loanNumber && ob.type !== 'prestamo');
 }
 
+/** Total de la tarjeta por mes que muestra la app del emisor (plan de pagos / "Tu total hasta hoy" de Mercado Pago). */
+export const isCardPlan = (ob: Obligation) => !!ob.fingerprint && /^plan\|.*\|tarjeta/.test(ob.fingerprint);
+
+/**
+ * Meses en que una entidad tiene el total de la tarjeta (plan): ese total ya incluye las cuotas de la tarjeta,
+ * así que esas cuotas no se suman aparte. Devuelve, por entidad, los meses cubiertos.
+ */
+export function cardPlanMonths(obs: Obligation[], today: MonthKey): Map<string, Set<MonthKey>> {
+  const out = new Map<string, Set<MonthKey>>();
+  for (const ob of obs) {
+    if (ob.deleted || ob.status === 'cancelada' || !isCardPlan(ob)) continue;
+    const g = entityGroup(ob.entity);
+    const set = out.get(g) ?? new Set<MonthKey>();
+    for (const i of buildSchedule(ob, today)) if (i.status !== 'cancelada') set.add(i.month);
+    out.set(g, set);
+  }
+  return out;
+}
+
 export interface PayLine {
   label: string;
   detail?: string;
@@ -455,6 +474,8 @@ export interface PayLine {
   due?: string;
   amount: Cents;
   estimated?: boolean;
+  /** Qué se marca pagado con "Ya pagué todo": un resumen, o cuotas (la de la línea y las que trae adentro). */
+  pays?: { statementId?: string; installments?: Array<{ obligationId: string; n: number }>; card?: boolean };
 }
 export interface EntityMonthPay {
   group: string;
@@ -473,7 +494,11 @@ export function monthToPay(debts: EntityDebt[], month: MonthKey, statements: Sta
   for (const d of debts) {
     const lines: PayLine[] = [];
     const resumenes = d.card.filter((c) => c.kind === 'resumen' && c.month === month);
-    const cuotas = d.items.flatMap(({ ob }) => buildSchedule(ob, month).filter((i) => i.month === month && (i.status === 'pendiente' || i.status === 'vencida')).map((i) => ({ ob, i })));
+    const all = d.items.flatMap(({ ob }) => buildSchedule(ob, month).filter((i) => i.month === month && (i.status === 'pendiente' || i.status === 'vencida')).map((i) => ({ ob, i })));
+    // Si la tarjeta tiene su total del mes (plan), sus cuotas ya están adentro: van en "Incluye …".
+    const plan = resumenes.length ? undefined : all.find(({ ob }) => isCardPlan(ob));
+    const enPlan = plan ? all.filter(({ ob }) => ob !== plan.ob && onCard(ob)) : [];
+    const cuotas = all.filter((x) => !enPlan.includes(x));
     const enResumen = resumenes.length ? cuotas.filter(({ ob }) => onCard(ob)) : [];
     for (const r of resumenes) {
       const dentro = sum(enResumen.map(({ i }) => i.amount ?? 0));
@@ -482,11 +507,23 @@ export function monthToPay(debts: EntityDebt[], month: MonthKey, statements: Sta
         detail: enResumen.length ? `Incluye ${enResumen.map(({ ob, i }) => `${ob.concept} ${i.n}/${i.total ?? '?'}`).join(', ')}` : undefined,
         due: r.due,
         amount: r.amount + dentro,
+        pays: { statementId: r.statementId, card: true },
       });
     }
     for (const { ob, i } of cuotas) {
       if (enResumen.some((x) => x.ob.id === ob.id)) continue;
-      lines.push({ label: ob.concept, detail: `Cuota ${i.n}${i.total ? ` de ${i.total}` : ''}`, due: dueOf(ob, i.n), amount: i.amount ?? 0, estimated: i.estimated });
+      if (plan && ob === plan.ob) {
+        lines.push({
+          label: ob.concept,
+          detail: enPlan.length ? `Incluye ${enPlan.map(({ ob: o, i: k }) => `${o.concept} ${k.n}/${k.total ?? '?'}`).join(', ')}` : `Cuota ${i.n}${i.total ? ` de ${i.total}` : ''}`,
+          due: dueOf(ob, i.n),
+          amount: i.amount ?? 0,
+          estimated: i.estimated,
+          pays: { card: true, installments: [{ obligationId: ob.id, n: i.n }, ...enPlan.map(({ ob: o, i: k }) => ({ obligationId: o.id, n: k.n }))] },
+        });
+        continue;
+      }
+      lines.push({ label: ob.concept, detail: `Cuota ${i.n}${i.total ? ` de ${i.total}` : ''}`, due: dueOf(ob, i.n), amount: i.amount ?? 0, estimated: i.estimated, pays: { card: onCard(ob), installments: [{ obligationId: ob.id, n: i.n }] } });
     }
     for (const c of d.card.filter((c) => c.kind === 'consumos' && c.month === month)) lines.push({ label: c.label, detail: c.detail, amount: c.amount, estimated: true });
     if (!lines.length) continue;
@@ -507,7 +544,7 @@ export interface EntityDebt {
   /** balance: deuda sin cuotas (solo el saldo, p. ej. ARCA). */
   items: Array<{ ob: Obligation; progress: ObligationProgress; balance?: Cents }>;
   /** De las tarjetas: resúmenes sin pagar y consumos que vienen en el próximo resumen. */
-  card: Array<{ kind: 'resumen' | 'consumos'; label: string; detail: string; amount: Cents; month: MonthKey; due?: string }>;
+  card: Array<{ kind: 'resumen' | 'consumos'; label: string; detail: string; amount: Cents; month: MonthKey; due?: string; statementId?: string }>;
 }
 
 /** Entidad de un consumo con tarjeta (los registros viejos la tienen solo en las notas). */
@@ -525,6 +562,10 @@ export interface CardDebtSources {
 export function debtByEntity(obs: Obligation[], today: MonthKey, cards?: CardDebtSources): EntityDebt[] {
   const map = new Map<string, EntityDebt>();
   const get = (g: string) => map.get(g) ?? { group: g, remaining: 0, estimated: false, byMonth: {}, overdue: 0, items: [], card: [] };
+  // Meses con el total de la tarjeta (plan): las cuotas de esa tarjeta ya están adentro y no se suman otra vez.
+  const planned = cardPlanMonths(obs, today);
+  const onCardAll = onCardOf(cards?.statements ?? []);
+  const covered = (ob: Obligation, month: MonthKey) => !isCardPlan(ob) && onCardAll(ob) && !!planned.get(entityGroup(ob.entity))?.has(month);
   for (const ob of obs) {
     if (ob.deleted || ob.status === 'cancelada') continue;
     if (isBalanceOnly(ob)) {
@@ -541,6 +582,7 @@ export function debtByEntity(obs: Obligation[], today: MonthKey, cards?: CardDeb
     const g = entityGroup(ob.entity);
     const e = get(g);
     for (const i of pending) {
+      if (covered(ob, i.month)) continue;
       const v = i.amount ?? 0;
       e.remaining += v;
       e.byMonth[i.month] = (e.byMonth[i.month] ?? 0) + v;
@@ -568,9 +610,9 @@ export function debtByEntity(obs: Obligation[], today: MonthKey, cards?: CardDeb
       if (st.deleted || !st.total || st.total <= 0 || st.month < today) continue;
       const g = entityGroup(st.entity);
       const paid = cards.cardPayments.filter((p) => !p.deleted && p.statementId === st.id).reduce((a, p) => a + p.amount, 0);
-      const inObligations = (map.get(g)?.items ?? []).filter(({ ob }) => onCard(ob)).reduce((a, { ob }) => a + buildSchedule(ob, today).filter((i) => i.month === st.month && (i.status === 'pendiente' || i.status === 'vencida')).reduce((x, i) => x + (i.amount ?? 0), 0), 0);
+      const inObligations = (map.get(g)?.items ?? []).filter(({ ob }) => onCard(ob)).reduce((a, { ob }) => a + buildSchedule(ob, today).filter((i) => i.month === st.month && (i.status === 'pendiente' || i.status === 'vencida') && !covered(ob, i.month)).reduce((x, i) => x + (i.amount ?? 0), 0), 0);
       const unpaid = st.total - paid - inObligations;
-      add(g, { kind: 'resumen', label: `Resumen de ${monthLabel(st.month)}`, detail: `falta pagar${st.dueDate ? ` · vence el ${st.dueDate.split('-').reverse().join('/')}` : ''}${inObligations ? ' (sin contar sus cuotas, que están arriba)' : ''}`, amount: unpaid, month: st.month, due: st.dueDate });
+      add(g, { kind: 'resumen', label: `Resumen de ${monthLabel(st.month)}`, detail: `falta pagar${st.dueDate ? ` · vence el ${st.dueDate.split('-').reverse().join('/')}` : ''}${inObligations ? ' (sin contar sus cuotas, que están arriba)' : ''}`, amount: unpaid, month: st.month, due: st.dueDate, statementId: st.id });
     }
     // Consumos que todavía no tienen resumen (vistos en la app de la tarjeta).
     const prov = new Map<string, { amount: Cents; n: number; month: MonthKey }>();

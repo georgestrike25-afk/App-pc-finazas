@@ -1,14 +1,18 @@
 import { useMemo } from 'react';
+import { getDeviceId, notify } from '../../db/repo';
+import { getDb } from '../../db/db';
+import { payEntityMonth } from '../../db/cardPayments';
+import { formatARS } from '../../domain/money';
 import { useApp } from '../store';
-import { addMonths, formatDate, monthLabel, monthShort } from '../../domain/dates';
+import { addMonths, formatDate, monthLabel, monthShort, todayIso } from '../../domain/dates';
 import { debtByEntity, entityGroup, expenseCardEntity, monthToPay, OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
 import { sum } from '../../domain/money';
-import { Badge, BarChart, Card, Empty, Money, Progress } from '../components/ui';
+import { Badge, BarChart, Card, confirmDialog, Empty, Money, Progress } from '../components/ui';
 import { CreditCard, Landmark } from 'lucide-react';
 
 /** Cuánto falta para saldar todas las deudas con cada entidad (préstamos y cuotas de tarjetas). */
 export function EntidadesPage() {
-  const { data, today } = useApp();
+  const { data, today, toast } = useApp();
   const debts = useMemo(() => debtByEntity(data.obligations, today, data), [data, today]);
   const total = sum(debts.map((d) => d.remaining));
   const toPay = useMemo(() => monthToPay(debts, today, data.statements), [debts, today, data.statements]);
@@ -52,6 +56,15 @@ export function EntidadesPage() {
           {toPay.map((e) => (
             <div key={e.group} className="pay-entity">
               <div className="pay-head"><strong>{e.group}</strong><Money value={e.total} estimated={e.lines.some((l) => l.estimated)} /></div>
+              {e.lines.some((l) => l.pays) && (
+                <button className="btn small pay-all" onClick={async () => {
+                  if (!(await confirmDialog(`¿Ya pagaste todo lo de ${e.group} de ${monthLabel(today).toLowerCase()} (${formatARS(e.total)})?\nQueda pagado y se descuenta de tu plata hasta cobrar.`, { ok: 'Sí, ya pagué todo' }))) return;
+                  const db = getDb();
+                  await payEntityMonth(db, e, todayIso(), new Date().toISOString(), await getDeviceId(db));
+                  notify();
+                  toast(`${e.group}: todo lo de ${monthLabel(today).toLowerCase()} quedó pagado.`);
+                }}>Ya pagué todo</button>
+              )}
               <ul className="list">
                 {e.lines.map((l, i) => (
                   <li key={i}>
