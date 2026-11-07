@@ -30,7 +30,7 @@ const CATEGORY_RULES: Array<{ category: string; kind: ExpenseKind; words: string
   { category: 'Combustible', kind: 'cotidiano', words: ['ypf', 'shell', 'axion', 'puma energy', 'combustible', 'nafta'] },
   { category: 'Farmacia', kind: 'cotidiano', words: ['farmacia', 'farmacity', 'drogueria'] },
   { category: 'Delivery y comidas', kind: 'cotidiano', words: ['uber eats', 'ubereats', 'rappi', 'pedidosya', 'pedidos ya', 'mcdonald', 'burger', 'restaurant', 'resto', 'cafe', 'pizzeria', 'panaderia'] },
-  { category: 'Transporte', kind: 'cotidiano', words: ['sube', 'uber', 'cabify', 'didi', 'peaje', 'estacionamiento', 'trenes', 'subte'] },
+  { category: 'Transporte', kind: 'cotidiano', words: ['sube', 'uber', 'cabify', 'didi', 'ebanx', 'peaje', 'estacionamiento', 'trenes', 'subte'] },
   { category: 'Telefonía', kind: 'personal', words: ['movistar movil', 'claro movil', 'personal movil', 'tuenti'] },
   { category: 'Servicios del hogar', kind: 'hogar', words: ['edenor', 'edesur', 'epec', 'metrogas', 'naturgy', 'camuzzi', 'ecogas', 'aysa', 'telecom', 'fibertel', 'telecentro', 'personal flow', 'movistar', 'claro', 'expensas', 'alquiler', 'abl'] },
   { category: 'Suscripciones', kind: 'personal', words: ['netflix', 'spotify', 'disney', 'hbo', 'max ', 'youtube', 'prime video', 'amazon prime', 'apple com', 'google', 'paramount', 'star plus'] },

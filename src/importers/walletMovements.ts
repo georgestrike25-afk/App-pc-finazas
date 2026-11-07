@@ -29,6 +29,10 @@ const TYPES: Array<[RegExp, string]> = [
 
 interface Row {
   concept: string;
+  /** Hora ("21:50"), si la lista la muestra (Mercado Pago). */
+  time?: string;
+  /** El día se tomó del cuadro anterior (el renglón estaba arriba del primer día del cuadro). */
+  carried?: boolean;
   amount: Cents;
   credit: boolean;
   type: string;
@@ -84,8 +88,111 @@ function rowsOf(lines: SourceLine[]): Row[] {
   return out;
 }
 
+/**
+ * Mercado Pago, "Movimientos de tu dinero": los movimientos van agrupados por día ("6 de noviembre  Disponible $ …")
+ * y cada uno ocupa dos renglones, con la hora en vez de la fecha:
+ *
+ *   CLUB PARAGUAY              -$20.000
+ *   Pago con QR                   21:50
+ *
+ * Los cuadros de un video se leen en orden: lo que queda arriba del primer día de un cuadro es del último día visto.
+ */
+const MP_MONTHS: Record<string, number> = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
+const RE_MP_AMOUNT = /^(.*?)\s*([+-])\s*\$\s?(\d{1,3}(?:\.\d{3})*)(?:,(\d{2}))?\s*$/;
+const RE_MP_TYPE = /^(.*?)\s*(\d{1,2}):(\d{2})\s*$/;
+const RE_MP_DAY = /^(\d{1,2}) de ([a-záéíóú]+)\b/i;
+const MP_TYPES: Array<[RegExp, string]> = [
+  [/^pago con qr$/, 'compra'],
+  [/^pago$/, 'compra'],
+  [/^compra$/, 'compra'],
+  [/^transferencia enviada$/, 'enviada'],
+  [/^transferencia recibida$/, 'recibida'],
+  [/^devolucion de pago$/, 'devolucion'],
+  [/^pago de resumen$/, 'tarjeta'],
+  [/^pago de cuota$/, 'cuota_credito'],
+  [/^pago de servicios?$/, 'servicio'],
+];
+/** Saca íconos que el OCR lee como letras sueltas ("Es   Pago con QR", "x     JORGE…"). */
+const lastWords = (s: string) => s.split(/\s{2,}/).map((p) => p.trim()).filter((p) => (p.match(/\p{L}/gu) ?? []).length >= 3).pop() ?? '';
+
+function rowsOfMp(pages: SourceLine[][]): Row[][] {
+  let day: [number, number] | undefined;
+  return pages.map((lines) => {
+    const out: Row[] = [];
+    let carried = true;
+    for (let i = 0; i < lines.length; i++) {
+      const t0 = lines[i].text.trim();
+      const d = t0.match(RE_MP_DAY);
+      if (d && MP_MONTHS[normalizeText(d[2])]) {
+        day = [Number(d[1]), MP_MONTHS[normalizeText(d[2])]];
+        carried = false;
+        continue;
+      }
+      const a = t0.match(RE_MP_AMOUNT);
+      if (!a || !day || i + 1 >= lines.length) continue;
+      const t = lines[i + 1].text.trim().match(RE_MP_TYPE);
+      if (!t) continue;
+      const concept = lastWords(a[1]);
+      const typeN = normalizeText(lastWords(t[1]) || t[1]).replace(/[^a-z]+/g, ' ').trim();
+      const type = MP_TYPES.find(([re]) => re.test(typeN))?.[1];
+      if (!type || !concept) continue;
+      out.push({
+        concept,
+        time: `${t[2].padStart(2, '0')}:${t[3]}`,
+        amount: Number(a[3].replace(/\./g, '')) * 100 + (a[4] ? Number(a[4]) : 0),
+        credit: a[2] === '+',
+        type,
+        day: day[0],
+        month: day[1],
+        conf: Math.min(lines[i].ocrConfidence ?? 100, lines[i + 1].ocrConfidence ?? 100),
+        source: `${lines[i].text} · ${lines[i + 1].text}`,
+        page: lines[i].page,
+        carried,
+      });
+      i++;
+    }
+    return out;
+  });
+}
+
+/**
+ * Une los cuadros de Mercado Pago: cada movimiento se reconoce por hora, tipo e importe (la hora lo hace único).
+ * Lo nuevo se ubica después del renglón que tenía arriba en su cuadro; si el día era del cuadro anterior
+ * y otro cuadro lo muestra bajo su día, queda ese.
+ */
+function mergeMp(frames: Row[][]): Row[] {
+  const acc: Row[] = [];
+  const k = (r: Row) => `${r.time}|${r.type}|${r.credit ? '+' : '-'}${r.amount}`;
+  for (const f of frames) {
+    let prev = -1;
+    // Lo nuevo al principio del cuadro va antes del primer renglón que ya se conocía.
+    let pending: Row[] = [];
+    for (const r of f) {
+      const at = acc.findIndex((x) => k(x) === k(r));
+      if (at >= 0) {
+        const x = acc[at];
+        if (x.carried && !r.carried) Object.assign(x, { day: r.day, month: r.month, carried: false });
+        if (x.concept.endsWith('...') && !r.concept.endsWith('...')) x.concept = r.concept;
+        if (pending.length) {
+          acc.splice(at, 0, ...pending);
+          pending = [];
+          prev = acc.indexOf(x);
+        } else prev = at;
+        continue;
+      }
+      if (prev < 0) pending.push(r);
+      else {
+        acc.splice(prev + 1, 0, r);
+        prev += 1;
+      }
+    }
+    acc.push(...pending);
+  }
+  return acc;
+}
+
 /** Clave para reconocer el mismo movimiento en dos cuadros (el nombre puede leerse distinto). */
-const keyOf = (r: Row) => `${r.day}/${r.month}|${r.type}|${r.credit ? '+' : '-'}${r.amount}`;
+const keyOf = (r: Row) => `${r.day}/${r.month}|${r.time ?? ''}|${r.type}|${r.credit ? '+' : '-'}${r.amount}`;
 
 /**
  * Une las filas de cada cuadro en orden: donde un cuadro repite el final del anterior (la parte
@@ -149,8 +256,9 @@ export function parseWalletMovements(lines: SourceLine[], ctx: WalletContext = {
   if (!/mis movimientos|movimientos/i.test(text)) return null;
   const pages = new Map<number, SourceLine[]>();
   for (const l of lines) pages.set(l.page ?? 0, [...(pages.get(l.page ?? 0) ?? []), l]);
-  const frames = [...pages.entries()].sort((a, b) => a[0] - b[0]).map(([, ls]) => rowsOf(ls));
-  const rows = mergeFrames(frames);
+  const sorted = [...pages.entries()].sort((a, b) => a[0] - b[0]).map(([, ls]) => ls);
+  const isMp = /movimientos de tu dinero/i.test(text);
+  const rows = isMp ? mergeMp(rowsOfMp(sorted)) : mergeFrames(sorted.map(rowsOf));
   if (rows.length < 3) return null;
 
   const today = ctx.today ?? new Date().toISOString().slice(0, 10);
@@ -203,6 +311,10 @@ export function parseWalletMovements(lines: SourceLine[], ctx: WalletContext = {
       kind = 'ingreso';
       concept = `Transferencia de ${r.concept}`;
       warnings.push('Transferencia recibida: se suma como ingreso extra del mes (si ya estaba anotada, no se repite).');
+    } else if (r.type === 'cuota_credito') {
+      kind = 'transferencia';
+      concept = `Pago de cuota: ${r.concept.replace(/\.\.\.$/, '')}`;
+      warnings.push('Pago de las cuotas de tus créditos: ya están en Deudas, no es un gasto nuevo. Para que baje la plata hasta cobrar, marcá las cuotas como pagadas (o subí el video de Créditos de Mercado Pago).');
     } else if (r.type === 'devolucion') {
       kind = 'bonificacion';
     } else if (r.type === 'tarjeta') {
@@ -249,7 +361,7 @@ export function parseWalletMovements(lines: SourceLine[], ctx: WalletContext = {
   }
 
   const months = items.map((i) => i.date!.slice(0, 7)).sort();
-  const entity = detectEntity(`${text} ${ctx.fileName ?? ''}`).entity ?? (/ual/i.test(ctx.fileName ?? '') ? 'Ualá' : 'Billetera');
+  const entity = isMp ? 'Mercado Pago' : detectEntity(`${text} ${ctx.fileName ?? ''}`).entity ?? (/ual/i.test(ctx.fileName ?? '') ? 'Ualá' : 'Billetera');
   return {
     docType: 'cuenta',
     // Si se te pasó anotar algo de meses anteriores, también se propone.
