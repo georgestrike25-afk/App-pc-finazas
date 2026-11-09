@@ -91,7 +91,7 @@ test('cronograma de préstamo: muestra en qué cuota voy y cuánto falta', async
   await expect(page.locator('.kpi', { hasText: 'Total que falta pagar' })).toContainText('69.000,00');
   await expect(page.locator('.kpi', { hasText: 'Capital adeudado' })).toContainText('42.000,00');
   await page.getByRole('button', { name: 'Incorporar préstamo' }).click();
-  await expect(page.locator('.topbar h1')).toHaveText('Tarjetas y deudas');
+  await expect(page.locator('.topbar h1')).toHaveText('Deudas');
   const row = page.locator('tr', { hasText: 'Préstamo personal' });
   await expect(row).toContainText('3/6 pagadas');
   await expect(row).toContainText('Vas por la 4 de 6');
@@ -156,7 +156,7 @@ test('cuotas pagadas por error: aviso antes de pagar y corrección en un toque',
   await go(page, 'importar');
   await page.locator('#file').setInputFiles({ name: 'cronograma.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await makeLoanPdf(5)) });
   await page.getByRole('button', { name: 'Incorporar préstamo' }).click();
-  await expect(page.locator('.topbar h1')).toHaveText('Tarjetas y deudas');
+  await expect(page.locator('.topbar h1')).toHaveText('Deudas');
   const row = page.locator('.ob-table tr', { hasText: 'Préstamo personal' });
   await expect(row).toContainText('5/6 pagadas');
   // La cuota 6 vence el 05/11: la app advierte que todavía no venció
@@ -193,7 +193,7 @@ test('plan de pagos de Mercado Pago y deuda por entidad', async ({ page }) => {
   await page.locator('#file').setInputFiles({ name: 'Mercado_pago_a_la_fecha.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await pdf.save()) });
   await expect(page.getByTestId('verif-plan')).toContainText('coincide');
   await page.getByRole('button', { name: 'Incorporar plan' }).click();
-  await expect(page.locator('.topbar h1')).toHaveText('Deuda por entidad');
+  await expect(page.locator('.topbar h1')).toHaveText('Deudas');
   const card = page.locator('.entity-card', { hasText: 'Mercado Pago' });
   await expect(card).toContainText('200.000,00');
   await expect(card).toContainText('Último pago en diciembre de 2026');

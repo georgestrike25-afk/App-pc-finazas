@@ -661,3 +661,17 @@ body.kb-open .page { padding-bottom: 24px; }
 .more-settings { margin: 12px 0; }
 .more-settings > summary { cursor: pointer; font-weight: 600; color: var(--muted); padding: 6px 0; }
 .more-settings[open] > summary { margin-bottom: 8px; }
+
+.day-fold { margin: 8px 0 4px; }
+.day-fold > summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 0.9rem; padding: 4px 0; }
+
+/* Pantallas unidas: secciones plegables */
+.hub > .page { gap: 16px; }
+.hub-sec { padding: 0; }
+.hub-sec > summary { cursor: pointer; list-style: none; display: flex; flex-direction: column; gap: 2px; padding: 16px 18px; }
+.hub-sec > summary::-webkit-details-marker { display: none; }
+.hub-sec > summary .hub-t { font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+.hub-sec > summary .hub-t::after { content: '▸'; color: var(--muted); font-size: 0.9em; transition: transform var(--t); }
+.hub-sec[open] > summary .hub-t::after { transform: rotate(90deg); }
+.hub-sec > .hub-body { padding: 0 12px 12px; }
+.hub-sec > .hub-body > .page > .card { box-shadow: none; }

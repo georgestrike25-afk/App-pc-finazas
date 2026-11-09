@@ -93,8 +93,9 @@ describe('resumen con diseño Visa Banco Patagonia (datos ficticios)', () => {
     expect(outflows).toBe(31800000);
     expect(m.sections.find((s) => s.key === 'cotidiano')!.total).toBe(1500000);
     // Cargos 10.000 + 3.000 + 2.100 − bonificación de comisión 10.000 − crédito de IVA 2.100
-    expect(m.sections.find((s) => s.key === 'personales')!.total).toBe(300000);
-    expect(m.info.sancorExpected).toBe(5000000);
+    // + Sancor $ 100.000 como gasto personal (obra social): ya no se espera reintegro.
+    expect(m.sections.find((s) => s.key === 'personales')!.total).toBe(10300000);
+    expect(m.info.sancorExpected).toBe(0);
     expect(computeMonth(data, '2026-11', '2026-10').sections.find((s) => s.key === 'obligaciones')!.total).toBe(20000000);
     expect(computeMonth(data, '2027-01', '2026-10').sections.find((s) => s.key === 'obligaciones')!.total).toBe(5000000);
     expect(computeMonth(data, '2027-02', '2026-10').sections.find((s) => s.key === 'obligaciones')!.total).toBe(0);

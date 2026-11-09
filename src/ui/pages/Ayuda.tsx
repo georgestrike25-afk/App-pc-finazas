@@ -26,7 +26,6 @@ export function AyudaPage() {
           <li>Cuando llega un <strong>resumen de tarjeta</strong> → Subir → Confirmar (fijate que diga ✓ coincide).</li>
           <li>Después de cobrar → <strong>captura de los movimientos del banco</strong> → Subir. Carga el sueldo y marca pagadas las cuotas.</li>
           <li>Si ya pagaste un resumen y no tenés la captura → tocá <strong>"Ya lo pagué"</strong> en Pendientes.</li>
-          <li>Si te devuelven la parte compartida de Sancor → registralo desde Pendientes.</li>
         </ol>
       </Card>
       <Card title="Durante el mes">

@@ -1,7 +1,6 @@
 import { addMonths, formatDate, monthLabel, type MonthKey } from './dates';
 import { formatARS, sum } from './money';
 import { buildSchedule, entityGroup, installmentDueDate } from './obligations';
-import { sancorSummary } from './sancor';
 import type { DataSet } from './monthly';
 
 export interface CheckItem {
@@ -101,9 +100,6 @@ export function monthChecklist(data: DataSet, today: MonthKey, todayIso: string,
     );
   }
 
-  const pendingSancor = sum(data.sancor.map((c) => sancorSummary(c).pending));
-  if (pendingSancor > 0)
-    items.push({ key: 'sancor', done: false, title: `Registrar el reintegro de Sancor (${formatARS(pendingSancor)})`, detail: 'Cuando te devuelvan la parte compartida.', href: '#/compartidos', hrefLabel: 'Registrar' });
 
   if (!empty) {
     const days = lastBackup ? (Date.parse(todayIso) - Date.parse(lastBackup.slice(0, 10))) / 86400000 : Infinity;

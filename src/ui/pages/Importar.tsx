@@ -34,7 +34,7 @@ const ACTION_LABEL: Record<ReviewAction, string> = {
   ignorar: 'No importar',
 };
 
-const KIND_ACTION: Record<ReviewItem['parsedKind'], ReviewAction> = { consumo: 'gasto', cargo: 'gasto', cuota: 'cuota', pago: 'pago', sancor: 'sancor', bonificacion: 'bonificacion', credito: 'bonificacion', desconocido: 'gasto', ingreso: 'ingreso', adelanto: 'gasto', transferencia: 'gasto', pago_prestamo: 'gasto' };
+const KIND_ACTION: Record<ReviewItem['parsedKind'], ReviewAction> = { consumo: 'gasto', cargo: 'gasto', cuota: 'cuota', pago: 'pago', sancor: 'gasto', bonificacion: 'bonificacion', credito: 'bonificacion', desconocido: 'gasto', ingreso: 'ingreso', adelanto: 'gasto', transferencia: 'gasto', pago_prestamo: 'gasto' };
 
 const DUP_BADGE: Record<NonNullable<ReviewItem['duplicate']>['type'], [string, 'warn' | 'info' | 'ok']> = {
   linea: ['Duplicado', 'warn'],
@@ -69,7 +69,7 @@ function ItemRow({ it, onChange, categories }: { it: ReviewItem; onChange: (p: P
         <Field label="Acción" help="Qué hacer con esta línea: cargarla como gasto, como cuota, como pago del resumen, como ingreso, vincularla con algo que ya estaba, o no cargarla.">
           {(id) => (
             <select id={id} value={it.action} onChange={(e) => onChange({ action: e.target.value as ReviewAction, include: e.target.value !== 'ignorar' })}>
-              {(Object.keys(ACTION_LABEL) as ReviewAction[]).filter((a) => a !== 'vincular' || it.duplicate?.targetId).map((a) => <option key={a} value={a}>{ACTION_LABEL[a]}</option>)}
+              {(Object.keys(ACTION_LABEL) as ReviewAction[]).filter((a) => a !== 'sancor' && (a !== 'vincular' || it.duplicate?.targetId)).map((a) => <option key={a} value={a}>{ACTION_LABEL[a]}</option>)}
             </select>
           )}
         </Field>
@@ -335,7 +335,7 @@ export function ImportarPage() {
       // Los videos no se guardan (son pesados): solo quedan los datos leídos.
       const res = await commitReview(review, review.file.kind === 'video' ? null : file, undefined, { markPreviousPaid: markPrev });
       const c = res.created;
-      toast(`Importación completa: ${c.gastos} gasto(s), ${c.cuotas} obligación(es), ${c.pagos} pago(s), ${c.sancor} Sancor, ${c.ingresos} ingreso(s), ${c.vinculados} vinculado(s).`);
+      toast(`Importación completa: ${c.gastos} gasto(s), ${c.cuotas} obligación(es), ${c.pagos} pago(s), ${c.ingresos} ingreso(s), ${c.vinculados} vinculado(s).`);
       setReview(null);
       setFile(null);
     } catch (e) {

@@ -2,17 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { computeMonth } from '../../domain/monthly';
 import { monthChecklist, type CheckItem } from '../../domain/checklist';
-import { debtByEntity, markPaidThrough } from '../../domain/obligations';
-import { goalProgress, projectGoal } from '../../domain/savings';
+import { markPaidThrough } from '../../domain/obligations';
 import { formatDate, monthLabel, todayIso } from '../../domain/dates';
-import { sum } from '../../domain/money';
 import { getDb } from '../../db/db';
 import { getDeviceId, notify, saveRecord } from '../../db/repo';
 import { debtPaymentExpense, installmentAmountFor } from '../../domain/payments';
 import { markStatementPaid } from '../../db/cardPayments';
 import { Card, confirmDialog, Empty, Help, InHeader, Money, MonthNav, Ring } from '../components/ui';
-import { ArrowDownToLine, ArrowUpRight, ChevronRight, Plus, Receipt, Upload } from 'lucide-react';
-import { TripScene } from '../components/TripScene';
+import { ChevronRight, Plus, Receipt, Upload } from 'lucide-react';
 import { dailyOccurrencesForMonth } from '../../domain/expenses';
 import { cycleMonthOf, cycleRange, eachDay } from '../../domain/payday';
 import { startTour } from '../components/Tour';
@@ -91,17 +88,11 @@ export function EsteMesPage() {
   const get = (k: string) => r.sections.find((s) => s.key === k)!.total;
   const spent = get('fijos') + get('personales') + get('cotidiano');
   const checklist = useMemo(() => monthChecklist(data, today, todayIso(), lastBackup), [data, today, lastBackup]);
-  const debts = useMemo(() => debtByEntity(data.obligations, today, data), [data, today]);
-  const debtTotal = sum(debts.map((d) => d.remaining));
-  const debtEnd = debts.map((d) => d.lastMonth).filter(Boolean).sort().at(-1);
-  const goal = data.goal;
-  const proj = useMemo(() => (goal.estimatedCost > 0 ? projectGoal(data, goal, today, goal.scenarios.find((s) => s.key === 'intermedio') ?? goal.scenarios[0]) : null), [data, goal, today]);
   const isCurrent = month === today;
   // El presupuesto del día a día va de cobro a cobro: hasta cobrar, el ciclo activo es el del mes anterior.
   const dailyMonth = isCurrent ? cycleMonthOf(todayIso(), data.settings) : month;
   const rDaily = useMemo(() => (dailyMonth === month ? r : computeMonth(data, dailyMonth, today)), [data, dailyMonth, month, r, today]);
   const cycle = cycleRange(dailyMonth, data.settings);
-  const daysLeft = goal.targetMonth ? Math.max(0, Math.round((new Date(`${goal.targetMonth}-01T00:00:00`).getTime() - new Date(`${todayIso()}T00:00:00`).getTime()) / 86400000)) : null;
   // Si el usuario cargó cuánta plata tiene, ese es el número principal; las cuentas del mes quedan como referencia.
   const cash = isCurrent ? cashStatus(data, todayIso()) : null;
   const diff = cash ? r.available - cash.left : 0;
@@ -177,90 +168,32 @@ export function EsteMesPage() {
         <button className="btn primary" onClick={newExpense}><Plus aria-hidden />Anotar gasto</button>
       </InHeader>
       <MonthNav month={month} setMonth={setMonth} />
+      {/* Cuatro bloques: cuánto te queda, qué falta hacer, el día a día y las cuentas del mes. */}
       <div className="cols cols-home-1">
         {isCurrent && <div className="o-1 cell"><CashCard /></div>}
-        <section className="card io o-1" aria-label="Entró y gastaste">
-          <a href="#/ingresos">
-            <span className="io-ic in" aria-hidden><ArrowDownToLine /></span>
-            <span className="hero-label">Entró</span>
-            <Money value={get('ingresos')} className="amount pos" />
-            <small className="muted">{r.incomeStatus === 'confirmado' ? `Sueldo de ${monthLabel(month).split(' de ')[0]}` : 'Falta cargar el sueldo'}</small>
-          </a>
-          <a href="#/gastos">
-            <span className="io-ic out" aria-hidden><ArrowUpRight /></span>
-            <span className="hero-label">Gastaste</span>
-            <Money value={spent} className="amount neg-text" />
-            <small className="muted">Tu parte, sin cuotas</small>
-          </a>
-        </section>
-        <section className={`card hero o-3 ${cash ? 'hero-secondary' : ''}`}>
-          {cash ? (
-            // Con la plata cargada, "Te quedan" es la tarjeta principal: las cuentas del mes quedan plegadas.
-            <details className="hero-fold">
-              <summary>
-                <span className="hero-label inline-help">{label}{calcHelp}</span>
-                <Money value={r.available} className="hero-money" />
-              </summary>
-              {accounts}
-            </details>
-          ) : (
-            <>
-              <span className="hero-label inline-help">{label}{calcHelp}</span>
-              <Money value={r.available} className="hero-money" />
-              {accounts}
-            </>
-          )}
-        </section>
-      </div>
-      <button className="btn primary only-mobile o-1" onClick={newExpense}><Plus aria-hidden />Anotar gasto</button>
-
-      <div className="cols cols-home-2">
-        <Card title={`Día a día · ciclo de ${monthLabel(dailyMonth).split(' de ')[0]}`} className="chart-card o-4" help={`Va de cobro a cobro: del ${formatDate(cycle.from)} al ${formatDate(cycle.to)}.`}>
-          <DailyChart month={dailyMonth} budget={rDaily.info.dailyBudget} />
-        </Card>
-        <Card title="Presupuesto del ciclo" className="o-2" help="Es el máximo que querés gastar entre un cobro y el siguiente en comida, transporte, salidas y demás gastos chicos. Lo cambiás en Presupuesto.">
-          <Ring value={rDaily.info.dailyRegistered} max={rDaily.info.dailyBudget} label="Usaste del presupuesto del día a día" />
-          <div className="hero-budget" style={{ textAlign: 'center' }}>
-            <a href="#/presupuesto" className="small">Día a día: gastaste <Money value={rDaily.info.dailyRegistered} /> de <Money value={rDaily.info.dailyBudget} /></a>
-            <small className="muted d-block">Ciclo: del {formatDate(cycle.from).slice(0, 5)} al {formatDate(cycle.to).slice(0, 5)}</small>
-          </div>
-          <a className="card-link" href="#/presupuesto">Ver por categoría<ChevronRight aria-hidden /></a>
-        </Card>
         {isCurrent ? <div className="o-2 cell"><Pendientes items={checklist} /></div> : <div />}
       </div>
+      <button className="btn primary only-mobile o-1" onClick={newExpense}><Plus aria-hidden />Anotar gasto</button>
       {isCurrent && <NotifReviewCard />}
 
-      <div className="cols cols-home-3">
-        <a className="card link-card o-3" href="#/entidades">
-          <span className="hero-label">Deudas</span>
-          <Money value={debtTotal} className="big-money" />
-          <small className="muted">{debtEnd ? `Terminás de pagar todo en ${monthLabel(debtEnd)}` : 'Sin deudas pendientes'}</small>
-          <span className="card-link">Ver por entidad<ChevronRight aria-hidden /></span>
-        </a>
-        <a className="card trip o-3" href="#/viaje">
-          <TripScene />
-          <div className="in">
-            <div>
-              {daysLeft !== null && <div className="days">Faltan {daysLeft} días</div>}
-              <h3>{goal.name}</h3>
-            </div>
-            {proj ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                  <Money value={goalProgress(goal)} className="amount" />
-                  <span className="of">de <Money value={goal.estimatedCost} /></span>
-                </div>
-                <div className="bar"><i style={{ width: `${Math.min(100, (goalProgress(goal) / Math.max(1, goal.estimatedCost)) * 100)}%` }} /></div>
-                <div className="trip-foot">
-                  <span className="go">Ver el plan</span>
-                  <span className="of">{proj.reachable ? '✓ Llegás con lo planeado' : <>Para llegar, ahorrá <Money value={proj.requiredMonthly} /> por mes</>}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="trip-foot"><span className="go">Poné cuánto cuesta</span><span className="of">para saber si llegás</span></div>
-            )}
+      <div className="cols cols-home-2">
+        <Card title={`Día a día · ciclo de ${monthLabel(dailyMonth).split(' de ')[0]}`} className="o-2" help={`Es el máximo que querés gastar entre un cobro y el siguiente en comida, transporte, salidas y demás gastos chicos. Va de cobro a cobro: del ${formatDate(cycle.from)} al ${formatDate(cycle.to)}. Lo cambiás en Presupuesto.`}>
+          <Ring value={rDaily.info.dailyRegistered} max={rDaily.info.dailyBudget} label="Usaste del presupuesto del día a día" />
+          <div className="hero-budget" style={{ textAlign: 'center' }}>
+            <a href="#/presupuesto" className="small">Gastaste <Money value={rDaily.info.dailyRegistered} /> de <Money value={rDaily.info.dailyBudget} /></a>
+            <small className="muted d-block">Ciclo: del {formatDate(cycle.from).slice(0, 5)} al {formatDate(cycle.to).slice(0, 5)}</small>
           </div>
-        </a>
+          <details className="day-fold">
+            <summary>Ver día por día</summary>
+            <DailyChart month={dailyMonth} budget={rDaily.info.dailyBudget} />
+          </details>
+          <a className="card-link" href="#/presupuesto">Ver por categoría<ChevronRight aria-hidden /></a>
+        </Card>
+        <section className={`card hero o-3 ${cash ? 'hero-secondary' : ''}`}>
+          <span className="hero-label inline-help">{label}{calcHelp}</span>
+          <Money value={r.available} className="hero-money" />
+          {accounts}
+        </section>
       </div>
       {editing && <ExpenseForm initial={editing} onClose={() => setEditing(null)} />}
     </div>

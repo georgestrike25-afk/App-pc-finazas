@@ -107,13 +107,12 @@ function defaultAction(k: ParsedItem['kind']): ReviewAction {
   switch (k) {
     case 'consumo':
     case 'cargo':
+    case 'sancor':
       return 'gasto';
     case 'cuota':
       return 'cuota';
     case 'pago':
       return 'pago';
-    case 'sancor':
-      return 'sancor';
     case 'bonificacion':
       return 'bonificacion';
     case 'ingreso':

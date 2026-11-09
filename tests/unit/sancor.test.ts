@@ -21,22 +21,17 @@ const T = '2026-10-01T00:00:00.000Z';
 const charge = (p: Partial<SancorCharge>): SancorCharge => ({ id: 'x', createdAt: T, updatedAt: T, month: '2026-10', chargeAmount: 10000000, partnerPct: 50, received: [], statementId: 'st1', ...p });
 
 describe('Sancor: dos cupones en el mismo resumen', () => {
-  it('al importar forman un solo cargo y la pareja devuelve un cupón entero', async () => {
+  it('desde que se dejó Sancor: los cupones se importan como gasto común de obra social, sin reintegro', async () => {
     const db = await freshDb();
     const parsed = parseStatementText(RESUMEN.split('\n').map((text) => ({ text })));
     const rv = await buildReview(parsed, { name: 'r.pdf', size: 1, mime: 'application/pdf', kind: 'pdf', hash: 'h' }, false, db, '2026-10');
-    expect(rv.items.filter((i) => i.action === 'sancor')).toHaveLength(2);
+    const cupones = rv.items.filter((i) => i.parsedKind === 'sancor');
+    expect(cupones.map((i) => [i.action, i.category, i.expenseKind])).toEqual([['gasto', 'Obra social', 'personal'], ['gasto', 'Obra social', 'personal']]);
     const res = await commitReview(rv, null, db);
-    expect(res.created.sancor).toBe(1);
-    const [c] = (await db.sancor.toArray()).filter((x) => !x.deleted);
-    expect(c.chargeAmount).toBe(20000000);
-    expect(c.coupons?.map((k) => k.amount)).toEqual([10000000, 10000000]);
-    const s = sancorSummary(c);
-    expect(s.expected).toBe(10000000);
-    expect(s.netEstimated).toBe(10000000);
-    expect(partnerCoupon(c)?.amount).toBe(10000000);
+    expect(res.created.sancor).toBe(0);
+    expect(await db.sancor.count()).toBe(0);
     const data = await loadDataSet(db);
-    expect(monthChecklist(data, '2026-10', '2026-10-21').find((i) => i.key === 'sancor')?.title).toContain('100.000,00');
+    expect(monthChecklist(data, '2026-10', '2026-10-21').some((i) => i.key === 'sancor')).toBe(false);
   });
 
   it('une los cargos que ya estaban guardados por separado (y lo hace igual en cada dispositivo)', async () => {

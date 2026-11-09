@@ -65,7 +65,7 @@ test('4, 6, 7. importación de PDF con texto, corrección de importe y reimporta
   const items = page.getByTestId('review-item');
   await expect(items).toHaveCount(5);
   await expect(page.getByText('no se convierte en una deuda nueva')).toBeVisible();
-  await expect(page.getByTestId('import-summary')).toContainText('2 gastos');
+  await expect(page.getByTestId('import-summary')).toContainText('3 gastos');
 
   // Corrección de un importe extraído
   await openLines(page);
@@ -75,7 +75,7 @@ test('4, 6, 7. importación de PDF con texto, corrección de importe y reimporta
   await amount.fill('32.000,00');
   await amount.blur();
   await page.getByRole('button', { name: 'Confirmar e incorporar' }).click();
-  await expect(page.getByText(/Importación completa: 2 gasto/)).toBeVisible();
+  await expect(page.getByText(/Importación completa: 3 gasto/)).toBeVisible();
 
   await go(page, 'deudas');
   await expect(page.locator('.ob-table').getByText('MERCADOLIBRE*TIENDA')).toBeVisible();
@@ -94,14 +94,12 @@ test('4, 6, 7. importación de PDF con texto, corrección de importe y reimporta
   await go(page, 'deudas');
   await expect(page.locator('.ob-table').getByText('MERCADOLIBRE*TIENDA')).toHaveCount(1);
 
-  // Sancor detectado: total tarjeta, reintegro esperado y neto
+  // Sancor ya no se usa: el cupón quedó como gasto común de obra social y Compartidos no tiene sección de Sancor.
   await go(page, 'compartidos');
-  // El resumen de prueba vence en octubre de 2026
+  await expect(page.locator('.sancor')).toHaveCount(0);
+  await go(page, 'gastos');
   await setMonth(page, '2026-10');
-  await expect(page.getByText('Total que cobra la tarjeta')).toBeVisible();
-  const sancor = page.locator('.sancor');
-  await expect(sancor).toContainText('98.000,00');
-  await expect(sancor).toContainText('49.000,00');
+  await expect(page.getByTestId('gastos-lista').or(page.locator('table')).first()).toContainText(/SANCOR/i);
 });
 
 test('5. importación de una imagen con OCR local', async ({ page }) => {

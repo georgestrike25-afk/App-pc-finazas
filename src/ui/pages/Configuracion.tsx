@@ -46,7 +46,7 @@ export function ConfiguracionPage() {
     })();
   }, []);
   const save = async () => {
-    if (s.defaultUserPct < 0 || s.defaultUserPct > 100 || s.sancorPartnerPct < 0 || s.sancorPartnerPct > 100) return toast('Los porcentajes deben estar entre 0 y 100', 'error');
+    if (s.defaultUserPct < 0 || s.defaultUserPct > 100) return toast('Los porcentajes deben estar entre 0 y 100', 'error');
     await saveRecord<Settings>('settings', s, 'Configuración general');
     toast('Configuración guardada');
   };
@@ -64,7 +64,6 @@ export function ConfiguracionPage() {
           <summary>Más ajustes (casi no hace falta tocarlos)</summary>
           <div className="form-grid">
           <Field label="Reparto por defecto de gastos del hogar (% del usuario)" help="Qué parte de los gastos compartidos pagás vos. 50 = mitad y mitad. Se puede cambiar en cada gasto.">{(id) => <input id={id} type="number" min={0} max={100} value={s.defaultUserPct} onChange={(e) => setS({ ...s, defaultUserPct: Number(e.target.value) })} />}</Field>
-          <Field label="Sancor Salud: % que te devuelven">{(id) => <input id={id} type="number" min={0} max={100} value={s.sancorPartnerPct} onChange={(e) => setS({ ...s, sancorPartnerPct: Number(e.target.value) })} />}</Field>
           <Field label="Presupuesto cotidiano por defecto" hint="Valor inicial orientativo: $700.000 (editable).">{(id) => <MoneyInput id={id} value={s.dailyBudgetDefault} onChange={(v) => setS({ ...s, dailyBudgetDefault: v ?? 0, dailyBudgetIsInitialValue: false })} />}</Field>
           <Field label="Ingreso mensual estimado (solo para proyecciones)" help="Cuánto creés que vas a cobrar en los meses que vienen. Solo se usa para el viaje y las proyecciones; nunca se suma como cobrado.">{(id) => <MoneyInput id={id} value={s.projectedMonthlyIncome} onChange={(v) => setS({ ...s, projectedMonthlyIncome: v ?? 0 })} />}</Field>
           </div>

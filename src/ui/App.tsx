@@ -13,16 +13,18 @@ import { getSyncStatus, onSyncStatus, type SyncStatus } from '../sync/autoSync';
 
 // "Este mes" se carga con la app; el resto de las pantallas, recién cuando se abren (la app arranca más rápido).
 const ResumenPage = lazy(() => import('./pages/Resumen').then((m) => ({ default: m.ResumenPage })));
-const DevolucionesPage = lazy(() => import('./pages/Devoluciones').then((m) => ({ default: m.DevolucionesPage })));
-const NecesitoPage = lazy(() => import('./pages/Necesito').then((m) => ({ default: m.NecesitoPage })));
 const AsistentePage = lazy(() => import('./pages/Asistente').then((m) => ({ default: m.AsistentePage })));
 const AyudaPage = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.AyudaPage })));
 const IngresosPage = lazy(() => import('./pages/Ingresos').then((m) => ({ default: m.IngresosPage })));
 const GastosPage = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.GastosPage })));
-const CompartidosPage = lazy(() => import('./pages/Compartidos').then((m) => ({ default: m.CompartidosPage })));
-const DeudasPage = lazy(() => import('./pages/Deudas').then((m) => ({ default: m.DeudasPage })));
-const CuotasPage = lazy(() => import('./pages/Cuotas').then((m) => ({ default: m.CuotasPage })));
-const EntidadesPage = lazy(() => import('./pages/Entidades').then((m) => ({ default: m.EntidadesPage })));
+const DeudasHub = lazy(() => import('./pages/Hubs').then((m) => ({ default: m.DeudasHub })));
+const ConOtrosHub = lazy(() => import('./pages/Hubs').then((m) => ({ default: m.ConOtrosHub })));
+// Pantallas unidas: las direcciones viejas siguen andando y abren su sección.
+const DeudasPorEntidad = () => <DeudasHub />;
+const DeudasNecesito = () => <DeudasHub open="necesito" />;
+const DeudasAdministrar = () => <DeudasHub open="admin" />;
+const Compartidos = () => <ConOtrosHub />;
+const Devoluciones = () => <ConOtrosHub open="devoluciones" />;
 const PresupuestoPage = lazy(() => import('./pages/Presupuesto').then((m) => ({ default: m.PresupuestoPage })));
 const ImportarPage = lazy(() => import('./pages/Importar').then((m) => ({ default: m.ImportarPage })));
 const ViajePage = lazy(() => import('./pages/Viaje').then((m) => ({ default: m.ViajePage })));
@@ -56,7 +58,7 @@ interface RouteDef {
 export const ROUTES: RouteDef[] = [
   { path: 'inicio', label: 'Este mes', icon: Wallet, el: EsteMesPage, nav: 'main', help: 'Lo principal del mes: cuánto te queda, lo que entró, lo que gastaste, las cuotas y la lista de lo que falta hacer. Con las flechas de arriba podés ver otros meses.' },
   { path: 'importar', label: 'Subir documento', short: 'Subir', icon: Upload, el: ImportarPage, nav: 'main', help: 'Subí un PDF o una captura (resumen de tarjeta, cronograma de préstamo, movimientos del banco, plan de Mercado Pago). La app lo lee, te muestra lo que va a cargar y vos confirmás. Si subís algo dos veces, no se duplica.' },
-  { path: 'entidades', label: 'Deuda por entidad', short: 'Deudas', icon: Landmark, el: EntidadesPage, nav: 'main', group: 'deudas', help: 'Cuánto le debés en total a cada banco o billetera, sumando préstamos, cuotas, planes de pago, resúmenes sin pagar y los consumos que vienen en el próximo resumen, y en qué mes terminás de pagar.' },
+  { path: 'entidades', label: 'Deudas', short: 'Deudas', icon: Landmark, el: DeudasPorEntidad, nav: 'main', group: 'deudas', help: 'Cuánto le debés en total a cada banco o billetera, sumando préstamos, cuotas, planes de pago, resúmenes sin pagar y los consumos que vienen en el próximo resumen, y en qué mes terminás de pagar.' },
   { path: 'gastos', label: 'Gastos', icon: Receipt, el: GastosPage, nav: 'main', group: 'plata', help: 'Todos los gastos del mes. Lo de la tarjeta llega solo con el resumen; acá anotás lo que pagás en efectivo o transferencia.' },
   { path: 'viaje', label: 'Viajes y ahorros', short: 'Viajes', icon: Plane, el: ViajePage, nav: 'main', help: 'Tus viajes y ahorros: cuánto cuesta el viaje, cuánto llevás ahorrado y si llegás a la fecha.' },
   { path: 'preguntas', label: 'Preguntale a Brote', short: 'Preguntas', icon: MessageCircleQuestion, el: AsistentePage, nav: 'more', help: 'Preguntas con tus números (cuánto podés juntar, qué pagás este mes, cuánto debés, si llegás al viaje) y cómo funciona cada parte de la app. Sin internet: todo se calcula en este dispositivo.' },
@@ -65,19 +67,19 @@ export const ROUTES: RouteDef[] = [
   { path: 'copias', label: 'Copias y sincronización', icon: RefreshCw, el: CopiasPage, nav: 'more', help: 'Guardá una copia de tus datos en un archivo (hacé una por mes) o conectá el celular con la PC para que tengan los mismos datos.' },
   { path: 'historial', label: 'Historial', icon: History, el: HistorialPage, nav: 'more', help: 'Todo lo que se cargó o se cambió, con fecha, y los documentos que subiste.' },
   // Pantallas a las que se llega desde las pestañas o desde "Este mes".
-  { path: 'cuotas', label: 'Cuotas futuras', icon: CalendarClock, el: CuotasPage, nav: 'hidden', group: 'deudas', help: 'Cuánto vas a pagar de cuotas cada mes que viene, y si quedó alguna cuota vencida sin pagar.' },
-  { path: 'necesito', label: 'Cuánto necesito', icon: Wallet, el: NecesitoPage, nav: 'hidden', group: 'deudas', help: 'Cuánto tenés que tener este mes para pagar todas tus deudas: tarjetas, préstamos, facturas y lo vencido. El monotributo va aparte porque es opcional.' },
-  { path: 'deudas', label: 'Tarjetas y deudas', icon: CreditCard, el: DeudasPage, nav: 'hidden', group: 'deudas', help: 'Cada préstamo, compra en cuotas o plan, y los resúmenes de tarjeta. Tocá "Ver cuotas" para ver en qué cuota vas o corregir una cuota marcada por error.' },
+  { path: 'cuotas', label: 'Deudas', icon: CalendarClock, el: DeudasPorEntidad, nav: 'hidden', group: 'deudas', help: 'Cuánto vas a pagar de cuotas cada mes que viene, y si quedó alguna cuota vencida sin pagar.' },
+  { path: 'necesito', label: 'Deudas', icon: Wallet, el: DeudasNecesito, nav: 'hidden', group: 'deudas', help: 'Cuánto tenés que tener este mes para pagar todas tus deudas: tarjetas, préstamos, facturas y lo vencido. El monotributo va aparte porque es opcional.' },
+  { path: 'deudas', label: 'Deudas', icon: CreditCard, el: DeudasAdministrar, nav: 'hidden', group: 'deudas', help: 'Cada préstamo, compra en cuotas o plan, y los resúmenes de tarjeta. Tocá "Ver cuotas" para ver en qué cuota vas o corregir una cuota marcada por error.' },
   { path: 'ingresos', label: 'Ingresos', icon: ArrowDownToLine, el: IngresosPage, nav: 'hidden', group: 'plata', help: 'Tu sueldo y otros ingresos de cada mes. Si subís la captura de los movimientos del banco, el sueldo se carga solo.' },
-  { path: 'compartidos', label: 'Compartidos', icon: Users, el: CompartidosPage, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con otra persona (alquiler, luz, súper…). Solo se cuenta tu parte. También el cargo de Sancor Salud y lo que te devuelve.' },
-  { path: 'devoluciones', label: 'Devoluciones', icon: Receipt, el: DevolucionesPage, nav: 'hidden', group: 'plata', help: 'Gastos que pagaste vos y te devuelve otra persona o el hospital (viajes de Uber, tickets de taxi, transferencias). No cuentan como gasto tuyo hasta que se resuelva: acá ves cuánto te deben y marcás cuando te lo devuelven.' },
+  { path: 'compartidos', label: 'Compartidos', icon: Users, el: Compartidos, nav: 'hidden', group: 'plata', help: 'Gastos que dividís con otra persona (alquiler, luz, súper…). Solo se cuenta tu parte.' },
+  { path: 'devoluciones', label: 'Compartidos', icon: Receipt, el: Devoluciones, nav: 'hidden', group: 'plata', help: 'Gastos que pagaste vos y te devuelve otra persona o el hospital (viajes de Uber, tickets de taxi, transferencias). No cuentan como gasto tuyo hasta que se resuelva: acá ves cuánto te deben y marcás cuando te lo devuelven.' },
   { path: 'presupuesto', label: 'Presupuesto mensual', icon: PiggyBank, el: PresupuestoPage, nav: 'hidden', group: 'plata', help: 'Cuánto querés gastar como máximo en el día a día (comida, transporte, salidas) y cuánto llevás.' },
   { path: 'resumen', label: 'Detalle del mes', icon: ListChecks, el: ResumenPage, nav: 'hidden', help: 'La cuenta completa del mes, línea por línea: de dónde sale el número de "Te quedan".' },
 ];
 
 const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
-  deudas: [['entidades', 'Entidades'], ['cuotas', 'Cuotas'], ['deudas', 'Préstamos'], ['necesito', 'Cuánto necesito']],
-  plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['devoluciones', 'Devoluciones'], ['presupuesto', 'Presupuesto']],
+  deudas: [],
+  plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['presupuesto', 'Presupuesto']],
 };
 /** Menú lateral (escritorio): las secciones de uso diario a la vista. */
 const SIDE_MAIN = ['inicio', 'gastos', 'ingresos', 'compartidos', 'presupuesto', 'entidades', 'viaje', 'resumen', 'importar'];
@@ -88,6 +90,9 @@ const SUBTITLES: Record<string, string> = {
   entidades: 'Cuánto debés y cuándo terminás',
   cuotas: 'Cuánto debés y cuándo terminás',
   deudas: 'Cuánto debés y cuándo terminás',
+  necesito: 'Cuánto debés y cuándo terminás',
+  devoluciones: 'Lo que compartís y lo que te devuelven',
+  compartidos: 'Lo que compartís y lo que te devuelven',
   viaje: 'Tus viajes y metas de ahorro',
   importar: 'Resúmenes, cronogramas, capturas y planillas',
   resumen: 'La cuenta completa del mes',
@@ -242,10 +247,10 @@ function Shell() {
         )}
         {pwa.offlineReady && <div className="banner ok">La aplicación quedó lista para usarse sin conexión.<button className="btn small ghost" onClick={pwa.dismiss}>Cerrar</button></div>}
         <main className="content" id="contenido">
-          {current.group && (
+          {current.group && TABS[current.group].length > 1 && (
             <nav className="tabs" aria-label="Secciones">
               {TABS[current.group].map(([p, l]) => (
-                <a key={p} href={`#/${p}`} className={p === current.path ? 'active' : ''} aria-current={p === current.path ? 'page' : undefined}>{l}</a>
+                <a key={p} href={`#/${p}`} className={p === current.path || (p === 'compartidos' && current.path === 'devoluciones') ? 'active' : ''} aria-current={p === current.path ? 'page' : undefined}>{l}</a>
               ))}
             </nav>
           )}

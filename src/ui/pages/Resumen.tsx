@@ -125,12 +125,6 @@ export function ResumenPage() {
             <dd><Money value={r.info.statementsTotal} /></dd>
             <dt>Pagos de resumen registrados <small className="muted">(cancelan consumos ya imputados)</small></dt>
             <dd><Money value={r.info.cardPaymentsTotal} /></dd>
-            <dt>Reintegro Sancor esperado</dt>
-            <dd><Money value={r.info.sancorExpected} /></dd>
-            <dt>Reintegro Sancor recibido</dt>
-            <dd><Money value={r.info.sancorReceived} /></dd>
-            <dt>Reintegro Sancor pendiente</dt>
-            <dd><Money value={r.info.sancorPending} /></dd>
           </dl>
         </Card>
         <Card title="Presupuesto cotidiano">

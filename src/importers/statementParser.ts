@@ -647,7 +647,7 @@ function parseMovementLine(
 
   const cat =
     kind === 'sancor'
-      ? { category: 'Obra social', kind: 'hogar' as ExpenseKind }
+      ? { category: 'Obra social', kind: 'personal' as ExpenseKind }
       : kind === 'cargo' || (kind === 'bonificacion' && RE_CHARGE.test(n))
         ? { category: 'Cargos financieros', kind: 'personal' as ExpenseKind }
         : suggestCategory(concept);

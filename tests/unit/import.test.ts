@@ -53,7 +53,8 @@ describe('importación de documentos', () => {
     expect(review.summary.entity).toBe('Visa Banco Patagonia');
     expect(review.summary.total).toBe(14170050);
     expect(review.summary.month).toBe('2026-10');
-    expect(review.items.map((i) => i.action)).toEqual(['pago', 'gasto', 'cuota', 'sancor', 'gasto']);
+    // Sancor ya no se carga aparte (el usuario lo dejó): es un gasto común de obra social.
+    expect(review.items.map((i) => i.action)).toEqual(['pago', 'gasto', 'cuota', 'gasto', 'gasto']);
 
     // Corrección de un importe extraído incorrectamente
     const coto = review.items[1];
@@ -61,7 +62,7 @@ describe('importación de documentos', () => {
     coto.reviewed = true;
     expect(validateReview(review)).toEqual([]);
     const res = await commitReview(review, new Blob([pdf as BlobPart]), db);
-    expect(res.created).toMatchObject({ gastos: 2, cuotas: 1, pagos: 1, sancor: 1, resumen: 1 });
+    expect(res.created).toMatchObject({ gastos: 3, cuotas: 1, pagos: 1, sancor: 0, resumen: 1 });
 
     const exps = await db.expenses.toArray();
     expect(exps.find((e) => e.concept.includes('COTO'))!.totalAmount).toBe(3245000);
@@ -81,7 +82,7 @@ describe('importación de documentos', () => {
     const sep = computeMonth(data, '2026-09', '2026-10');
     expect(sep.info.cardPaymentsTotal).toBe(15000000);
     expect(sep.sections.every((s) => s.lines.every((l) => !l.label.includes('PAGO')))).toBe(true);
-    expect(r.sections.find((s) => s.key === 'fijos')!.lines.some((l) => l.label.includes('Sancor'))).toBe(true);
+    expect(r.sections.find((s) => s.key === 'personales')!.lines.some((l) => /sancor/i.test(l.label))).toBe(true);
 
     // Importación repetida: advierte y no duplica automáticamente
     const again = await reviewFromPdf(db, pdf);
@@ -90,7 +91,7 @@ describe('importación de documentos', () => {
     expect(again.items.every((i) => !i.include && i.duplicate?.type === 'linea')).toBe(true);
     const res2 = await commitReview(again, null, db);
     expect(res2.created).toMatchObject({ gastos: 0, cuotas: 0, pagos: 0, sancor: 0 });
-    expect(await db.expenses.count()).toBe(2);
+    expect(await db.expenses.count()).toBe(3);
     expect(await db.obligations.count()).toBe(1);
   });
 
@@ -106,7 +107,7 @@ describe('importación de documentos', () => {
     expect(obs).toHaveLength(1);
     expect(obs[0].paidInstallments).toBe(4);
     expect(buildSchedule(obs[0], '2026-11').filter((i) => i.status === 'pendiente')).toHaveLength(6);
-    expect(await db.sancor.count()).toBe(2);
+    expect(await db.sancor.count()).toBe(0);
   });
 
   it('vincula una línea importada con un gasto manual (sin doble cómputo)', async () => {
