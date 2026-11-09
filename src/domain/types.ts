@@ -311,6 +311,8 @@ export interface Settings extends BaseRecord {
   arcaPaid?: Record<MonthKey, Cents>;
   /** Quién te devuelve gastos por defecto (p. ej. "Hospital"): con eso, "Me devuelven" es un solo toque. */
   refundFrom?: string;
+  /** Cuándo se cambió cada ajuste (para que al sincronizar no se pierdan los cambios de uno y otro equipo). */
+  fieldStamps?: Record<string, string>;
 }
 
 export const SYNC_TABLES = [

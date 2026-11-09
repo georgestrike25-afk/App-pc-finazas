@@ -244,6 +244,16 @@ function table(db: FinanzasDB, name: SyncTable) {
   return db.table(name);
 }
 
+const NO_STAMP = new Set(['id', 'createdAt', 'updatedAt', 'deviceId', 'deleted', 'fieldStamps']);
+/** Anota la fecha de cada ajuste que cambió (los que no cambiaron conservan la suya). */
+function stampChangedFields(before: Settings, after: Settings, now: string) {
+  const stamps = { ...(before.fieldStamps ?? {}), ...(after.fieldStamps ?? {}) };
+  const old = before as unknown as Record<string, unknown>;
+  const cur = after as unknown as Record<string, unknown>;
+  for (const k of new Set([...Object.keys(old), ...Object.keys(cur)])) if (!NO_STAMP.has(k) && JSON.stringify(old[k]) !== JSON.stringify(cur[k])) stamps[k] = now;
+  after.fieldStamps = stamps;
+}
+
 /** Guarda un registro sincronizable y deja constancia en el historial. */
 export async function saveRecord<T extends BaseRecord>(
   name: SyncTable,
@@ -261,6 +271,7 @@ export async function saveRecord<T extends BaseRecord>(
     updatedAt: now,
     deviceId,
   } as unknown as T;
+  if (name === 'settings' && existing) stampChangedFields(existing as unknown as Settings, full as unknown as Settings, now);
   await db.transaction('rw', [table(db, name), db.audit], async () => {
     await table(db, name).put(full);
     if (name !== 'audit') await addAudit(db, existing ? 'modificar' : 'crear', name, full.id, summary, deviceId);

@@ -2,7 +2,8 @@ import { getDb, type FinanzasDB } from '../db/db';
 import { addAudit, ensureInitialized, getDeviceId, notify, nowIso } from '../db/repo';
 import { SYNC_TABLES, type BaseRecord, type SyncTable } from '../domain/types';
 import { decryptString, encryptString, fromB64, toB64, type EncryptedEnvelope } from './crypto';
-import { mergeTable, type MergeStats } from './merge';
+import { mergeSettings, mergeTable, type MergeStats } from './merge';
+import type { Settings } from '../domain/types';
 import { safeJsonParse, validateBackupData, type BackupData } from './validate';
 
 export const BACKUP_FORMAT = 'finanzas-personales-backup';
@@ -113,7 +114,7 @@ export async function restoreBackup(backup: PlainBackup, mode: 'reemplazar' | 'f
     for (const t of SYNC_TABLES) {
       const remote = (backup.data[t] ?? []) as unknown as BaseRecord[];
       const local = mode === 'reemplazar' ? [] : ((await db.table(t).toArray()) as BaseRecord[]);
-      const { toPut, stats: s } = mergeTable(local, remote);
+      const { toPut, stats: s } = t === 'settings' ? mergeTable(local as unknown as Settings[], remote as unknown as Settings[], mergeSettings) as unknown as ReturnType<typeof mergeTable> : mergeTable(local, remote);
       if (toPut.length) await db.table(t as SyncTable).bulkPut(toPut);
       stats[t] = s;
     }

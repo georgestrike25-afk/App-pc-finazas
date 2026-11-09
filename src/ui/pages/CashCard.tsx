@@ -65,7 +65,7 @@ export function CashCard() {
       )}
       {need > 0 && (
         <small className="muted d-block" data-testid="cash-libre">
-          Falta pagar <Money value={need} /> (tarjetas, préstamos y facturas) · libre para el día a día <Money value={st.left - need} />
+          Falta pagar <Money value={need} /> (tarjetas, préstamos, facturas y lo que le debés a otras personas) · libre para el día a día <Money value={st.left - need} /> · <a href="#/necesito">Ver el detalle</a>
         </small>
       )}
       {st.salary > 0 && <small className="ok-text">+ <Money value={st.salary} /> de tu sueldo</small>}

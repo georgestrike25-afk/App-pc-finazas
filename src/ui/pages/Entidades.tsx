@@ -5,6 +5,7 @@ import { payEntityMonth } from '../../db/cardPayments';
 import { formatARS } from '../../domain/money';
 import { useApp } from '../store';
 import { addMonths, formatDate, monthLabel, monthShort, todayIso } from '../../domain/dates';
+import { needForMonth } from '../../domain/necesito';
 import { debtByEntity, entityGroup, expenseCardEntity, monthToPay, OBLIGATION_TYPE_LABEL } from '../../domain/obligations';
 import { sum } from '../../domain/money';
 import { Badge, BarChart, Card, confirmDialog, Empty, Money, Progress } from '../components/ui';
@@ -15,6 +16,7 @@ export function EntidadesPage() {
   const { data, today, toast } = useApp();
   const debts = useMemo(() => debtByEntity(data.obligations, today, data), [data, today]);
   const total = sum(debts.map((d) => d.remaining));
+  const need = useMemo(() => needForMonth(data, today, today).total, [data, today]);
   const toPay = useMemo(() => monthToPay(debts, today, data.statements), [debts, today, data.statements]);
   // Tarjetas que usás (tienen resúmenes o consumos cargados) pero sin nada pendiente cargado.
   const missing = useMemo(() => {
@@ -52,7 +54,7 @@ export function EntidadesPage() {
       </div>
       {missingCard}
       {toPay.length > 0 && (
-        <Card title={`Este mes pagás · ${monthLabel(today)}`} help="Lo que tenés que pagar este mes a cada entidad: el resumen de la tarjeta por su total (con las cuotas que trae adentro) y aparte cada préstamo, con su vencimiento." className="pay-month">
+        <Card title={`Este mes pagás a entidades · ${monthLabel(today)}`} help="Lo que tenés que pagar este mes a cada entidad: el resumen de la tarjeta por su total (con las cuotas que trae adentro) y aparte cada préstamo, con su vencimiento." className="pay-month">
           {toPay.map((e) => (
             <div key={e.group} className="pay-entity">
               <div className="pay-head"><strong>{e.group}</strong><Money value={e.total} estimated={e.lines.some((l) => l.estimated)} /></div>
@@ -79,7 +81,12 @@ export function EntidadesPage() {
               </ul>
             </div>
           ))}
-          <div className="pay-total"><span>Total del mes</span><Money value={sum(toPay.map((e) => e.total))} /></div>
+          <div className="pay-total"><span>Total a entidades</span><Money value={sum(toPay.map((e) => e.total))} /></div>
+          {need !== sum(toPay.map((e) => e.total)) && (
+            <p className="muted small" data-testid="pay-puente">
+              Con lo vencido, las facturas y lo que le debés a otras personas, en total te falta pagar <strong><Money value={need} /></strong>. <a href="#/necesito">Ver el detalle</a>
+            </p>
+          )}
         </Card>
       )}
       <Card title="Cuotas por mes y entidad (próximos 12 meses)" help="Cuánto vas a pagar cada mes a cada entidad. Cuando una deuda termina, la barra baja: esa plata te queda libre.">

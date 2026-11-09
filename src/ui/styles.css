@@ -657,3 +657,7 @@ body.kb-open nav.bottom { display: none; }
 body.kb-open .page { padding-bottom: 24px; }
 
 .pay-entity .pay-all { margin: 4px 0 6px; }
+
+.more-settings { margin: 12px 0; }
+.more-settings > summary { cursor: pointer; font-weight: 600; color: var(--muted); padding: 6px 0; }
+.more-settings[open] > summary { margin-bottom: 8px; }

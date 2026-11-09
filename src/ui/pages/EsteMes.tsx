@@ -131,14 +131,14 @@ export function EsteMesPage() {
       </div>
     );
 
-  const label = cash ? 'Según lo cargado este mes' : isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`;
+  const label = cash ? 'Cuentas del mes' : isCurrent ? 'Te quedan este mes' : `Resultado de ${monthLabel(month)}`;
   const calcHelp = (
     <Help label="Cómo se calcula lo que te queda">
       <p><strong>Te quedan</strong> = lo que entró − lo que gastaste − las cuotas y préstamos del mes.</p>
       <ul>
         <li><strong>Entró:</strong> el sueldo y otros ingresos ya cobrados.</li>
         <li><strong>Gastaste:</strong> tu parte de los gastos del hogar, tus gastos personales y los del día a día.</li>
-        <li><strong>Cuotas y préstamos:</strong> lo que vence este mes de préstamos, tarjetas y planes.</li>
+        <li><strong>Cuotas del mes:</strong> todas las cuotas y préstamos que vencen este mes, estén pagadas o no. Lo que todavía falta pagar está en "Falta pagar" (arriba).</li>
       </ul>
       <p>Solo cuenta lo que ya pasó, no estimaciones. Tocá cada línea para ver el detalle.</p>
     </Help>
@@ -163,7 +163,7 @@ export function EsteMesPage() {
       <ul className="hero-lines">
         <li><a href="#/ingresos"><span>Entró</span><Money value={get('ingresos')} /></a></li>
         <li><a href="#/gastos"><span>Gastaste</span><Money value={spent} /></a></li>
-        <li><a href="#/entidades"><span>Cuotas y préstamos</span><Money value={get('obligaciones')} /></a></li>
+        <li><a href="#/entidades"><span>Cuotas del mes</span><Money value={get('obligaciones')} /></a></li>
       </ul>
       <a className="card-link" href="#/resumen">Ver la cuenta completa<ChevronRight aria-hidden /></a>
     </>

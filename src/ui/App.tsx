@@ -76,7 +76,7 @@ export const ROUTES: RouteDef[] = [
 ];
 
 const TABS: Record<NonNullable<RouteDef['group']>, Array<[string, string]>> = {
-  deudas: [['entidades', 'Por entidad'], ['cuotas', 'Cuotas por mes'], ['deudas', 'Préstamos y tarjetas'], ['necesito', 'Cuánto necesito']],
+  deudas: [['entidades', 'Entidades'], ['cuotas', 'Cuotas'], ['deudas', 'Préstamos'], ['necesito', 'Cuánto necesito']],
   plata: [['gastos', 'Gastos'], ['ingresos', 'Ingresos'], ['compartidos', 'Compartidos'], ['devoluciones', 'Devoluciones'], ['presupuesto', 'Presupuesto']],
 };
 /** Menú lateral (escritorio): las secciones de uso diario a la vista. */

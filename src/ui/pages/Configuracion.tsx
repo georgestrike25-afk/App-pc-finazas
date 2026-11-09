@@ -58,12 +58,17 @@ export function ConfiguracionPage() {
         <div className="form-grid">
           <Field label="Con quién compartís gastos (opcional)" help="Si ponés un nombre, aparece en los gastos compartidos. Vacío: dice 'la otra persona'.">{(id) => <input id={id} value={s.partnerName} onChange={(e) => setS({ ...s, partnerName: e.target.value })} />}</Field>
           <Field label="Tu nombre y apellido" help="Para reconocer las transferencias entre tus propias cuentas (por ejemplo, de Patagonia a Ualá) y que no se cuenten como gastos ni ingresos.">{(id) => <input id={id} value={s.ownNames ?? ''} placeholder="Ej.: Nombre Apellido" onChange={(e) => setS({ ...s, ownNames: e.target.value })} />}</Field>
+          <Field label="Día de cobro (día hábil del mes)" help="El presupuesto del día a día arranca cuando cobrás. Poné qué día hábil del mes cobrás (4 = el cuarto día hábil). Los feriados nacionales no cuentan. En Presupuesto podés corregir la fecha de un mes puntual.">{(id) => <input id={id} type="number" min={1} max={20} value={s.paydayNth ?? 4} onChange={(e) => setS({ ...s, paydayNth: Math.max(1, Math.min(20, Number(e.target.value) || 4)) })} />}</Field>
+        </div>
+        <details className="more-settings">
+          <summary>Más ajustes (casi no hace falta tocarlos)</summary>
+          <div className="form-grid">
           <Field label="Reparto por defecto de gastos del hogar (% del usuario)" help="Qué parte de los gastos compartidos pagás vos. 50 = mitad y mitad. Se puede cambiar en cada gasto.">{(id) => <input id={id} type="number" min={0} max={100} value={s.defaultUserPct} onChange={(e) => setS({ ...s, defaultUserPct: Number(e.target.value) })} />}</Field>
           <Field label="Sancor Salud: % que te devuelven">{(id) => <input id={id} type="number" min={0} max={100} value={s.sancorPartnerPct} onChange={(e) => setS({ ...s, sancorPartnerPct: Number(e.target.value) })} />}</Field>
-          <Field label="Día de cobro (día hábil del mes)" help="El presupuesto del día a día arranca cuando cobrás. Poné qué día hábil del mes cobrás (4 = el cuarto día hábil). Los feriados nacionales no cuentan. En Presupuesto podés corregir la fecha de un mes puntual.">{(id) => <input id={id} type="number" min={1} max={20} value={s.paydayNth ?? 4} onChange={(e) => setS({ ...s, paydayNth: Math.max(1, Math.min(20, Number(e.target.value) || 4)) })} />}</Field>
           <Field label="Presupuesto cotidiano por defecto" hint="Valor inicial orientativo: $700.000 (editable).">{(id) => <MoneyInput id={id} value={s.dailyBudgetDefault} onChange={(v) => setS({ ...s, dailyBudgetDefault: v ?? 0, dailyBudgetIsInitialValue: false })} />}</Field>
           <Field label="Ingreso mensual estimado (solo para proyecciones)" help="Cuánto creés que vas a cobrar en los meses que vienen. Solo se usa para el viaje y las proyecciones; nunca se suma como cobrado.">{(id) => <MoneyInput id={id} value={s.projectedMonthlyIncome} onChange={(v) => setS({ ...s, projectedMonthlyIncome: v ?? 0 })} />}</Field>
-        </div>
+          </div>
+        </details>
         <label className="check"><input type="checkbox" checked={s.storeDocumentBlobs} onChange={(e) => setS({ ...s, storeDocumentBlobs: e.target.checked })} /> Guardar una copia del documento original importado en este dispositivo</label>
         <h3>Categorías</h3>
         <div className="chips">

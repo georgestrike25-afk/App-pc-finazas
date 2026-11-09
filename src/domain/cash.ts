@@ -1,5 +1,5 @@
-import { addMonths, daysBetween } from './dates';
-import { splitShared } from './expenses';
+import { addMonths, daysBetween, monthDiff, monthOf } from './dates';
+import { occurrenceFor, splitShared } from './expenses';
 import { sum, type Cents } from './money';
 import type { DataSet } from './monthly';
 import { paydayOf } from './payday';
@@ -35,6 +35,31 @@ const outOfPocket = (e: Expense) => (e.kind === 'hogar' ? splitShared(e.totalAmo
 /** Factura de un servicio subida y todavía sin pagar: no baja tu plata hasta que la marques como pagada. */
 const isUnpaidBill = (e: Expense) => e.source === 'importado' && /^Factura /.test(e.notes ?? '') && !e.paid;
 
+/**
+ * Gastos fijos que se repiten (suscripciones, servicios…): la primera vez cuenta como cualquier gasto; las
+ * siguientes, cuando llega su día. No cuentan: lo que paga la otra persona (se te descuenta cuando le pagás),
+ * lo ya marcado con "Pagado", lo de tarjeta (va con el resumen) ni los meses salteados.
+ */
+function recurringDue(expenses: Expense[], since: string, todayIso: string): Array<{ concept: string; amount: Cents; date: string }> {
+  const out: Array<{ concept: string; amount: Cents; date: string }> = [];
+  const last = monthOf(todayIso);
+  for (const e of expenses) {
+    if (e.deleted || e.frequency === 'unica' || e.cashOnly || e.cashAdjust || e.provisional || e.refund || e.paymentMethod === 'tarjeta' || e.paidBy === 'pareja' || isUnpaidBill(e)) continue;
+    const first = monthOf(e.date);
+    for (let n = 1; n <= monthDiff(first, last); n++) {
+      const m = addMonths(first, n);
+      const o = occurrenceFor(e, m);
+      if (!o) continue;
+      const [y, mo] = m.split('-').map(Number);
+      const date = `${m}-${String(Math.min(Number(e.date.slice(8, 10)), new Date(y, mo, 0).getDate())).padStart(2, '0')}`;
+      if (date < since || date > todayIso) continue;
+      if (expenses.some((x) => !x.deleted && x.settles?.expenseId === e.id && x.settles.month === m)) continue;
+      out.push({ concept: `${e.concept} (fijo de ${m.slice(5)}/${m.slice(0, 4)})`, amount: e.kind === 'hogar' ? o.userShare : o.total, date });
+    }
+  }
+  return out;
+}
+
 export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'settings'> & Partial<Pick<DataSet, 'sancor' | 'incomes'>> & { goal?: { contributions: Contribution[] } }, todayIso: string): CashStatus | null {
   const c = data.settings.cash;
   if (!c) return null;
@@ -46,6 +71,7 @@ export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'se
   const payments = data.cardPayments.filter((p) => !p.deleted && p.createdAt > c.setAt && p.date >= since);
   const items = [
     ...counted.map((e) => ({ concept: e.concept, amount: outOfPocket(e), date: e.date, ...(e.cashOnly ? { removableId: e.id } : {}) })),
+    ...recurringDue(data.expenses, since, todayIso),
     ...payments.map((p) => ({ concept: `Pago del resumen de ${p.entity}`, amount: p.amount, date: p.date })),
     ...saved.map((x) => ({ concept: 'Ahorro para el viaje', amount: x.amount, date: x.date })),
   ].sort((a, b) => b.date.localeCompare(a.date));

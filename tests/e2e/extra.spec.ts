@@ -330,7 +330,7 @@ test('plata hasta cobrar: se descuenta lo que gastás', async ({ page }) => {
   await card.getByRole('button', { name: 'Guardar' }).click();
   await expect(card).toContainText('80.000,00');
   // Con la plata cargada, las cuentas del mes pasan a ser la referencia y se puede ajustar la diferencia.
-  await expect(page.locator('.hero')).toContainText('Según lo cargado este mes');
+  await expect(page.locator('.hero')).toContainText('Cuentas del mes');
   // En Presupuesto se ve tu plata y se puede ajustar el presupuesto a ella.
   await go(page, 'presupuesto');
   await expect(page.getByTestId('presupuesto-vs-plata')).toContainText('80.000,00');

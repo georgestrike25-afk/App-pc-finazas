@@ -53,7 +53,10 @@ export interface IngestResult {
   keys: string[];
 }
 
-const DUP_MS = 10 * 60 * 1000;
+/** El mismo aviso otra vez (Android lo vuelve a publicar, o avisan Google Pay y el banco): se descarta solo. */
+const DUP_MS = 2 * 60 * 1000;
+/** Parecido a otro de hace unos minutos pero no idéntico en el tiempo: puede ser otro gasto igual, lo decidís vos. */
+const MAYBE_MS = 10 * 60 * 1000;
 
 const isoLocal = (ms: number) => {
   const d = new Date(ms);
@@ -122,9 +125,12 @@ export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; proc
         continue;
       }
       // Te transfirieron plata: es un ingreso. La misma transferencia avisada dos veces se anota una sola vez.
-      const repetida = out.incomes.some((i) => i.monto === d.monto && Math.abs(i.fecha - d.fecha) <= DUP_MS && i.cuenta === d.cuenta);
-      if (repetida) {
+      const igual = (ms: number) => out.incomes.some((i) => i.monto === d.monto && Math.abs(i.fecha - d.fecha) <= ms && i.cuenta === d.cuenta);
+      if (igual(DUP_MS)) {
         log(d.cuenta, 'Repetida (ya registrada)');
+      } else if (d.monto > 0 && igual(MAYBE_MS)) {
+        out.review.push({ id: uid(), fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo: 'Entró lo mismo hace pocos minutos: ¿es otra transferencia o la misma?', clave: r.clave, tipo: 'ingreso' });
+        log(d.cuenta, 'Para revisar (parecida a otra de hace pocos minutos)');
       } else if (d.monto === 0) {
         out.review.push({ id: uid(), fecha: d.fecha, monto: 0, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo: 'Te entró plata pero el aviso no dice cuánto: poné el importe', clave: r.clave, tipo: 'ingreso' });
         log(d.cuenta, 'Para revisar (ingreso sin importe)');
@@ -140,15 +146,21 @@ export function decide(raws: RawNotification[], ctx: { expenses: Expense[]; proc
     }
     // La misma operación avisada dos veces (misma notificación otra vez, o Google Pay y el banco).
     const all = [...recent, ...out.expenses];
-    const sameText = pending.find((p) => p.d.textoOriginal === d.textoOriginal && Math.abs(p.d.fecha - d.fecha) <= DUP_MS);
-    const dup =
-      sameText ||
-      all.find((e) => e.totalAmount === d.monto && Math.abs(new Date(`${e.date}T12:00:00`).getTime() - d.fecha) <= 36 * 3600 * 1000 && (e.linkedLineFingerprints ?? []).filter((f) => f.startsWith('notif|')).some((f) => {
+    const repetido = (ms: number) =>
+      pending.some((p) => p.d.textoOriginal === d.textoOriginal && Math.abs(p.d.fecha - d.fecha) <= ms) ||
+      all.some((e) => e.totalAmount === d.monto && Math.abs(new Date(`${e.date}T12:00:00`).getTime() - d.fecha) <= 36 * 3600 * 1000 && (e.linkedLineFingerprints ?? []).filter((f) => f.startsWith('notif|')).some((f) => {
         const [, cuenta, t] = f.split('|');
-        return Math.abs(Number(t) - d.fecha) <= DUP_MS && (cuenta !== d.cuenta ? cuenta === CUENTAS.GOOGLE_PAY || d.cuenta === CUENTAS.GOOGLE_PAY : true);
+        return Math.abs(Number(t) - d.fecha) <= ms && (cuenta !== d.cuenta ? cuenta === CUENTAS.GOOGLE_PAY || d.cuenta === CUENTAS.GOOGLE_PAY : true);
       }));
-    if (dup) {
+    if (repetido(DUP_MS)) {
       log(d.cuenta, 'Repetida (ya registrada)');
+      continue;
+    }
+    if (d.monto > 0 && repetido(MAYBE_MS)) {
+      // Dos pagos iguales con pocos minutos de diferencia pueden ser reales: no se descartan en silencio.
+      out.review.push({ id: uid(), fecha: d.fecha, monto: d.monto, descripcion: d.descripcion, cuenta: d.cuenta, texto: d.textoOriginal.slice(0, 200), motivo: 'Es igual a otro pago de hace pocos minutos: ¿es otro gasto o el mismo?', clave: r.clave });
+      pending.push({ d });
+      log(d.cuenta, 'Para revisar (igual a otro de hace pocos minutos)');
       continue;
     }
     if (d.monto === 0 || (d.transferencia === 'ENVIADA' && isPartner(d.contraparte))) {
