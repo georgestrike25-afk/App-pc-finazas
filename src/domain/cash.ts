@@ -16,7 +16,7 @@ export interface CashStatus {
   salary: Cents;
   left: Cents;
   /** Gastos que se descontaron (para mostrarlos). */
-  items: Array<{ concept: string; amount: Cents; date: string }>;
+  items: Array<{ concept: string; amount: Cents; date: string; /** Pago que no es un gasto (cuota, pago a la otra persona…): solo se ve acá y se puede quitar. */ removableId?: string }>;
   /** Días que faltan contando hoy (si se indicó hasta cuándo). */
   days?: number;
   perDay?: Cents;
@@ -45,7 +45,7 @@ export function cashStatus(data: Pick<DataSet, 'expenses' | 'cardPayments' | 'se
   const saved = (data.goal?.contributions ?? []).filter((x) => x.at && x.at > c.setAt && x.date >= since);
   const payments = data.cardPayments.filter((p) => !p.deleted && p.createdAt > c.setAt && p.date >= since);
   const items = [
-    ...counted.map((e) => ({ concept: e.concept, amount: outOfPocket(e), date: e.date })),
+    ...counted.map((e) => ({ concept: e.concept, amount: outOfPocket(e), date: e.date, ...(e.cashOnly ? { removableId: e.id } : {}) })),
     ...payments.map((p) => ({ concept: `Pago del resumen de ${p.entity}`, amount: p.amount, date: p.date })),
     ...saved.map((x) => ({ concept: 'Ahorro para el viaje', amount: x.amount, date: x.date })),
   ].sort((a, b) => b.date.localeCompare(a.date));

@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store';
-import { saveRecord } from '../../db/repo';
+import { saveRecord, softDelete } from '../../db/repo';
 import { cashStatus } from '../../domain/cash';
 import { needForMonth } from '../../domain/necesito';
 import { addMonths, formatDate, todayIso } from '../../domain/dates';
-import type { Cents } from '../../domain/money';
+import { formatARS, type Cents } from '../../domain/money';
 import type { Settings } from '../../domain/types';
-import { Card, Field, Money, MoneyInput, Progress } from '../components/ui';
+import { Card, confirmDialog, Field, Money, MoneyInput, Progress } from '../components/ui';
 
 /** Próximo cobro sugerido: el mismo día del mes en que se cobró el último sueldo. */
 function nextPayday(data: ReturnType<typeof useApp>['data'], today: string): string {
@@ -82,10 +82,22 @@ export function CashCard() {
       {showItems && st.items.length > 0 && (
         <ul className="list small" data-testid="cash-items">
           {st.items.slice(0, 30).map((i, k) => (
-            <li key={k}><span>{formatDate(i.date)} · {i.concept}</span><Money value={i.amount} /></li>
+            <li key={k}>
+              <span>{formatDate(i.date)} · {i.concept}</span>
+              <span className="exp-acts">
+                <Money value={i.amount} />
+                {i.removableId && (
+                  <button className="btn small ghost danger" aria-label={`Quitar el descuento de ${i.concept}`} onClick={async () => {
+                    if (!(await confirmDialog(`¿Quitar "${i.concept}" (${formatARS(i.amount)}) de lo que se descontó?\nLa plata vuelve a "Te quedan". La deuda o la cuota no se tocan: si querés que figure sin pagar, corregila en Deudas.`, { danger: true, ok: 'Quitar' }))) return;
+                    await softDelete('expenses', i.removableId!, `Se quitó el descuento "${i.concept}" de la plata hasta cobrar`);
+                  }}>Quitar</button>
+                )}
+              </span>
+            </li>
           ))}
         </ul>
       )}
+      {showItems && st.items.length > 30 && <small className="muted">…y {st.items.length - 30} más (los más viejos).</small>}
     </Card>
   );
 }

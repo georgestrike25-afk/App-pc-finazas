@@ -11,6 +11,7 @@ import { misFinanzasToParsed, readMisFinanzasJson, readMisFinanzasRows } from '.
 import type { ParsedDocument as PD } from './statementParser';
 import { decodeText, parseCsv, parseSpreadsheet, rowsToLines } from './tabular';
 import { validateFile, type ValidatedFile } from './fileValidation';
+import { todayIso } from '../domain/dates';
 
 export interface Extraction {
   validated: ValidatedFile;
@@ -118,7 +119,7 @@ export async function extractFile(file: File, opts: { allowOcr: boolean; onProgr
     parseCardBalance(lines, { fileName: file.name }) ??
     parseMovementDetail(lines) ??
     parseBankExtract(lines) ??
-    parseWalletMovements(lines, { partnerName: opts.names?.partner, ownNames: opts.names?.own, fileName: file.name, today: new Date().toISOString().slice(0, 10) }) ??
+    parseWalletMovements(lines, { partnerName: opts.names?.partner, ownNames: opts.names?.own, fileName: file.name, today: todayIso() }) ??
     parseAccountMovements(lines) ?? parseStatementText(lines, { fallbackYear: new Date().getFullYear() });
   parsed.warnings.unshift(...notes);
   return { validated, hash, lines, parsed, ocrUsed, notes };

@@ -2,6 +2,7 @@ import type { Cents } from '../domain/money';
 import { normalizeText } from '../domain/text';
 import { detectEntity, suggestCategory } from './classify';
 import type { Confidence, ItemKind, ParsedDocument, ParsedItem, SourceLine } from './statementParser';
+import { todayIso } from '../domain/dates';
 
 /**
  * Lista "Mis movimientos" de una billetera (p. ej. Ualá), leída con OCR desde capturas
@@ -9,7 +10,7 @@ import type { Confidence, ItemKind, ParsedDocument, ParsedItem, SourceLine } fro
  *
  *   Dlo*uber Rides                 $4.182,00
  *   Compra                             22/10
- *   Antonella Valvass...        +$146.110,00
+ *   Persona Apellid...          +$100.000,00
  *   Transferencia recibida             21/10
  */
 
@@ -261,7 +262,7 @@ export function parseWalletMovements(lines: SourceLine[], ctx: WalletContext = {
   const rows = isMp ? mergeMp(rowsOfMp(sorted)) : mergeFrames(sorted.map(rowsOf));
   if (rows.length < 3) return null;
 
-  const today = ctx.today ?? new Date().toISOString().slice(0, 10);
+  const today = ctx.today ?? todayIso();
   const year = Number(today.slice(0, 4));
   const iso = (r: Row) => {
     let y = year;

@@ -133,12 +133,32 @@ export async function repararDuplicados(db: FinanzasDB = getDb()): Promise<numbe
   const obs = vivos(obligations).filter((o) => !quitar.obligations.has(o.id));
   const raiz = new Map(obs.map((o) => [o.id, o.id]));
   const buscar = (id: string): string => (raiz.get(id) === id ? id : buscar(raiz.get(id)!));
+  // Los pares candidatos se unen del más parecido al menos parecido, y un grupo nunca junta dos líneas de un mismo
+  // documento (son dos compras iguales, no la misma): así dos compras distintas en el mismo comercio, vistas en el
+  // resumen de un mes y en el del siguiente, se emparejan una con su par y no se funden en una sola.
+  const docsDe = new Map<string, Set<string>>(obs.map((o) => [o.id, new Set(o.documentId ? [o.documentId] : [])]));
+  const candidatos: Array<{ a: Obligation; b: Obligation; dif: number }> = [];
   for (let i = 0; i < obs.length; i++)
     for (let j = i + 1; j < obs.length; j++) {
       const a = obs[i];
       const b = obs[j];
-      if ((a.fingerprint && a.fingerprint === b.fingerprint && a.documentId !== b.documentId) || samePlan(a, b)) raiz.set(buscar(b.id), buscar(a.id));
+      const mismaHuella = !!a.fingerprint && a.fingerprint === b.fingerprint && a.documentId !== b.documentId;
+      if (!mismaHuella && !samePlan(a, b)) continue;
+      const ra = a.installmentAmount ?? 0;
+      const rb = b.installmentAmount ?? 0;
+      candidatos.push({ a, b, dif: mismaHuella ? -1 : ra && rb ? Math.abs(ra - rb) / Math.max(ra, rb) : 1 });
     }
+  candidatos.sort((x, y) => x.dif - y.dif);
+  for (const { a, b } of candidatos) {
+    const ra = buscar(a.id);
+    const rb = buscar(b.id);
+    if (ra === rb) continue;
+    const da = docsDe.get(ra)!;
+    const db_ = docsDe.get(rb)!;
+    if ([...da].some((d) => db_.has(d))) continue;
+    raiz.set(rb, ra);
+    for (const d of db_) da.add(d);
+  }
   const grupos = new Map<string, Obligation[]>();
   for (const o of obs) grupos.set(buscar(o.id), [...(grupos.get(buscar(o.id)) ?? []), o]);
   const reemplazo = new Map<string, string>();

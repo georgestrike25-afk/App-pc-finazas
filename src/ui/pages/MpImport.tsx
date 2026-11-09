@@ -1,4 +1,4 @@
-import { formatDate, monthLabel } from '../../domain/dates';
+import { formatDate, monthLabel, todayIso } from '../../domain/dates';
 import { sum } from '../../domain/money';
 import type { MpReview } from '../../importers/mpReview';
 import { Badge, Card, Money, Warnings } from '../components/ui';
@@ -57,7 +57,7 @@ export function MpReviewView({ review, setReview, error, onCancel, onConfirm }: 
               <li key={m.month}>
                 <strong>Tarjeta · {monthLabel(m.month)}</strong> <Money value={m.total} />
                 <span className="muted small d-block">
-                  {m.closing === new Date().toISOString().slice(0, 10) ? 'Cierra hoy' : m.closing ? `Cierra el ${formatDate(m.closing)}` : ''}{m.closing ? ' · ' : ''}vence el {formatDate(m.due)}.{' '}
+                  {m.closing === todayIso() ? 'Cierra hoy' : m.closing ? `Cierra el ${formatDate(m.closing)}` : ''}{m.closing ? ' · ' : ''}vence el {formatDate(m.due)}.{' '}
                   {m.before ? (
                     <>En la app: <Money value={m.before.amount} />{m.before.paid ? ', marcada como pagada' : ', sin pagar'}. {m.before.paid ? 'Queda sin pagar (en Mercado Pago todavía no se pagó).' : m.before.amount !== m.total ? 'Se corrige el total.' : ''}</>
                   ) : (

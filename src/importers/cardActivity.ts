@@ -13,7 +13,7 @@ import type { ParsedDocument, ParsedItem, SourceLine } from './statementParser';
  *   Consumos del 28/SEP al 27/OCT
  *   14/OCT/26
  *   Merpago*mercadolibre           $ 29.654,04
- *   Naranja X de Jorge Aguero           1 pago
+ *   Naranja X de Nombre Apellido           1 pago
  *
  * Son los consumos del resumen que todavía no cerró: se cargan como provisorios y,
  * cuando llega el resumen, se confirman con él (no se cuentan dos veces).

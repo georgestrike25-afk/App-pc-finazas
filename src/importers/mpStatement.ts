@@ -1,6 +1,7 @@
 import { parseAmount, type Cents } from '../domain/money';
 import { suggestCategory } from './classify';
 import type { ParsedDocument, ParsedItem, SourceLine } from './statementParser';
+import { todayIso } from '../domain/dates';
 
 /**
  * Resumen PDF de la tarjeta de crédito de Mercado Pago ("Este es tu resumen de octubre"):
@@ -17,7 +18,7 @@ export function parseMpStatement(lines: SourceLine[], ctx: { today?: string } = 
   const texts = lines.map((l) => (l.text ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean);
   const all = texts.join('\n');
   if (!/este es tu resumen de [a-záéíóú]+/i.test(all) || !/detalle de movimientos/i.test(all) || !/(cierre actual|fecha de cierre)/i.test(all)) return null;
-  const today = ctx.today ?? new Date().toISOString().slice(0, 10);
+  const today = ctx.today ?? todayIso();
 
   // "5 de octubre" → la fecha más cercana a hoy (el resumen no trae el año).
   const near = (d: number, m: number) => {

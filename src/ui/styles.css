@@ -343,7 +343,7 @@ td .cat-ic { display: inline-grid; vertical-align: middle; margin-right: 10px; w
 .chart { margin: 0; }
 .chart svg { width: 100%; display: block; }
 .chart-x { display: flex; font-size: 0.72rem; color: var(--muted); }
-.chart-x span { text-align: center; overflow: hidden; white-space: nowrap; }
+.chart-x span { text-align: center; overflow: visible; white-space: nowrap; }
 .chart-legend, .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
 .chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -484,6 +484,7 @@ td .cat-ic { display: inline-grid; vertical-align: middle; margin-right: 10px; w
 .help-bubble.up { transform: translateY(-100%); }
 .help-bubble::before { content: ''; position: absolute; left: calc(var(--arrow) - 7px); top: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--forest); }
 .help-bubble.up::before { top: auto; bottom: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: var(--forest); }
+.help-bubble .help-body { max-height: min(55vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
 .help-bubble .help-body p { margin: 0 0 6px; }
 .help-bubble .help-body ul { margin: 0 0 6px; padding-left: 18px; }
 .help-bubble .btn { color: var(--lime); background: transparent; border-color: transparent; float: right; margin-top: 2px; }

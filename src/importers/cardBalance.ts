@@ -1,6 +1,7 @@
 import { parseAmount } from '../domain/money';
 import { detectEntity } from './classify';
 import type { ParsedDocument, SourceLine } from './statementParser';
+import { todayIso } from '../domain/dates';
 
 /**
  * Captura de la pantalla "Tarjeta de crédito → Saldo a pagar" de la app (Ualá y similares):
@@ -17,7 +18,7 @@ export function parseCardBalance(lines: SourceLine[], ctx: { fileName?: string; 
   const total = texts.map((t) => t.match(/total en pesos\s*\$?\s*(-?[\d.]+,\d{2})/i)?.[1]).find(Boolean);
   const amount = total ? parseAmount(total) : null;
   const dm = (label: RegExp) => texts.map((t) => t.match(new RegExp(`${label.source}\\s+(\\d{1,2})[/.-](\\d{1,2})(?:[/.-](\\d{2,4}))?`, 'i'))).find(Boolean);
-  const today = ctx.today ?? new Date().toISOString().slice(0, 10);
+  const today = ctx.today ?? todayIso();
   const iso = (m: RegExpMatchArray | null | undefined, ref?: string) => {
     if (!m) return undefined;
     const d = Number(m[1]);

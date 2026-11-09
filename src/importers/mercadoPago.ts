@@ -1,5 +1,6 @@
 import { parseAmount, type Cents } from '../domain/money';
 import type { SourceLine } from './statementParser';
+import { todayIso } from '../domain/dates';
 
 /**
  * Pantallas de la app de Mercado Pago (capturas o video):
@@ -62,7 +63,7 @@ function cleanName(s: string): string {
   return (parts.pop() ?? s).replace(/\.{2,}|…/g, '').replace(/[^\p{L}\d]+$/u, '').trim();
 }
 
-export function detectMercadoPago(lines: SourceLine[], today = new Date().toISOString().slice(0, 10)): MpScreens | null {
+export function detectMercadoPago(lines: SourceLine[], today = todayIso()): MpScreens | null {
   const pages = new Map<number, string[]>();
   for (const l of lines) pages.set(l.page ?? 1, [...(pages.get(l.page ?? 1) ?? []), (l.text ?? '').replace(/[ \t]+/g, (m) => (m.length > 1 ? '  ' : ' ')).trim()]);
   const all = lines.map((l) => l.text ?? '').join('\n');
@@ -118,7 +119,7 @@ export function detectMercadoPago(lines: SourceLine[], today = new Date().toISOS
         });
       }
     }
-    // Tarjeta: "Noviembre / Cierra hoy • Vence el 10/nov / Tu total hasta hoy es $ 212.600,54".
+    // Tarjeta: "Noviembre / Cierra hoy • Vence el 10/nov / Tu total hasta hoy es $ 150.000,54".
     if (/tu total hasta hoy es/i.test(page)) {
       const cv = page.match(/cierra\s+(hoy|el\s+(\d{1,2})\s*\/\s*([a-z]{3}))[\s\S]{0,12}?vence el\s+(\d{1,2})\s*\/\s*([a-z]{3})/i);
       const i = texts.findIndex((t) => /tu total hasta hoy es/i.test(t));
