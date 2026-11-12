@@ -53,6 +53,7 @@ One UI puede restringir apps en segundo plano. Para que el clima se actualice co
 
 Android solo instala una actualización si está firmada con la **misma clave** que la versión instalada. Por eso el release se firma siempre con la misma clave de Aura, que **no está en el repositorio**:
 
-- **Secretos del repositorio (en uso):** `AURA_KEYSTORE_BASE64` (keystore PKCS12 en base64, alias `aura`) y `AURA_KEYSTORE_PASSWORD`. Es permanente: no depende de la caché.
-- **Respaldo automático:** sin esos secretos, la primera compilación genera una clave y la guarda en la caché de Actions (`aura-signing-v1`). GitHub borra una caché tras 7 días sin uso, y entonces la clave cambia y hay que desinstalar Aura una vez; por eso se pasó a secretos.
+- **Automática (en uso):** la primera compilación genera la clave y la guarda en la caché de GitHub Actions (`aura-signing-v1`); las siguientes la reutilizan.
+- **Caché siempre viva:** GitHub borra una caché tras 7 días sin uso. Para evitarlo, el workflow `mantener-firma.yml` de la rama principal lanza cada 3 días `firma.yml` en la rama de desarrollo, que lee la clave. Si ese workflow falla, la clave se perdió y habrá que desinstalar Aura una vez.
+- **Opcional:** si se cargan los secretos `AURA_KEYSTORE_BASE64` (keystore PKCS12 en base64, alias `aura`) y `AURA_KEYSTORE_PASSWORD`, tienen prioridad.
 - **Localmente:** `./gradlew assembleRelease -Paura.storeFile=/ruta/clave.p12 -Paura.storePassword=…`, o las variables `AURA_STORE_FILE` y `AURA_STORE_PASSWORD`. Sin clave, se firma con la de depuración.
