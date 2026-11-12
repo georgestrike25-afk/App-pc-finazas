@@ -26,8 +26,10 @@ sin telemetría; las fotos se procesan solo en el teléfono.
 - Se compila en GitHub Actions (`.github/workflows/android.yml`): pruebas unitarias, APK firmado,
   lint, y job de emulador (API 34) con pruebas instrumentadas que guardan capturas en `docs/capturas/`.
 - La CI publica `dist/Aura.apk` (commit «APK de Aura (sha) [skip ci]») y la versión `aura-latest`.
-- Firma: clave generada una vez y guardada en la caché de Actions (nunca en el repo).
-  Huella SHA-256 esperada del certificado: empieza con `c38d31f89125687b6`; verificarla antes de entregar.
+- Firma: secretos del repositorio `AURA_KEYSTORE_BASE64` + `AURA_KEYSTORE_PASSWORD` (alias `aura`).
+  La caché de Actions es solo respaldo: GitHub la borra tras 7 días sin uso (así se perdió la
+  clave anterior `c38d31f…` el 12/11/2026). Huella SHA-256 esperada del certificado: empieza con
+  `cd0b5ee805508bb9`; verificarla antes de entregar (si no coincide, NO enviar el APK).
 - En el contenedor local Gradle no tiene dependencias en caché: validar en la CI.
 - Rama de trabajo: `ccr-f0c1968f-5qd93l`.
 
