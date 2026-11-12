@@ -61,7 +61,7 @@ private data class Tab(val route: String, val label: String, @DrawableRes val ic
 
 private val tabs = listOf(
     Tab(Routes.HOME, "Inicio", R.drawable.ic_ui_home),
-    Tab(Routes.FORECAST, "Pronóstico", R.drawable.ic_ui_forecast),
+    Tab(Routes.FORECAST, "Clima", R.drawable.ic_ui_forecast),
     Tab(Routes.STUDIO, "Studio", R.drawable.ic_ui_studio),
     Tab(Routes.WIDGETS, "Widgets", R.drawable.ic_ui_widgets),
     Tab(Routes.SETTINGS, "Ajustes", R.drawable.ic_ui_settings),

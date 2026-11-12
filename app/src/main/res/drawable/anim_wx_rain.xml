@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_anim.py: no editar a mano. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+      <group android:name="clip"><clip-path android:pathData="M0,28 L48,28 L48,48 L0,48 Z" />
+        <group android:name="p0"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M8.7,22 l-1.2,5" /></group>
+        <group android:name="p1"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M16.9,22 l-1.2,5" /></group>
+        <group android:name="p2"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M21.7,22 l-1.2,5" /></group>
+        <group android:name="p3"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M28.6,22 l-1.2,5" /></group>
+        <group android:name="p4"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M32.9,22 l-1.2,5" /></group>
+        <group android:name="p5"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M39.9,22 l-1.2,5" /></group>
+      </group>
+    </vector>
+  </aapt:attr>
+  <target android:name="p0">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="792" android:startOffset="0" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p1">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="686" android:startOffset="151" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p2">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="729" android:startOffset="303" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p3">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="737" android:startOffset="455" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p4">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="631" android:startOffset="606" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p5">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="601" android:startOffset="58" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>

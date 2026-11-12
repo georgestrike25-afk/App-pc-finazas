@@ -47,6 +47,8 @@ data class HourlyPoint(
     val isDay: Boolean,
     val precipitationProbability: Int? = null,
     val condition: WeatherCondition,
+    /** Lluvia o nieve prevista en esa hora, en mm. */
+    val precipitationMm: Double? = null,
 )
 
 @Serializable
@@ -60,6 +62,8 @@ data class DailyPoint(
     val sunrise: Long? = null,
     val sunset: Long? = null,
     val condition: WeatherCondition,
+    val precipitationSumMm: Double? = null,
+    val uvIndexMax: Double? = null,
 )
 
 /** Datos meteorológicos tal como los entrega un proveedor, sin metadatos de Aura. */

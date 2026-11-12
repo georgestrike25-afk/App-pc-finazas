@@ -83,7 +83,23 @@ def icon(prefix, dp, margin=""):
             f' android:importantForAccessibility="no" android:scaleType="fitCenter" android:src="@drawable/ic_wx_partly_cloudy_day_accent" />'
             f'<ImageView android:id="@+id/{prefix}_3d" android:layout_width="match_parent" android:layout_height="match_parent"'
             f' android:importantForAccessibility="no" android:scaleType="fitCenter" android:visibility="gone" />'
+            + (anim_layers() if prefix == "w_icon" else "") +
             f'</FrameLayout>')
+
+
+# Efectos animados del icono principal (ver tools/aura_anim.py). Un ProgressBar indeterminado con un
+# AnimatedVectorDrawable es la única forma de animar dentro de un widget sin despertar a la app.
+ANIM_EFFECTS = ("sparkle", "stars", "cloud", "rain", "storm", "snow", "mist")
+
+
+def anim_layers():
+    return "".join(
+        f'<ProgressBar android:id="@+id/w_anim_{e}" android:layout_width="match_parent" android:layout_height="match_parent"'
+        f' android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateDrawable="@drawable/anim_wx_{e}"'
+        f' android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"'
+        f' android:minWidth="0dp" android:minHeight="0dp" android:maxWidth="400dp" android:maxHeight="400dp"'
+        f' android:importantForAccessibility="no" android:visibility="gone" />'
+        for e in ANIM_EFFECTS)
 
 
 def temp(c, size, vid="w_temp"):

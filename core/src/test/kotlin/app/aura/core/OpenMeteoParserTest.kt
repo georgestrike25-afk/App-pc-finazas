@@ -30,6 +30,7 @@ class OpenMeteoParserTest {
         assertTrue(data.hourly.none { it.time == 1761681600L })
         assertNull(data.hourly.first { it.time == 1761678000L }.precipitationProbability)
         assertEquals(WeatherCondition.THUNDERSTORM, data.hourly.last().condition)
+        assertEquals(4.5, data.hourly.last().precipitationMm!!, 0.0)
     }
 
     @Test
@@ -39,6 +40,8 @@ class OpenMeteoParserTest {
         assertEquals(WeatherCondition.RAIN, data.daily[1].condition)
         assertEquals("America/Argentina/Buenos_Aires", data.timeZoneId)
         assertEquals(-10800, data.utcOffsetSeconds)
+        assertEquals(12.4, data.daily[1].precipitationSumMm!!, 0.0)
+        assertEquals(7.85, data.daily[0].uvIndexMax!!, 0.0)
     }
 
     @Test(expected = WeatherProviderException::class)

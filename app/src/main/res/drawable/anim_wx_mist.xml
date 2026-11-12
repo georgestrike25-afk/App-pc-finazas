@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_anim.py: no editar a mano. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+      <group android:name="m0"><path android:strokeColor="#E8EEF3" android:strokeAlpha="0.75" android:strokeWidth="2" android:strokeLineCap="round" android:pathData="M10,30 L34,30" /></group>
+      <group android:name="m1"><path android:strokeColor="#E8EEF3" android:strokeAlpha="0.75" android:strokeWidth="2" android:strokeLineCap="round" android:pathData="M10,36 L34,36" /></group>
+      <group android:name="m2"><path android:strokeColor="#E8EEF3" android:strokeAlpha="0.75" android:strokeWidth="2" android:strokeLineCap="round" android:pathData="M10,42 L34,42" /></group>
+    </vector>
+  </aapt:attr>
+  <target android:name="m0">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="2600" android:startOffset="0"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="m1">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="2600" android:startOffset="200"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="-5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="m2">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="2600" android:startOffset="400"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>

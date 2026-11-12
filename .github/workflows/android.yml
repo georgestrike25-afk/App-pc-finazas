@@ -22,6 +22,7 @@ jobs:
       - name: Recursos generados al día
         run: |
           python3 tools/aura_icons.py
+          python3 tools/aura_anim.py
           python3 tools/aura_widgets.py
           git diff --stat --exit-code
 

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_anim.py: no editar a mano. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+      <path android:name="t0" android:fillAlpha="0" android:fillColor="#FFFFFF" android:pathData="M6.4,8 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0" />
+      <path android:name="t1" android:fillAlpha="0" android:fillColor="#FFFFFF" android:pathData="M38.8,6 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0" />
+      <path android:name="t2" android:fillAlpha="0" android:fillColor="#FFFFFF" android:pathData="M42.6,26 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" />
+      <path android:name="t3" android:fillAlpha="0" android:fillColor="#FFFFFF" android:pathData="M3.9,30 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0" />
+      <path android:name="t4" android:fillAlpha="0" android:fillColor="#FFFFFF" android:pathData="M23.1,4 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0" />
+    </vector>
+  </aapt:attr>
+  <target android:name="t0">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="1400" android:startOffset="0"><propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.95" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="t1">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="1400" android:startOffset="520"><propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.95" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="t2">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="1400" android:startOffset="1040"><propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.95" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="t3">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="1400" android:startOffset="1560"><propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.95" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="t4">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="1400" android:startOffset="2080"><propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.95" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>

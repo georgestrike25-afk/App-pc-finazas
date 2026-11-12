@@ -171,6 +171,18 @@ class WidgetRenderingTest {
     }
 
     @Test
+    fun weatherIconIsAnimatedUnlessTurnedOff() {
+        val (view, _) = inflate(WidgetType.WEATHER, SizeClass.MEDIUM, Profiles.MINIMAL, 220, 96)
+        val ids = listOf(R.id.w_anim_sparkle, R.id.w_anim_stars, R.id.w_anim_cloud, R.id.w_anim_rain, R.id.w_anim_storm, R.id.w_anim_snow, R.id.w_anim_mist)
+        val visible = ids.filter { view.findViewById<View>(it).visibility == View.VISIBLE }
+        assertEquals("debe haber exactamente una animación activa", 1, visible.size)
+        val bar = view.findViewById<android.widget.ProgressBar>(visible.single())
+        assertTrue("la animación debe ser un vector animado", bar.indeterminateDrawable is android.graphics.drawable.AnimatedVectorDrawable)
+        val (still, _) = inflate(WidgetType.WEATHER, SizeClass.MEDIUM, Profiles.MINIMAL.copy(animatedIcon = false), 220, 96)
+        assertTrue(ids.all { still.findViewById<View>(it).visibility == View.GONE })
+    }
+
+    @Test
     fun colonCanBeHiddenInWidgetClocks() {
         listOf(false, true).forEach { bold ->
             val style = Profiles.MINIMAL.copy(showColon = false, boldHours = bold)

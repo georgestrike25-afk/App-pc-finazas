@@ -60,12 +60,13 @@ object OpenMeteoParser {
             val codes = h.array("weather_code")
             val days = h.array("is_day")
             val pop = h.array("precipitation_probability")
+            val mm = h.array("precipitation")
             times.indices.mapNotNull { i ->
                 val t = times.longAt(i) ?: return@mapNotNull null
                 val temp = temps.doubleAt(i) ?: return@mapNotNull null
                 val code = codes.intAt(i) ?: return@mapNotNull null
                 val day = (days.intAt(i) ?: 1) == 1
-                HourlyPoint(t, temp, code, day, pop.intAt(i), WmoCodes.toCondition(code, day))
+                HourlyPoint(t, temp, code, day, pop.intAt(i), WmoCodes.toCondition(code, day), precipitationMm = mm.doubleAt(i))
             }
         }.orEmpty()
 
@@ -77,6 +78,8 @@ object OpenMeteoParser {
             val pop = d.array("precipitation_probability_max")
             val sunrise = d.array("sunrise")
             val sunset = d.array("sunset")
+            val sum = d.array("precipitation_sum")
+            val uv = d.array("uv_index_max")
             times.indices.mapNotNull { i ->
                 val t = times.longAt(i) ?: return@mapNotNull null
                 val hi = max.doubleAt(i) ?: return@mapNotNull null
@@ -92,6 +95,8 @@ object OpenMeteoParser {
                     precipitationProbabilityMax = pop.intAt(i),
                     sunrise = sunrise.longAt(i),
                     sunset = sunset.longAt(i),
+                    precipitationSumMm = sum.doubleAt(i),
+                    uvIndexMax = uv.doubleAt(i),
                     condition = WmoCodes.toCondition(code, isDay = true),
                 )
             }

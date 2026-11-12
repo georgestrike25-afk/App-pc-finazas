@@ -224,6 +224,7 @@ class WidgetRenderer(private val context: Context) {
         val condition = if (r.type == WidgetType.NIGHT) nightVariant(current.condition) else current.condition
         val label = WeatherText.condition(context, condition)
         setIcon(v, R.id.w_icon, R.id.w_icon_base, R.id.w_icon_accent, R.id.w_icon_3d, condition, style)
+        applyIconAnimation(v, condition, style.animatedIcon)
         // Las ilustraciones 3D piden más presencia: en Android 12+ el icono principal crece un 60 %.
         val iconDp = WidgetLayouts.iconDp(r.type, size)
         if (style.iconStyle == IconStyle.REALISTIC && iconDp > 0 && size != SizeClass.SMALL && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -352,6 +353,15 @@ class WidgetRenderer(private val context: Context) {
         v.setInt(accent, "setColorFilter", accentTint)
     }
 
+    /**
+     * Efecto animado sobre el icono principal (destellos, estrellas, gotas, copos, relámpago, bruma o
+     * nube). Lo anima el launcher solo mientras la pantalla de inicio está visible; la app no se despierta.
+     */
+    private fun applyIconAnimation(v: RemoteViews, condition: WeatherCondition, enabled: Boolean) {
+        val active = if (enabled) animationFor(condition) else null
+        ANIMATIONS.forEach { id -> v.setViewVisibility(id, if (id == active) View.VISIBLE else View.GONE) }
+    }
+
     private fun setTextOrGone(v: RemoteViews, id: Int, text: CharSequence?) {
         if (text.isNullOrBlank()) {
             v.setViewVisibility(id, View.GONE)
@@ -365,7 +375,7 @@ class WidgetRenderer(private val context: Context) {
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val open = Intent(context, MainActivity::class.java)
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            .putExtra(MainActivity.EXTRA_DESTINATION, if (r.type == WidgetType.FORECAST) "forecast" else "home")
+            .putExtra(MainActivity.EXTRA_DESTINATION, "forecast") // el toque abre la pantalla Clima
         v.setOnClickPendingIntent(
             android.R.id.background,
             PendingIntent.getActivity(context, r.appWidgetId, open, flags),
@@ -383,6 +393,21 @@ class WidgetRenderer(private val context: Context) {
     private fun px(dp: Int): Int = (dp * context.resources.displayMetrics.density).toInt()
 
     companion object {
+        private val ANIMATIONS = intArrayOf(
+            R.id.w_anim_sparkle, R.id.w_anim_stars, R.id.w_anim_cloud, R.id.w_anim_rain,
+            R.id.w_anim_storm, R.id.w_anim_snow, R.id.w_anim_mist,
+        )
+
+        fun animationFor(c: WeatherCondition): Int = when (c) {
+            WeatherCondition.CLEAR_DAY, WeatherCondition.PARTLY_CLOUDY_DAY -> R.id.w_anim_sparkle
+            WeatherCondition.CLEAR_NIGHT, WeatherCondition.PARTLY_CLOUDY_NIGHT -> R.id.w_anim_stars
+            WeatherCondition.CLOUDY -> R.id.w_anim_cloud
+            WeatherCondition.DRIZZLE, WeatherCondition.RAIN -> R.id.w_anim_rain
+            WeatherCondition.THUNDERSTORM -> R.id.w_anim_storm
+            WeatherCondition.SNOW -> R.id.w_anim_snow
+            WeatherCondition.FOG, WeatherCondition.WIND -> R.id.w_anim_mist
+        }
+
         private const val REQUEST_CLOCK = -1
         private const val REQUEST_REFRESH = -2
         private const val DARK_INK_LUMINANCE = 0.35

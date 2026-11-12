@@ -22,7 +22,8 @@
     "temperature_2m": [20.8, 21.4, 22.0, null, 21.1],
     "weather_code": [1, 2, 3, 61, 95],
     "is_day": [1, 1, 1, 1, 0],
-    "precipitation_probability": [0, 5, null, 60, 80]
+    "precipitation_probability": [0, 5, null, 60, 80],
+    "precipitation": [0.0, 0.0, 0.0, 1.2, 4.5]
   },
   "daily": {
     "time": [1761620400, 1761706800],
@@ -31,6 +32,8 @@
     "temperature_2m_min": [14.1, 12.8],
     "sunrise": [1761641820, 1761728160],
     "sunset": [1761690180, 1761776640],
-    "precipitation_probability_max": [10, 85]
+    "precipitation_probability_max": [10, 85],
+    "precipitation_sum": [0.0, 12.4],
+    "uv_index_max": [7.85, 3.1]
   }
 }

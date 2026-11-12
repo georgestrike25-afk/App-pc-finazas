@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_anim.py: no editar a mano. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+      <group android:name="clip"><clip-path android:pathData="M0,26 L48,26 L48,48 L0,48 Z" />
+        <group android:name="p0"><path android:fillColor="#FFFFFF" android:pathData="M9.328343233178968,25 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" /></group>
+        <group android:name="p1"><path android:fillColor="#FFFFFF" android:pathData="M15.055776598073924,25 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" /></group>
+        <group android:name="p2"><path android:fillColor="#FFFFFF" android:pathData="M18.24647850565445,25 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" /></group>
+        <group android:name="p3"><path android:fillColor="#FFFFFF" android:pathData="M24.236163594716988,25 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" /></group>
+        <group android:name="p4"><path android:fillColor="#FFFFFF" android:pathData="M32.36761278083813,25 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" /></group>
+        <group android:name="p5"><path android:fillColor="#FFFFFF" android:pathData="M36.6698434135905,25 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0" /></group>
+      </group>
+    </vector>
+  </aapt:attr>
+  <target android:name="p0">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="24" android:duration="2142" android:startOffset="0" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+        <objectAnimator android:duration="2142" android:startOffset="0"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="2.5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p1">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="24" android:duration="2315" android:startOffset="303" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+        <objectAnimator android:duration="2315" android:startOffset="303"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="2.5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p2">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="24" android:duration="2014" android:startOffset="606" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+        <objectAnimator android:duration="2014" android:startOffset="606"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="2.5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p3">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="24" android:duration="2417" android:startOffset="910" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+        <objectAnimator android:duration="2417" android:startOffset="910"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="2.5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p4">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="24" android:duration="2455" android:startOffset="1213" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+        <objectAnimator android:duration="2455" android:startOffset="1213"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="2.5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p5">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="24" android:duration="2511" android:startOffset="116" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+        <objectAnimator android:duration="2511" android:startOffset="116"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="2.5" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>

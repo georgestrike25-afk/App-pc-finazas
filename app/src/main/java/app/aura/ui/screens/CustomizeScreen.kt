@@ -326,6 +326,9 @@ fun CustomizeScreen(
             LabeledRow("Pronóstico de mañana", supporting = "En Forecast mediano, Weather grande y Duo") {
                 Switch(style.showTomorrow, { v -> edit { it.copy(showTomorrow = v) } })
             }
+            LabeledRow("Icono animado", supporting = "Sol con destellos, lluvia que cae, estrellas… Solo se mueve con la pantalla de inicio a la vista") {
+                Switch(style.animatedIcon, { v -> edit { it.copy(animatedIcon = v) } })
+            }
             Spacer(Modifier.height(8.dp))
             Text("Formato horario", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))

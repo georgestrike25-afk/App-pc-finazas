@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_anim.py: no editar a mano. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+      <group android:name="clip"><clip-path android:pathData="M0,28 L48,28 L48,48 L0,48 Z" />
+        <group android:name="p0"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M8.4,22 l-1.2,5" /></group>
+        <group android:name="p1"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M17.1,22 l-1.2,5" /></group>
+        <group android:name="p2"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M20.7,22 l-1.2,5" /></group>
+        <group android:name="p3"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M28.2,22 l-1.2,5" /></group>
+        <group android:name="p4"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M32.5,22 l-1.2,5" /></group>
+        <group android:name="p5"><path android:strokeColor="#D8ECFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M37.1,22 l-1.2,5" /></group>
+      </group>
+      <path android:name="bolt" android:fillAlpha="0" android:fillColor="#FFE27A" android:pathData="M27,22 L20,34 L25,34 L21,46 L31,31 L26,31 L30,22 Z" />
+    </vector>
+  </aapt:attr>
+  <target android:name="p0">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="703" android:startOffset="0" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p1">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="685" android:startOffset="140" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p2">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="647" android:startOffset="281" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p3">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="738" android:startOffset="422" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p4">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="653" android:startOffset="563" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="p5">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:propertyName="translateY" android:valueFrom="0" android:valueTo="27" android:duration="609" android:startOffset="54" android:valueType="floatType" android:interpolator="@android:interpolator/linear" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="bolt">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="2400" android:startOffset="300"><propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.06" android:value="1" /><keyframe android:fraction="0.12" android:value="0.2" /><keyframe android:fraction="0.18" android:value="1" /><keyframe android:fraction="0.3" android:value="0" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>

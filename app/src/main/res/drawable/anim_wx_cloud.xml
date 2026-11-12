@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_anim.py: no editar a mano. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+      <group android:name="c"><path android:fillColor="#FFFFFF" android:fillAlpha="0.55" android:pathData="M4,12 a4,4 0 0,1 4,-4 a5,5 0 0,1 9,1 a3.5,3.5 0 0,1 1,7 L8,16 a4,4 0 0,1 -4,-4 Z" /></group>
+    </vector>
+  </aapt:attr>
+  <target android:name="c">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="6000" android:startOffset="0"><propertyValuesHolder android:propertyName="translateX" android:valueType="floatType"><keyframe android:fraction="0" android:value="-18" /><keyframe android:fraction="1" android:value="44" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>

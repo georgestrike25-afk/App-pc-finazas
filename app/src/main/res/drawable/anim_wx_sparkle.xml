@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generado por tools/aura_anim.py: no editar a mano. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+      <group android:name="s0" android:translateX="7" android:translateY="9" android:scaleX="0" android:scaleY="0"><path android:pathData="M0,-3 L0.8,-0.8 L3,0 L0.8,0.8 L0,3 L-0.8,0.8 L-3,0 L-0.8,-0.8 Z" android:fillColor="#FFF1B8" /></group>
+      <group android:name="s1" android:translateX="41" android:translateY="7" android:scaleX="0" android:scaleY="0"><path android:pathData="M0,-3 L0.8,-0.8 L3,0 L0.8,0.8 L0,3 L-0.8,0.8 L-3,0 L-0.8,-0.8 Z" android:fillColor="#FFF1B8" /></group>
+      <group android:name="s2" android:translateX="43" android:translateY="31" android:scaleX="0" android:scaleY="0"><path android:pathData="M0,-3 L0.8,-0.8 L3,0 L0.8,0.8 L0,3 L-0.8,0.8 L-3,0 L-0.8,-0.8 Z" android:fillColor="#FFF1B8" /></group>
+      <group android:name="s3" android:translateX="6" android:translateY="33" android:scaleX="0" android:scaleY="0"><path android:pathData="M0,-3 L0.8,-0.8 L3,0 L0.8,0.8 L0,3 L-0.8,0.8 L-3,0 L-0.8,-0.8 Z" android:fillColor="#FFF1B8" /></group>
+    </vector>
+  </aapt:attr>
+  <target android:name="s0">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="900" android:startOffset="0"><propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="1.0" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+        <objectAnimator android:duration="900" android:startOffset="0"><propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="1.0" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="s1">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="900" android:startOffset="600"><propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.8" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+        <objectAnimator android:duration="900" android:startOffset="600"><propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.8" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="s2">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="900" android:startOffset="1200"><propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.9" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+        <objectAnimator android:duration="900" android:startOffset="1200"><propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.9" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="s3">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator android:duration="900" android:startOffset="1800"><propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.7" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+        <objectAnimator android:duration="900" android:startOffset="1800"><propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType"><keyframe android:fraction="0" android:value="0" /><keyframe android:fraction="0.5" android:value="0.7" /><keyframe android:fraction="1" android:value="0" /></propertyValuesHolder></objectAnimator>
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>
