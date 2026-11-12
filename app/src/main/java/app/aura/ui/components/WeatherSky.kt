@@ -48,6 +48,8 @@ fun WeatherSky(
     horizon: Float = 0.46f,
     /** 0–1: atenúa el cielo al desplazar el contenido hacia arriba. */
     dim: Float = 0f,
+    /** Desplazamiento del contenido en px: el paisaje sube con él (paralaje) y no queda detrás de las tarjetas. */
+    scroll: Float = 0f,
     animate: Boolean = true,
 ) {
     val context = LocalContext.current
@@ -75,6 +77,23 @@ fun WeatherSky(
 
     Canvas(modifier) {
         val t = time.floatValue
+        val lift = scroll * 0.7f
+        // Fondo profundo debajo de todo, por si el paisaje ya subió.
+        drawRect(scene.ground)
+        translate(top = -lift) { drawScene(scene, particles, phase, sunProgress, t, horizon) }
+        // La lluvia y la nieve cubren siempre toda la pantalla.
+        when (scene.precipitation) {
+            Precip.RAIN -> drawRain(particles.rain, t, heavy = true)
+            Precip.DRIZZLE -> drawRain(particles.rain.take(70), t, heavy = false)
+            Precip.SNOW -> drawSnow(particles.snow, t)
+            Precip.NONE -> Unit
+        }
+        if (dim > 0f) drawRect(Color.Black.copy(alpha = 0.35f * dim.coerceIn(0f, 1f)))
+    }
+}
+
+private fun DrawScope.drawScene(scene: SkyScene, particles: Particles, phase: DayPhase, sunProgress: Float?, t: Float, horizon: Float) {
+    run {
         drawRect(Brush.verticalGradient(scene.sky, endY = size.height * horizon))
         // Debajo del horizonte: continúa en un tono profundo para que las tarjetas se lean bien.
         drawRect(
@@ -90,14 +109,7 @@ fun WeatherSky(
         if (scene.fog) drawFog(t, horizon)
         drawHills(scene, horizon)
         drawClouds(particles, t, scene, horizon, back = false)
-        when (scene.precipitation) {
-            Precip.RAIN -> drawRain(particles.rain, t, heavy = true)
-            Precip.DRIZZLE -> drawRain(particles.rain.take(70), t, heavy = false)
-            Precip.SNOW -> drawSnow(particles.snow, t)
-            Precip.NONE -> Unit
-        }
         if (scene.lightning) drawLightning(t, horizon)
-        if (dim > 0f) drawRect(Color.Black.copy(alpha = 0.35f * dim.coerceIn(0f, 1f)))
     }
 }
 
@@ -247,7 +259,7 @@ private fun DrawScope.drawClouds(p: Particles, t: Float, scene: SkyScene, horizo
     val h = size.height * horizon
     p.clouds.take(scene.clouds).forEachIndexed { i, c ->
         if ((i % 2 == 0) != back) return@forEachIndexed
-        val w = size.width * 0.42f * c[2] * (if (back) 0.8f else 1.1f)
+        val w = size.width * 0.30f * c[2] * (if (back) 0.8f else 1.05f)
         val span = size.width + w
         val x = ((c[0] + t * c[3] * (if (back) 0.6f else 1f)) % 1f) * span - w
         val y = h * c[1] * (if (scene.clouds >= 8) 1.15f else 1f)
@@ -299,7 +311,7 @@ private fun DrawScope.drawSnow(flakes: List<FloatArray>, t: Float) {
     flakes.forEach { f ->
         val y = ((f[1] * size.height + t * size.height * 0.07f * f[4]) % (size.height + 10f)) - 5f
         val x = f[0] * size.width + sin(t * 0.8f + f[3]) * 14f * density
-        drawCircle(Color.White.copy(alpha = 0.55f + 0.35f * f[4] / 1.3f), radius = f[2] * density * 0.9f, center = Offset(x, y))
+        drawCircle(Color.White.copy(alpha = 0.55f + 0.35f * f[4] / 1.3f), radius = f[2] * density * 0.55f, center = Offset(x, y))
     }
 }
 

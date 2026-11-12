@@ -155,6 +155,7 @@ internal fun WeatherDetail(snap: WeatherSnapshot, settings: AppSettings, refresh
             sunProgress = sun,
             horizon = horizon,
             dim = (scroll.value / (heightPx * 0.5f)).coerceIn(0f, 1f),
+            scroll = scroll.value.toFloat(),
             modifier = Modifier.fillMaxSize(),
         )
         Column(
@@ -278,7 +279,7 @@ private fun HourlyStrip(snap: WeatherSnapshot, nowSec: Long, unit: app.aura.core
     val min = slots.minOf { it.temp }
     val max = slots.maxOf { it.temp }
     val span = (max - min).takeIf { it > 0.5 } ?: 1.0
-    val curveHeight = 64.dp
+    val curveHeight = 46.dp
     Row(Modifier.horizontalScroll(rememberScrollState()).testTag("hourly_strip")) {
         Column {
             Row {
@@ -418,7 +419,7 @@ private fun RainCard(snap: WeatherSnapshot, nowSec: Long, rain: app.aura.core.we
         Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
             hours.forEachIndexed { i, h ->
                 Text(
-                    if (i % 6 == 0) (if (i == 0) "Ahora" else fmt.format(Instant.ofEpochSecond(h.time).atZone(zone))) else "",
+                    if (i % 6 == 0) fmt.format(Instant.ofEpochSecond(h.time).atZone(zone)) else "",
                     color = Soft, style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false,
                     modifier = Modifier.weight(1f),
                 )

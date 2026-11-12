@@ -40,6 +40,10 @@ Hecho: widgets Clock/Weather/Duo/Forecast/Night en 3 tamaños, iconos 3D y escen
 pronóstico de mañana, fecha en Weather y formato de fecha (palabras, dd/mm/aaaa, día + dd/mm/aaaa);
 Aura Studio con 41 fuentes, dos puntos opcionales (también en widgets), estirar, deformar, separar (con «:» fijo al medio), orientación vertical,
 camaleón, máscara de sujeto, proyectos, exportar, fondo estático y animado.
+Pantalla Clima (pestaña «Clima», la abre el toque en cualquier widget): `ui/screens/ForecastScreen.kt`
+con cielo animado `ui/components/WeatherSky.kt` (clima × amanecer/día/atardecer/noche, 30 fps máx.),
+48 h con curva y lluvia %, aviso de lluvia (`core/weather/WeatherInsights`), 14 días, UV, sol.
+Icono animado del widget: ProgressBar + AnimatedVectorDrawable (`tools/aura_anim.py` → `anim_wx_*`).
 
 ## Pendiente / conocido
 - Confirmar en un S24+ real la sincronización del fondo animado y que no haya parpadeo negro.
