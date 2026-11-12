@@ -1,0 +1,27 @@
+name: Mantener firma
+
+# Restaura la clave de firma guardada en la caché de Actions. GitHub borra las cachés que pasan
+# 7 días sin usarse; leerla cada pocos días evita que la clave cambie (y que haya que desinstalar
+# Aura para actualizarla). Lo lanza cada 3 días «Mantener firma de Aura» desde la rama principal.
+on:
+  workflow_dispatch:
+
+jobs:
+  keep:
+    name: Leer la clave de firma
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Restaurar clave
+        id: key
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.aura-signing
+          key: aura-signing-v1
+      - name: Comprobar
+        run: |
+          if [ "${{ steps.key.outputs.cache-hit }}" != "true" ]; then
+            echo "::error::No se encontró la clave de firma en la caché"
+            exit 1
+          fi
+          echo "Clave de firma presente; caché renovada."

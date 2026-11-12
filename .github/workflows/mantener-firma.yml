@@ -1,0 +1,22 @@
+name: Mantener firma de Aura
+
+# Cada 3 días lanza «Mantener firma» en la rama de desarrollo de Aura, que lee la clave de firma
+# de la caché de Actions para que GitHub no la borre por falta de uso (las cachés vencen a los 7 días).
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  ping:
+    name: Renovar la clave de firma
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lanzar «Mantener firma» en la rama de Aura
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run firma.yml --repo "$GITHUB_REPOSITORY" --ref ccr-f0c1968f-5qd93l
