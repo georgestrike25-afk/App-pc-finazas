@@ -127,7 +127,8 @@ class WeatherScreenTest {
                 Row(Modifier.weight(1f).fillMaxWidth()) {
                     DayPhase.entries.forEach { p ->
                         Box(Modifier.weight(1f).fillMaxSize().padding(1.dp)) {
-                            WeatherSky(c, p, sunProgress = if (p == DayPhase.DAY) 0.4f else null, horizon = 0.8f, modifier = Modifier.fillMaxSize())
+                            // Quietos: 44 cielos animados a la vez saturan el emulador.
+                            WeatherSky(c, p, sunProgress = if (p == DayPhase.DAY) 0.4f else null, horizon = 0.8f, animate = false, modifier = Modifier.fillMaxSize())
                             Text("${c.name.lowercase()} ${p.name.lowercase()}", color = Color.White, fontSize = 8.sp, modifier = Modifier.padding(2.dp))
                         }
                     }
