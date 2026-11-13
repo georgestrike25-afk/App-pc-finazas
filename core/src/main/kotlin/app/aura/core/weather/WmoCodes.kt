@@ -12,10 +12,14 @@ object WmoCodes {
     /** Por debajo de esto (mm) el modelo no prevé que moje: un código de lluvia o tormenta es solo «posible». */
     const val WET_MM = 0.1
 
+    /** Probabilidad desde la que un código de lluvia sin milímetros se muestra como «posible lluvia». */
+    const val LIKELY_PERCENT = 50
+
     /**
-     * [precipitationMm] y [cloudCoverPercent] son del mismo modelo y del mismo momento. Si el código dice
-     * lluvia, nieve o tormenta pero no prevé precipitación, se muestra el cielo según la nubosidad:
-     * los modelos marcan «tormenta» en días inestables aunque no caiga una gota.
+     * [precipitationMm], [cloudCoverPercent] y [probabilityPercent] son del mismo modelo y momento. Si el
+     * código dice lluvia, nieve o tormenta pero no prevé milímetros y la probabilidad es baja, se muestra
+     * el cielo según la nubosidad (los modelos marcan «tormenta» en días inestables aunque no caiga una
+     * gota). Con probabilidad alta se conserva: es «posible lluvia» (ver WeatherInsights.isPossible).
      */
     fun toCondition(
         code: Int,
@@ -23,8 +27,10 @@ object WmoCodes {
         windSpeedKmh: Double? = null,
         precipitationMm: Double? = null,
         cloudCoverPercent: Int? = null,
+        probabilityPercent: Int? = null,
     ): WeatherCondition {
-        val effective = if (code >= 51 && precipitationMm != null && precipitationMm < WET_MM) dryCode(cloudCoverPercent) else code
+        val unlikely = probabilityPercent == null || probabilityPercent < LIKELY_PERCENT
+        val effective = if (code >= 51 && precipitationMm != null && precipitationMm < WET_MM && unlikely) dryCode(cloudCoverPercent) else code
         val base = when (effective) {
             0, 1 -> if (isDay) WeatherCondition.CLEAR_DAY else WeatherCondition.CLEAR_NIGHT
             2 -> if (isDay) WeatherCondition.PARTLY_CLOUDY_DAY else WeatherCondition.PARTLY_CLOUDY_NIGHT

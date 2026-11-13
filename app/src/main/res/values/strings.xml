@@ -39,6 +39,10 @@
     <string name="cond_rain">Lluvia</string>
     <string name="cond_thunderstorm">Tormenta eléctrica</string>
     <string name="cond_snow">Nieve</string>
+    <string name="cond_possible_drizzle">Posible llovizna</string>
+    <string name="cond_possible_rain">Posible lluvia</string>
+    <string name="cond_possible_thunderstorm">Posibles tormentas</string>
+    <string name="cond_possible_snow">Posible nieve</string>
     <string name="cond_fog">Niebla</string>
     <string name="cond_wind">Viento</string>
 

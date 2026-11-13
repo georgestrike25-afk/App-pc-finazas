@@ -40,6 +40,8 @@ data class CurrentConditions(
     /** Precipitación del último intervalo según el modelo, en mm (0 = no está mojando). */
     val precipitationMm: Double? = null,
     val cloudCoverPercent: Int? = null,
+    /** Probabilidad de lluvia de la hora en curso (la completa WeatherInsights.reconciled). */
+    val precipitationProbability: Int? = null,
 )
 
 @Serializable

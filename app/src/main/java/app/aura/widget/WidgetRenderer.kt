@@ -222,7 +222,7 @@ class WidgetRenderer(private val context: Context) {
         val zone = snap.data.timeZoneId?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: ZoneId.systemDefault()
         val current = snap.data.current
         val condition = if (r.type == WidgetType.NIGHT) nightVariant(current.condition) else current.condition
-        val label = WeatherText.condition(context, condition)
+        val label = WeatherText.now(context, current, condition)
         setIcon(v, R.id.w_icon, R.id.w_icon_base, R.id.w_icon_accent, R.id.w_icon_3d, condition, style)
         applyIconAnimation(v, condition, style.animatedIcon)
         // Las ilustraciones 3D piden más presencia: en Android 12+ el icono principal crece un 60 %.

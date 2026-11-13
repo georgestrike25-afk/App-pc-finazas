@@ -66,14 +66,22 @@ object WeatherInsights {
      */
     fun reconciled(data: WeatherData, nowSec: Long): WeatherData {
         val hourly = data.hourly.map { h ->
-            h.copy(condition = WmoCodes.toCondition(h.weatherCode, h.isDay, null, h.precipitationMm, h.cloudCoverPercent))
+            h.copy(condition = WmoCodes.toCondition(h.weatherCode, h.isDay, null, h.precipitationMm, h.cloudCoverPercent, h.precipitationProbability))
         }
         val c = data.current
-        val mm = c.precipitationMm ?: ForecastSlots.upcomingHours(hourly, nowSec, 1).firstOrNull()?.precipitationMm
+        val hour = ForecastSlots.upcomingHours(hourly, nowSec, 1).firstOrNull()
+        val mm = c.precipitationMm ?: hour?.precipitationMm
+        val pop = hour?.precipitationProbability
         val current = c.copy(
             precipitationMm = mm,
-            condition = WmoCodes.toCondition(c.weatherCode, c.isDay, c.windSpeedKmh, mm, c.cloudCoverPercent),
+            precipitationProbability = pop,
+            condition = WmoCodes.toCondition(c.weatherCode, c.isDay, c.windSpeedKmh, mm, c.cloudCoverPercent, pop),
         )
         return data.copy(current = current, hourly = hourly)
     }
+
+    private val WET = setOf(WeatherCondition.DRIZZLE, WeatherCondition.RAIN, WeatherCondition.THUNDERSTORM, WeatherCondition.SNOW)
+
+    /** Lluvia, nieve o tormenta probable pero sin milímetros previstos ahora: se dice «posible». */
+    fun isPossible(c: CurrentConditions): Boolean = c.condition in WET && (c.precipitationMm ?: 0.0) < WmoCodes.WET_MM
 }

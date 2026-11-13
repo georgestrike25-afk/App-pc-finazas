@@ -40,13 +40,21 @@ class WeatherInsightsTest {
 
     @Test
     fun `saved data is reconciled and missing current rain uses the current hour`() {
-        val dryNow = app.aura.core.weather.CurrentConditions(base + 60, 25.0, weatherCode = 61, isDay = true, condition = WeatherCondition.RAIN)
-        val data = app.aura.core.weather.WeatherData(dryNow, listOf(hour(0, 86, 0.0), hour(1, 83, 0.6)), emptyList())
-        val r = WeatherInsights.reconciled(data, base + 60)
+        val now = app.aura.core.weather.CurrentConditions(base + 60, 25.0, weatherCode = 61, isDay = true, condition = WeatherCondition.RAIN)
+        // Probabilidad baja y 0 mm: se muestra el cielo.
+        val low = app.aura.core.weather.WeatherData(now, listOf(hour(0, 20, 0.0), hour(1, 83, 0.6)), emptyList())
+        val r = WeatherInsights.reconciled(low, base + 60)
         assertEquals(WeatherCondition.CLOUDY, r.current.condition)
+        assertEquals(20, r.current.precipitationProbability)
         assertEquals(WeatherCondition.CLOUDY, r.hourly[0].condition)
         assertEquals(WeatherCondition.RAIN, r.hourly[1].condition)
-        val wet = WeatherInsights.reconciled(data.copy(current = dryNow.copy(precipitationMm = 1.2)), base + 60)
+        // Probabilidad alta pero 0 mm: «posible lluvia».
+        val likely = WeatherInsights.reconciled(low.copy(hourly = listOf(hour(0, 83, 0.0))), base + 60)
+        assertEquals(WeatherCondition.RAIN, likely.current.condition)
+        assertEquals(true, WeatherInsights.isPossible(likely.current))
+        // Con milímetros previstos: lluvia, sin «posible».
+        val wet = WeatherInsights.reconciled(low.copy(current = now.copy(precipitationMm = 1.2)), base + 60)
         assertEquals(WeatherCondition.RAIN, wet.current.condition)
+        assertEquals(false, WeatherInsights.isPossible(wet.current))
     }
 }

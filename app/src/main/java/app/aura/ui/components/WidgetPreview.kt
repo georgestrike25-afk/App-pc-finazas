@@ -107,7 +107,7 @@ data class PreviewContent(
             return PreviewContent(
                 temperature = TemperatureFormatter.short(snapshot.data.current.temperatureC, unit),
                 condition = snapshot.data.current.condition,
-                conditionLabel = WeatherText.condition(context, snapshot.data.current.condition),
+                conditionLabel = WeatherText.now(context, snapshot.data.current),
                 place = snapshot.place.name,
                 hilo = range?.let { TemperatureFormatter.range(it.maxC, it.minC, unit) },
                 hours = ForecastSlots.upcomingHours(snapshot.data.hourly, nowMillis / 1000, 6).mapIndexed { i, h ->

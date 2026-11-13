@@ -2,7 +2,9 @@ package app.aura.ui
 
 import android.content.Context
 import app.aura.R
+import app.aura.core.weather.CurrentConditions
 import app.aura.core.weather.Freshness
+import app.aura.core.weather.WeatherInsights
 import app.aura.core.weather.WeatherCondition
 
 /** Textos localizados compartidos por la app y los widgets. */
@@ -22,6 +24,19 @@ object WeatherText {
     }
 
     fun condition(context: Context, c: WeatherCondition): String = context.getString(conditionRes(c))
+
+    /** Condición actual: «Posible lluvia» cuando es probable pero el modelo no prevé milímetros ahora. */
+    fun now(context: Context, current: CurrentConditions, shown: WeatherCondition = current.condition): String {
+        if (!WeatherInsights.isPossible(current)) return condition(context, shown)
+        return context.getString(
+            when (current.condition) {
+                WeatherCondition.DRIZZLE -> R.string.cond_possible_drizzle
+                WeatherCondition.THUNDERSTORM -> R.string.cond_possible_thunderstorm
+                WeatherCondition.SNOW -> R.string.cond_possible_snow
+                else -> R.string.cond_possible_rain
+            },
+        )
+    }
 
     /** "5 min", "3 h", "2 d". */
     fun age(context: Context, ageMillis: Long): String {

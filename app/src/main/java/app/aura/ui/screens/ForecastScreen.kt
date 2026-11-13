@@ -151,7 +151,8 @@ internal fun WeatherDetail(snap: WeatherSnapshot, settings: AppSettings, refresh
         val heightPx = constraints.maxHeight.toFloat()
         val horizon = 0.46f
         WeatherSky(
-            condition = current.condition,
+            // «Posible lluvia»: cielo con llovizna suave en vez de lluvia fuerte.
+            condition = if (WeatherInsights.isPossible(current) && current.condition == WeatherCondition.RAIN) WeatherCondition.DRIZZLE else current.condition,
             phase = phase,
             sunProgress = sun,
             horizon = horizon,
@@ -191,12 +192,10 @@ internal fun WeatherDetail(snap: WeatherSnapshot, settings: AppSettings, refresh
                     color = Color.White, fontSize = 92.sp, fontWeight = FontWeight.Light, lineHeight = 96.sp,
                     modifier = Modifier.testTag("weather_temp"),
                 )
-                Text(WeatherText.condition(context, current.condition), color = Color.White, style = MaterialTheme.typography.headlineSmall)
-                // Con lluvia, nieve o tormenta, la probabilidad de esta hora: deja claro que es un pronóstico.
-                if (current.condition in WET_CONDITIONS) {
-                    ForecastSlots.upcomingHours(snap.data.hourly, nowSec, 1).firstOrNull()?.precipitationProbability?.let { pop ->
-                        Text("Pronóstico: $pop % de probabilidad en esta hora", color = Soft, style = MaterialTheme.typography.bodyMedium)
-                    }
+                Text(WeatherText.now(context, current), color = Color.White, style = MaterialTheme.typography.headlineSmall)
+                // Probabilidad de lluvia de esta hora (cuando es relevante): deja claro que es un pronóstico.
+                current.precipitationProbability?.takeIf { it >= WeatherInsights.RAIN_THRESHOLD || current.condition in WET_CONDITIONS }?.let { pop ->
+                    Text("$pop % de probabilidad de lluvia en esta hora", color = Soft, style = MaterialTheme.typography.bodyMedium)
                 }
                 Spacer(Modifier.weight(1f))
                 todayPoint?.let { d ->
@@ -210,7 +209,7 @@ internal fun WeatherDetail(snap: WeatherSnapshot, settings: AppSettings, refresh
 
             // Resumen + próximas 48 horas.
             GlassCard {
-                Text(summary(context, current.condition, todayPoint, rain?.let { if (it.start <= nowSec) "ahora" else "las ${clock(it.start)}" }, unit), color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                Text(summary(WeatherText.now(context, current), todayPoint, rain?.let { if (it.start <= nowSec) "ahora" else "las ${clock(it.start)}" }, unit), color = Color.White, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(12.dp))
                 HourlyStrip(snap, nowSec, unit, ::clock, is24, zone)
             }
@@ -252,8 +251,8 @@ private fun GlassCard(modifier: Modifier = Modifier, content: @Composable Column
     }
 }
 
-private fun summary(context: android.content.Context, c: WeatherCondition, today: DailyPoint?, rainFrom: String?, unit: app.aura.core.units.TemperatureUnit): String = buildString {
-    append(WeatherText.condition(context, c))
+private fun summary(label: String, today: DailyPoint?, rainFrom: String?, unit: app.aura.core.units.TemperatureUnit): String = buildString {
+    append(label)
     today?.let { append(". Máxima de ${TemperatureFormatter.short(it.maxC, unit)}, mínima de ${TemperatureFormatter.short(it.minC, unit)}") }
     append(".")
     if (rainFrom != null) append(" Lluvia probable desde $rainFrom.")

@@ -230,7 +230,7 @@ private fun CurrentWeatherCard(
     val today = ForecastSlots.todayRange(snap.data.daily, LocalDate.now(zone))
     val nowMillis = System.currentTimeMillis()
     val freshness = Freshness.of(snap.fetchedAtMillis, nowMillis, settings.refreshIntervalMinutes)
-    val label = WeatherText.condition(context, current.condition)
+    val label = WeatherText.now(context, current)
     AuraCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             WeatherIcon(current.condition, 76.dp, MaterialTheme.colorScheme.onSurface, contentDescription = label)
