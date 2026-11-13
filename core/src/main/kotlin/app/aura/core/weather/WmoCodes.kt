@@ -30,7 +30,12 @@ object WmoCodes {
         probabilityPercent: Int? = null,
     ): WeatherCondition {
         val unlikely = probabilityPercent == null || probabilityPercent < LIKELY_PERCENT
-        val effective = if (code >= 51 && precipitationMm != null && precipitationMm < WET_MM && unlikely) dryCode(cloudCoverPercent) else code
+        val effective = when {
+            code >= 51 && precipitationMm != null && precipitationMm < WET_MM && unlikely -> dryCode(cloudCoverPercent)
+            // El código del modelo dice cielo seco pero la probabilidad de lluvia es alta: lluvia (posible).
+            code < 45 && !unlikely -> 61
+            else -> code
+        }
         val base = when (effective) {
             0, 1 -> if (isDay) WeatherCondition.CLEAR_DAY else WeatherCondition.CLEAR_NIGHT
             2 -> if (isDay) WeatherCondition.PARTLY_CLOUDY_DAY else WeatherCondition.PARTLY_CLOUDY_NIGHT

@@ -101,9 +101,11 @@ private fun DrawScope.drawScene(scene: SkyScene, particles: Particles, phase: Da
             topLeft = Offset(0f, size.height * horizon * 0.9f),
         )
         if (scene.stars > 0f) drawStars(particles, t, scene.stars, horizon)
-        when (phase) {
-            DayPhase.NIGHT -> if (scene.celestial > 0f) drawMoon(t, scene.celestial, horizon)
-            else -> if (scene.celestial > 0f) drawSun(t, phase, sunProgress, scene.celestial, horizon)
+        when {
+            phase == DayPhase.NIGHT -> if (scene.celestial > 0f) drawMoon(t, scene.celestial, horizon)
+            // El sol solo se dibuja si está sobre el horizonte; en el crepúsculo queda el resplandor.
+            sunProgress != null -> if (scene.celestial > 0f) drawSun(t, phase, sunProgress, scene.celestial, horizon)
+            else -> drawTwilightGlow(phase, horizon, scene.celestial)
         }
         drawClouds(particles, t, scene, horizon, back = true)
         if (scene.fog) drawFog(t, horizon)
@@ -173,8 +175,10 @@ private class SkyScene(
                     c == WeatherCondition.PARTLY_CLOUDY_NIGHT -> 0.7f
                     else -> 1f
                 },
+                // Con el cielo cubierto no se ve el sol ni la luna (solo un resplandor con niebla).
                 celestial = when {
-                    overcast -> if (c == WeatherCondition.CLOUDY || c == WeatherCondition.FOG) 0.25f else 0f
+                    c == WeatherCondition.FOG -> 0.2f
+                    overcast -> 0f
                     else -> 1f
                 },
                 precipitation = when (c) {
@@ -233,6 +237,15 @@ private fun DrawScope.drawSun(t: Float, phase: DayPhase, progress: Float?, stren
     }
     drawCircle(core.copy(alpha = strength), radius = r, center = c)
     drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.9f * strength), Color.Transparent), center = c - Offset(r * 0.3f, r * 0.3f), radius = r), radius = r, center = c)
+}
+
+private fun DrawScope.drawTwilightGlow(phase: DayPhase, horizon: Float, strength: Float) {
+    val c = Offset(size.width * (if (phase == DayPhase.DAWN) 0.15f else 0.85f), size.height * horizon * 0.92f)
+    val k = 0.35f + 0.4f * strength
+    drawCircle(
+        Brush.radialGradient(listOf(Color(0xFFFFA36B).copy(alpha = 0.45f * k), Color.Transparent), center = c, radius = size.width * 0.6f),
+        radius = size.width * 0.6f, center = c,
+    )
 }
 
 private fun DrawScope.drawMoon(t: Float, strength: Float, horizon: Float) {

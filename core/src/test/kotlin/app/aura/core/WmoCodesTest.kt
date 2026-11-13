@@ -50,4 +50,11 @@ class WmoCodesTest {
         // La niebla no depende de la precipitación.
         assertEquals(WeatherCondition.FOG, WmoCodes.toCondition(45, true, null, 0.0, 100))
     }
+
+    @Test
+    fun `dry code with high rain probability becomes rain`() {
+        assertEquals(WeatherCondition.RAIN, WmoCodes.toCondition(3, false, null, 0.0, 100, 91))
+        assertEquals(WeatherCondition.CLOUDY, WmoCodes.toCondition(3, false, null, 0.0, 100, 30))
+        assertEquals(WeatherCondition.FOG, WmoCodes.toCondition(45, true, null, 0.0, 100, 90))
+    }
 }

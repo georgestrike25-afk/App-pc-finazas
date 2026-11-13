@@ -10,7 +10,7 @@ data class RainWindow(val start: Long, val end: Long, val peakProbability: Int, 
 
 object WeatherInsights {
     /** Duración de amanecer y atardecer a cada lado de la salida/puesta del sol. */
-    const val TWILIGHT_SECONDS = 45 * 60L
+    const val TWILIGHT_SECONDS = 30 * 60L
 
     /** Probabilidad desde la que una hora cuenta como lluviosa. */
     const val RAIN_THRESHOLD = 40
