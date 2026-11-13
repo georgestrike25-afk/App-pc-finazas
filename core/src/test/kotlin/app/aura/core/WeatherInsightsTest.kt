@@ -57,4 +57,16 @@ class WeatherInsightsTest {
         assertEquals(WeatherCondition.RAIN, wet.current.condition)
         assertEquals(false, WeatherInsights.isPossible(wet.current))
     }
+
+    @Test
+    fun `cloudy current value takes the likely rain of the current hour`() {
+        val now = app.aura.core.weather.CurrentConditions(base + 60, 24.0, weatherCode = 3, isDay = false, condition = WeatherCondition.CLOUDY, precipitationMm = 0.0)
+        val data = app.aura.core.weather.WeatherData(now, listOf(hour(0, 93, 0.1)), emptyList())
+        val r = WeatherInsights.reconciled(data, base + 60)
+        assertEquals(WeatherCondition.RAIN, r.current.condition)
+        assertEquals(true, WeatherInsights.isPossible(r.current))
+        // Con probabilidad baja queda nublado.
+        val low = WeatherInsights.reconciled(data.copy(hourly = listOf(hour(0, 30, 0.0))), base + 60)
+        assertEquals(WeatherCondition.CLOUDY, low.current.condition)
+    }
 }

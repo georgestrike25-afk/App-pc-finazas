@@ -72,10 +72,14 @@ object WeatherInsights {
         val hour = ForecastSlots.upcomingHours(hourly, nowSec, 1).firstOrNull()
         val mm = c.precipitationMm ?: hour?.precipitationMm
         val pop = hour?.precipitationProbability
+        val own = WmoCodes.toCondition(c.weatherCode, c.isDay, c.windSpeedKmh, mm, c.cloudCoverPercent, pop)
+        // El valor «actual» del modelo puede decir «nublado» mientras la hora en curso pronostica lluvia
+        // con probabilidad alta: entonces se toma la de la hora (se mostrará como «posible»).
+        val fromHour = hour?.condition?.takeIf { it in WET && own !in WET && (pop ?: 0) >= WmoCodes.LIKELY_PERCENT }
         val current = c.copy(
             precipitationMm = mm,
             precipitationProbability = pop,
-            condition = WmoCodes.toCondition(c.weatherCode, c.isDay, c.windSpeedKmh, mm, c.cloudCoverPercent, pop),
+            condition = fromHour ?: own,
         )
         return data.copy(current = current, hourly = hourly)
     }
