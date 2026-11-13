@@ -58,4 +58,22 @@ object WeatherInsights {
         daily.flatMap { d -> listOfNotNull(d.sunrise?.let { it to true }, d.sunset?.let { it to false }) }
             .filter { it.first in from until to }
             .sortedBy { it.first }
+
+    /**
+     * Recalcula las condiciones con la regla de [WmoCodes.toCondition] a partir de los datos crudos
+     * (código, mm y nubosidad). Sirve para datos guardados por versiones anteriores y para cuando el
+     * proveedor no informa la precipitación actual: se usa la de la hora en curso.
+     */
+    fun reconciled(data: WeatherData, nowSec: Long): WeatherData {
+        val hourly = data.hourly.map { h ->
+            h.copy(condition = WmoCodes.toCondition(h.weatherCode, h.isDay, null, h.precipitationMm, h.cloudCoverPercent))
+        }
+        val c = data.current
+        val mm = c.precipitationMm ?: ForecastSlots.upcomingHours(hourly, nowSec, 1).firstOrNull()?.precipitationMm
+        val current = c.copy(
+            precipitationMm = mm,
+            condition = WmoCodes.toCondition(c.weatherCode, c.isDay, c.windSpeedKmh, mm, c.cloudCoverPercent),
+        )
+        return data.copy(current = current, hourly = hourly)
+    }
 }

@@ -71,7 +71,7 @@ object OpenMeteoParser {
                 val temp = temps.doubleAt(i) ?: return@mapNotNull null
                 val code = codes.intAt(i) ?: return@mapNotNull null
                 val day = (days.intAt(i) ?: 1) == 1
-                HourlyPoint(t, temp, code, day, pop.intAt(i), WmoCodes.toCondition(code, day, null, mm.doubleAt(i), cloud.intAt(i)), precipitationMm = mm.doubleAt(i))
+                HourlyPoint(t, temp, code, day, pop.intAt(i), WmoCodes.toCondition(code, day, null, mm.doubleAt(i), cloud.intAt(i)), precipitationMm = mm.doubleAt(i), cloudCoverPercent = cloud.intAt(i))
             }
         }.orEmpty()
 

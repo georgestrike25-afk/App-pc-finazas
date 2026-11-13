@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import app.aura.core.weather.RefreshPolicy
 import app.aura.core.weather.WeatherProvider
 import app.aura.core.weather.WeatherProviderException
+import app.aura.core.weather.WeatherInsights
 import app.aura.core.weather.WeatherSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +58,8 @@ class WeatherRepository(
     val snapshot: Flow<WeatherSnapshot?> = store.data
         .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
         .map { prefs -> prefs[KEY]?.let { runCatching { json.decodeFromString<WeatherSnapshot>(it) }.getOrNull() } }
+        // Siempre con la regla actual de condiciones (también para datos guardados por versiones anteriores).
+        .map { snap -> snap?.copy(data = WeatherInsights.reconciled(snap.data, System.currentTimeMillis() / 1000)) }
         .distinctUntilChanged()
 
     suspend fun cached(): WeatherSnapshot? = snapshot.first()

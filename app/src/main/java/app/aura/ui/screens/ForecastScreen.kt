@@ -127,6 +127,7 @@ private val Glass = Color(0xFF0B1424).copy(alpha = 0.42f)
 private val GlassBorder = Color.White.copy(alpha = 0.10f)
 private val Soft = Color.White.copy(alpha = 0.72f)
 private val RainBlue = Color(0xFF8CC8FF)
+private val WET_CONDITIONS = setOf(WeatherCondition.DRIZZLE, WeatherCondition.RAIN, WeatherCondition.THUNDERSTORM, WeatherCondition.SNOW)
 
 @Composable
 internal fun WeatherDetail(snap: WeatherSnapshot, settings: AppSettings, refreshing: Boolean, onOpenLocation: () -> Unit, onRefresh: () -> Unit) {
@@ -191,6 +192,12 @@ internal fun WeatherDetail(snap: WeatherSnapshot, settings: AppSettings, refresh
                     modifier = Modifier.testTag("weather_temp"),
                 )
                 Text(WeatherText.condition(context, current.condition), color = Color.White, style = MaterialTheme.typography.headlineSmall)
+                // Con lluvia, nieve o tormenta, la probabilidad de esta hora: deja claro que es un pronóstico.
+                if (current.condition in WET_CONDITIONS) {
+                    ForecastSlots.upcomingHours(snap.data.hourly, nowSec, 1).firstOrNull()?.precipitationProbability?.let { pop ->
+                        Text("Pronóstico: $pop % de probabilidad en esta hora", color = Soft, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
                 Spacer(Modifier.weight(1f))
                 todayPoint?.let { d ->
                     Text("↑ ${TemperatureFormatter.short(d.maxC, unit)}  ↓ ${TemperatureFormatter.short(d.minC, unit)}", color = Color.White, style = MaterialTheme.typography.titleMedium)
@@ -394,11 +401,11 @@ private fun RainCard(snap: WeatherSnapshot, nowSec: Long, rain: app.aura.core.we
             Text("Sin lluvia prevista", color = Color.White, style = MaterialTheme.typography.titleLarge)
             Text("Ninguna hora supera el ${WeatherInsights.RAIN_THRESHOLD} % de probabilidad.", color = Soft, style = MaterialTheme.typography.bodyMedium)
         } else {
-            // «Lloviendo» solo si el modelo prevé precipitación ahora; si no, es una probabilidad.
+            // Es un pronóstico, no una observación: «prevista» si el modelo da mm ahora, «probable» si no.
             val wetNow = (snap.data.current.precipitationMm ?: 0.0) >= app.aura.core.weather.WmoCodes.WET_MM
             val starts = when {
                 rain.start > nowSec -> "Desde las ${clock(rain.start)}"
-                wetNow -> "Lloviendo ahora"
+                wetNow -> "Prevista desde ahora"
                 else -> "Probable desde ahora"
             }
             Text("$starts hasta las ${clock(rain.end)}", color = Color.White, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("rain_window"))

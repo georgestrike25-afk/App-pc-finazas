@@ -37,4 +37,16 @@ class WeatherInsightsTest {
         assertEquals(2.7, w.totalMm, 0.001)
         assertNull(WeatherInsights.nextRain(listOf(hour(0, 5), hour(1, 20)), base))
     }
+
+    @Test
+    fun `saved data is reconciled and missing current rain uses the current hour`() {
+        val dryNow = app.aura.core.weather.CurrentConditions(base + 60, 25.0, weatherCode = 61, isDay = true, condition = WeatherCondition.RAIN)
+        val data = app.aura.core.weather.WeatherData(dryNow, listOf(hour(0, 86, 0.0), hour(1, 83, 0.6)), emptyList())
+        val r = WeatherInsights.reconciled(data, base + 60)
+        assertEquals(WeatherCondition.CLOUDY, r.current.condition)
+        assertEquals(WeatherCondition.CLOUDY, r.hourly[0].condition)
+        assertEquals(WeatherCondition.RAIN, r.hourly[1].condition)
+        val wet = WeatherInsights.reconciled(data.copy(current = dryNow.copy(precipitationMm = 1.2)), base + 60)
+        assertEquals(WeatherCondition.RAIN, wet.current.condition)
+    }
 }

@@ -52,6 +52,7 @@ data class HourlyPoint(
     val condition: WeatherCondition,
     /** Lluvia o nieve prevista en esa hora, en mm. */
     val precipitationMm: Double? = null,
+    val cloudCoverPercent: Int? = null,
 )
 
 @Serializable
