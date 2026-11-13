@@ -37,6 +37,9 @@ data class CurrentConditions(
     val weatherCode: Int,
     val isDay: Boolean,
     val condition: WeatherCondition,
+    /** Precipitación del último intervalo según el modelo, en mm (0 = no está mojando). */
+    val precipitationMm: Double? = null,
+    val cloudCoverPercent: Int? = null,
 )
 
 @Serializable

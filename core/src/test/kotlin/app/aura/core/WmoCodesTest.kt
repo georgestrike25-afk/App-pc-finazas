@@ -37,4 +37,17 @@ class WmoCodesTest {
     fun `unknown codes fall back to cloudy`() {
         assertEquals(WeatherCondition.CLOUDY, WmoCodes.toCondition(42, true))
     }
+
+    @Test
+    fun `storm or rain codes without precipitation show the sky by cloud cover`() {
+        assertEquals(WeatherCondition.CLEAR_DAY, WmoCodes.toCondition(95, true, null, 0.0, 10))
+        assertEquals(WeatherCondition.PARTLY_CLOUDY_NIGHT, WmoCodes.toCondition(61, false, null, 0.0, 40))
+        assertEquals(WeatherCondition.CLOUDY, WmoCodes.toCondition(80, true, null, 0.0, 90))
+        assertEquals(WeatherCondition.CLOUDY, WmoCodes.toCondition(95, true, null, 0.0, null))
+        // Con precipitación real (o sin dato de mm) se respeta el código.
+        assertEquals(WeatherCondition.THUNDERSTORM, WmoCodes.toCondition(95, true, null, 2.4, 90))
+        assertEquals(WeatherCondition.THUNDERSTORM, WmoCodes.toCondition(95, true))
+        // La niebla no depende de la precipitación.
+        assertEquals(WeatherCondition.FOG, WmoCodes.toCondition(45, true, null, 0.0, 100))
+    }
 }

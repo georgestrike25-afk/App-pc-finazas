@@ -15,7 +15,9 @@
     "relative_humidity_2m": 61,
     "is_day": 1,
     "weather_code": 2,
-    "wind_speed_10m": 14.2
+    "wind_speed_10m": 14.2,
+    "precipitation": 0.0,
+    "cloud_cover": 35
   },
   "hourly": {
     "time": [1761670800, 1761674400, 1761678000, 1761681600, 1761685200],

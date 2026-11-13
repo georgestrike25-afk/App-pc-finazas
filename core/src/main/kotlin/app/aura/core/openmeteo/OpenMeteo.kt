@@ -48,8 +48,8 @@ class OpenMeteoWeatherProvider(
         append(baseUrl)
         append("?latitude=").append(formatCoordinate(c.latitude))
         append("&longitude=").append(formatCoordinate(c.longitude))
-        append("&current=temperature_2m,apparent_temperature,relative_humidity_2m,is_day,weather_code,wind_speed_10m")
-        append("&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation")
+        append("&current=temperature_2m,apparent_temperature,relative_humidity_2m,is_day,weather_code,wind_speed_10m,precipitation,cloud_cover")
+        append("&hourly=temperature_2m,weather_code,is_day,precipitation_probability,precipitation,cloud_cover")
         append("&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,precipitation_sum,uv_index_max")
         append("&timezone=auto&forecast_days=14&forecast_hours=48&timeformat=unixtime&wind_speed_unit=kmh")
     }

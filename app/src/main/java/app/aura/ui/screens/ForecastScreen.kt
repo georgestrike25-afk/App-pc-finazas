@@ -203,7 +203,7 @@ internal fun WeatherDetail(snap: WeatherSnapshot, settings: AppSettings, refresh
 
             // Resumen + próximas 48 horas.
             GlassCard {
-                Text(summary(context, current.condition, todayPoint, rain?.let { clock(it.start) }, unit), color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                Text(summary(context, current.condition, todayPoint, rain?.let { if (it.start <= nowSec) "ahora" else "las ${clock(it.start)}" }, unit), color = Color.White, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(12.dp))
                 HourlyStrip(snap, nowSec, unit, ::clock, is24, zone)
             }
@@ -249,7 +249,7 @@ private fun summary(context: android.content.Context, c: WeatherCondition, today
     append(WeatherText.condition(context, c))
     today?.let { append(". Máxima de ${TemperatureFormatter.short(it.maxC, unit)}, mínima de ${TemperatureFormatter.short(it.minC, unit)}") }
     append(".")
-    if (rainFrom != null) append(" Lluvia probable desde las $rainFrom.")
+    if (rainFrom != null) append(" Lluvia probable desde $rainFrom.")
 }
 
 // ------------------------------------------------------------------ próximas horas
@@ -394,7 +394,13 @@ private fun RainCard(snap: WeatherSnapshot, nowSec: Long, rain: app.aura.core.we
             Text("Sin lluvia prevista", color = Color.White, style = MaterialTheme.typography.titleLarge)
             Text("Ninguna hora supera el ${WeatherInsights.RAIN_THRESHOLD} % de probabilidad.", color = Soft, style = MaterialTheme.typography.bodyMedium)
         } else {
-            val starts = if (rain.start <= nowSec) "Lloviendo ahora" else "Desde las ${clock(rain.start)}"
+            // «Lloviendo» solo si el modelo prevé precipitación ahora; si no, es una probabilidad.
+            val wetNow = (snap.data.current.precipitationMm ?: 0.0) >= app.aura.core.weather.WmoCodes.WET_MM
+            val starts = when {
+                rain.start > nowSec -> "Desde las ${clock(rain.start)}"
+                wetNow -> "Lloviendo ahora"
+                else -> "Probable desde ahora"
+            }
             Text("$starts hasta las ${clock(rain.end)}", color = Color.White, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("rain_window"))
             Text(
                 "Hasta ${rain.peakProbability} % de probabilidad" + if (rain.totalMm >= 0.1) " · ${"%.1f".format(rain.totalMm)} mm" else "",

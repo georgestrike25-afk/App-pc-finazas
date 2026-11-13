@@ -42,6 +42,8 @@ object OpenMeteoParser {
             ?: throw WeatherProviderException("Respuesta sin código meteorológico")
         val isDay = (current.int("is_day") ?: 1) == 1
         val wind = current.double("wind_speed_10m")
+        val currentMm = current.double("precipitation")
+        val currentCloud = current.int("cloud_cover")
 
         val conditions = CurrentConditions(
             time = current.long("time") ?: 0L,
@@ -51,7 +53,9 @@ object OpenMeteoParser {
             windSpeedKmh = wind,
             weatherCode = currentCode,
             isDay = isDay,
-            condition = WmoCodes.toCondition(currentCode, isDay, wind),
+            condition = WmoCodes.toCondition(currentCode, isDay, wind, currentMm, currentCloud),
+            precipitationMm = currentMm,
+            cloudCoverPercent = currentCloud,
         )
 
         val hourly = root.obj("hourly")?.let { h ->
@@ -61,12 +65,13 @@ object OpenMeteoParser {
             val days = h.array("is_day")
             val pop = h.array("precipitation_probability")
             val mm = h.array("precipitation")
+            val cloud = h.array("cloud_cover")
             times.indices.mapNotNull { i ->
                 val t = times.longAt(i) ?: return@mapNotNull null
                 val temp = temps.doubleAt(i) ?: return@mapNotNull null
                 val code = codes.intAt(i) ?: return@mapNotNull null
                 val day = (days.intAt(i) ?: 1) == 1
-                HourlyPoint(t, temp, code, day, pop.intAt(i), WmoCodes.toCondition(code, day), precipitationMm = mm.doubleAt(i))
+                HourlyPoint(t, temp, code, day, pop.intAt(i), WmoCodes.toCondition(code, day, null, mm.doubleAt(i), cloud.intAt(i)), precipitationMm = mm.doubleAt(i))
             }
         }.orEmpty()
 
