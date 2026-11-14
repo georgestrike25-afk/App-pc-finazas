@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
-import { fillMoney, go, GUIA_VISTA } from './helpers';
+import { fillMoney, go, GUIA_VISTA, openFresh } from './helpers';
 
 test('PDF escaneado (solo imagen) se lee con OCR local', async ({ page }) => {
   test.setTimeout(240_000);
@@ -423,4 +423,35 @@ test('teclado: la tecla "Listo" guarda el presupuesto y cierra el teclado', asyn
   await expect(input).not.toBeFocused();
   await go(page, 'presupuesto');
   await expect(page.getByLabel('Monto del mes')).toHaveValue('123.456,00');
+});
+
+test('gastos de avisos: el último arriba, hora en 24 horas, y el link del aviso lleva al gasto', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-14T14:20:00-03:00'));
+  await openFresh(page);
+  // Dos gastos detectados por avisos (ficticios), anotados juntos al abrir la app; el de la mañana con la hora vieja en 12 horas.
+  await page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((ok, no) => { const r = indexedDB.open('finanzas-personales'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+    const now = '2026-11-14T17:10:00.000Z';
+    const gasto = (id: string, concepto: string, hhmm: string, notas: string) => ({
+      id, createdAt: now, updatedAt: now, kind: 'cotidiano', category: 'Transporte', concept: concepto, date: '2026-11-14', month: '2026-11', totalAmount: 1_000_00, userPct: 100, paid: true,
+      frequency: 'unica', paymentMethod: 'otro', source: 'manual', importedFrom: 'notificacion', notes: notas,
+      linkedLineFingerprints: [`notif|Mercado Pago|${Date.parse(`2026-11-14T${hhmm}:00-03:00`)}|100000`, `notifkey|clave-${id}`],
+    });
+    const put = (rec: unknown) => new Promise<void>((ok, no) => { const t = db.transaction('expenses', 'readwrite'); t.objectStore('expenses').put(rec); t.oncomplete = () => ok(); t.onerror = () => no(t.error); });
+    await put(gasto('manana', 'Uber de la mañana', '06:28', 'Notificación de Mercado Pago · 06:28'));
+    await put(gasto('tarde', 'Uber de la tarde', '14:03', 'Notificación de Mercado Pago · 02:03')); // 12 horas, sin "p. m."
+    db.close();
+  });
+  await go(page, 'gastos');
+  await page.reload();
+  const lista = page.locator('[data-expense-id]'); // lista en el celular, tabla en la PC
+  await expect(lista).toHaveCount(2);
+  await expect(lista.nth(0)).toContainText('Uber de la tarde');
+  await expect(lista.nth(0)).toContainText('aviso de Mercado Pago 14:03');
+  await expect(lista.nth(1)).toContainText('Uber de la mañana');
+  await expect(lista.nth(1)).toContainText('aviso de Mercado Pago 06:28');
+  // El link que abre el aviso lleva al gasto y lo resalta
+  await page.goto('/#/gastos?foco=manana');
+  await expect(page.locator('[data-expense-id="manana"]')).toHaveClass(/exp-focus/);
+  await expect(page).toHaveURL(/#\/gastos$/);
 });

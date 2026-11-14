@@ -675,3 +675,7 @@ body.kb-open .page { padding-bottom: 24px; }
 .hub-sec[open] > summary .hub-t::after { transform: rotate(90deg); }
 .hub-sec > .hub-body { padding: 0 12px 12px; }
 .hub-sec > .hub-body > .page > .card { box-shadow: none; }
+
+/* Gasto al que llevó el aviso */
+.exp-focus { animation: exp-focus 4s ease-out; border-radius: var(--radius); }
+@keyframes exp-focus { 0%, 60% { background: color-mix(in srgb, var(--lime) 28%, transparent); box-shadow: 0 0 0 2px var(--lime); } 100% { background: transparent; box-shadow: 0 0 0 2px transparent; } }

@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../store';
 import { getDeviceId, saveRecord, softDelete } from '../../db/repo';
 import { getDb } from '../../db/db';
 import { householdPayment, payHousehold, unpayHousehold } from '../../domain/payments';
-import { occurrencesForMonth, FREQUENCY_LABEL, otherPerson } from '../../domain/expenses';
+import { occurrencesForMonth, FREQUENCY_LABEL, happenedAt, noticeClock, otherPerson } from '../../domain/expenses';
 import { formatDate, monthLabel, todayIso, type MonthKey } from '../../domain/dates';
 import { formatARS, sum, type Cents } from '../../domain/money';
 import type { Expense, ExpenseKind } from '../../domain/types';
@@ -16,7 +16,8 @@ import { categoryIcon } from '../components/categoryIcon';
 /** Cómo se pagó, o de qué aviso vino si lo detectó la app (para reconocer un repetido: mismo aviso, misma hora). */
 const origin = (e: Expense) => {
   const m = e.importedFrom === 'notificacion' ? e.notes?.match(/^Notificación de (.+?) · (\d{1,2}:\d{2})/) : null;
-  return m ? `aviso de ${m[1]} ${m[2]}` : METHOD_LABEL[e.paymentMethod];
+  // La hora sale del momento real del aviso, siempre en 24 horas (las notas viejas la guardaban en 12 horas, sin "a. m." ni "p. m.").
+  return m ? `aviso de ${m[1]} ${noticeClock(e) ?? m[2]}` : METHOD_LABEL[e.paymentMethod];
 };
 
 /** Gasto que pagaste vos entero y tu pareja te devuelve la mitad (marcado con el botón rápido). */
@@ -79,9 +80,42 @@ function HouseholdPay({ e, month, share, paid, partner }: { e: Expense; month: M
 }
 
 export function ExpenseTable({ kinds, emptyText, also }: { kinds: ExpenseKind[]; emptyText: string; also?: (e: Expense) => boolean }) {
-  const { data, month } = useApp();
+  const { data, month, setMonth } = useApp();
   const [editing, setEditing] = useState<ExpenseDraft | null>(null);
   const [occ, setOcc] = useState<Expense | null>(null);
+  // Al tocar el aviso "Se anotó…" la app abre `#/gastos?foco=<id>`: va al mes del gasto, lo muestra y lo resalta.
+  const [foco, setFoco] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('foco'));
+  useEffect(() => {
+    // Si ya estás en Gastos, tocar otro aviso solo cambia la dirección: se escucha ese cambio.
+    const leer = () => setFoco(new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('foco'));
+    window.addEventListener('hashchange', leer);
+    return () => window.removeEventListener('hashchange', leer);
+  }, []);
+  const enfocado = useRef('');
+  useEffect(() => {
+    if (!foco) {
+      enfocado.current = ''; // el próximo aviso que toques vuelve a resaltar
+      return;
+    }
+    if (enfocado.current === foco) return;
+    const e = data.expenses.find((x) => x.id === foco && !x.deleted);
+    if (!e) return;
+    if (e.month !== month) {
+      setMonth(e.month);
+      return;
+    }
+    const t = setTimeout(() => {
+      const el = document.querySelector(`[data-expense-id="${foco}"]`);
+      if (!el) return;
+      enfocado.current = foco;
+      el.scrollIntoView({ block: 'center' });
+      el.classList.add('exp-focus');
+      window.history.replaceState(null, '', '#/gastos');
+      setFoco(null);
+      setTimeout(() => el.classList.remove('exp-focus'), 4000);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [foco, data.expenses, month, setMonth]);
   const byId = new Map(data.expenses.map((e) => [e.id, e]));
   // Del más nuevo al más viejo (y lo anotado último primero, si es del mismo día).
   const items = useMemo(() => {
@@ -91,7 +125,8 @@ export function ExpenseTable({ kinds, emptyText, also }: { kinds: ExpenseKind[];
     return occurrencesForMonth(data.expenses.filter((e) => (kinds.includes(e.kind) || !!also?.(e)) && !e.refund), month).sort((a, b) => {
       const x = ids.get(a.expenseId)!;
       const y = ids.get(b.expenseId)!;
-      return fecha(y).localeCompare(fecha(x)) || y.createdAt.localeCompare(x.createdAt);
+      // Del más nuevo al más viejo; el mismo día, por la hora real (la del aviso, no la de cuando se abrió la app).
+      return fecha(y).localeCompare(fecha(x)) || happenedAt(y) - happenedAt(x);
     });
   }, [data.expenses, kinds, month, also]);
   // Total y porcentaje solo aportan si este mes hay algún gasto compartido.
@@ -113,7 +148,7 @@ export function ExpenseTable({ kinds, emptyText, also }: { kinds: ExpenseKind[];
             {items.map((o) => {
               const e = byId.get(o.expenseId)!;
               return (
-                <li key={o.expenseId} className="exp-item">
+                <li key={o.expenseId} className="exp-item" data-expense-id={o.expenseId}>
                   <CatIcon category={o.category} />
                   <div className="exp-main">
                   <div className="exp-top">
@@ -164,7 +199,7 @@ export function ExpenseTable({ kinds, emptyText, also }: { kinds: ExpenseKind[];
               {items.map((o) => {
                 const e = byId.get(o.expenseId)!;
                 return (
-                  <tr key={o.expenseId}>
+                  <tr key={o.expenseId} data-expense-id={o.expenseId}>
                     <td>
                       <div className="concept-cell">
                         <CatIcon category={o.category} />
@@ -172,7 +207,7 @@ export function ExpenseTable({ kinds, emptyText, also }: { kinds: ExpenseKind[];
                           <strong>{o.concept}</strong>
                           {e.frequency !== 'unica' && <Badge tone="info">{FREQUENCY_LABEL[e.frequency]}</Badge>}
                           {e.source === 'importado' && <Badge tone="neutral">{e.provisional ? 'provisorio' : 'importado'}</Badge>}
-                          {!!e.linkedLineFingerprints?.length && e.source === 'manual' && <Badge tone="ok">vinculado a resumen</Badge>}
+                          {!!e.linkedLineFingerprints?.length && e.source === 'manual' && e.importedFrom !== 'notificacion' && <Badge tone="ok">vinculado a resumen</Badge>}
                           <small className="muted d-block">{o.category} · {formatDate(e.date)} · {origin(e)}{!shared && o.kind !== 'cotidiano' ? ` · ${KIND_LABEL[o.kind].split(' (')[0]}` : ''}</small>
                         </div>
                       </div>

@@ -139,6 +139,15 @@ final class Brote {
         return PendingIntent.getActivity(c, codigo, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    /** Abre la app y la lleva al gasto (o ingreso) que anotó este aviso: la app lo busca por la clave del aviso. */
+    static PendingIntent abrirApp(Context c, int codigo, String clave, String tipo) {
+        Intent i = new Intent(c, MainActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        i.putExtra(MainActivity.EXTRA_ABRIR_CLAVE, clave);
+        i.putExtra(MainActivity.EXTRA_ABRIR_TIPO, tipo);
+        return PendingIntent.getActivity(c, codigo, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
     static void estado(RemoteViews v, Context c) {
         int n = pendientes(c);
         v.setTextViewText(R.id.w_estado, n == 0 ? "Al día" : n == 1 ? "1 sin registrar" : n + " sin registrar");

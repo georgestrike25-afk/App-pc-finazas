@@ -23,6 +23,22 @@ import java.util.List;
 
 public class MainActivity extends BridgeActivity {
     private static final List<JSObject> COMPARTIDOS = new ArrayList<>();
+    static final String EXTRA_ABRIR_CLAVE = "abrirClave";
+    static final String EXTRA_ABRIR_TIPO = "abrirTipo";
+    /** El aviso que se tocó para abrir la app (se entrega una sola vez a la pantalla). */
+    private static String abrirClave;
+    private static String abrirTipo;
+
+    static synchronized JSObject tomarAbrir() {
+        JSObject o = new JSObject();
+        if (abrirClave != null) {
+            o.put("clave", abrirClave);
+            o.put("tipo", abrirTipo == null ? "gasto" : abrirTipo);
+        }
+        abrirClave = null;
+        abrirTipo = null;
+        return o;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -75,6 +91,16 @@ public class MainActivity extends BridgeActivity {
      */
     private void recibir(Intent intent) {
         if (intent == null) return;
+        String clave = intent.getStringExtra(EXTRA_ABRIR_CLAVE);
+        if (clave != null && !clave.isEmpty()) {
+            synchronized (MainActivity.class) {
+                abrirClave = clave;
+                abrirTipo = intent.getStringExtra(EXTRA_ABRIR_TIPO);
+            }
+            intent.removeExtra(EXTRA_ABRIR_CLAVE); // que no se repita al girar la pantalla
+            intent.removeExtra(EXTRA_ABRIR_TIPO);
+            NotificacionesPlugin.avisarAbrir();
+        }
         String accion = intent.getAction();
         if (!Intent.ACTION_SEND.equals(accion) && !Intent.ACTION_SEND_MULTIPLE.equals(accion)) return;
         final List<Uri> uris = new ArrayList<>();

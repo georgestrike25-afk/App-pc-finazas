@@ -12,7 +12,7 @@ interface NotificacionesPlugin {
   abrirAjustes(): Promise<void>;
   pendientes(): Promise<{ items: RawNotification[] }>;
   borrar(o: { cantidad: number }): Promise<void>;
-  addListener(ev: 'nuevas' | 'rapidas' | 'compartido', cb: () => void): Promise<PluginListenerHandle>;
+  addListener(ev: 'nuevas' | 'rapidas' | 'compartido' | 'abrir', cb: () => void): Promise<PluginListenerHandle>;
   configurar(o: { activo: boolean; pareja: string }): Promise<void>;
   rapidas(): Promise<{ items: QuickEntry[] }>;
   borrarRapidas(o: { cantidad: number }): Promise<void>;
@@ -20,6 +20,7 @@ interface NotificacionesPlugin {
   permisoAvisos(): Promise<{ permitido: boolean }>;
   pedirPermisoAvisos(): Promise<void>;
   compartidos(): Promise<{ items: Array<{ ruta: string; nombre: string; tipo: string }> }>;
+  abrir(): Promise<{ clave?: string; tipo?: string }>;
   quitarAviso(o: { clave: string }): Promise<void>;
 }
 
@@ -144,6 +145,36 @@ async function receiveShared() {
   sharedListeners.forEach((l) => l());
 }
 
+/**
+ * Dirección a la que lleva el aviso "Se anotó…" (o "Te entraron…") según lo que ya está guardado:
+ * el gasto se busca por la clave del aviso. Sin gasto todavía, devuelve undefined.
+ */
+export async function noticeTarget(clave: string, tipo: string): Promise<string | undefined> {
+  const db = getDb();
+  if (tipo === 'ingreso') {
+    const inc = (await db.incomes.toArray()).find((i) => !i.deleted && i.extras.some((x) => x.clave === clave));
+    return inc ? '#/ingresos' : undefined;
+  }
+  const exp = (await db.expenses.toArray()).find((e) => !e.deleted && (e.linkedLineFingerprints ?? []).includes(`notifkey|${clave}`));
+  return exp ? `#/gastos?foco=${exp.id}` : undefined;
+}
+
+/** Se abrió la app tocando un aviso: espera a que el gasto esté anotado y va directo a él. */
+async function receiveOpen() {
+  const { clave, tipo } = await Notificaciones.abrir();
+  if (!clave) return;
+  for (let i = 0; i < 25; i++) {
+    const dir = await noticeTarget(clave, tipo ?? 'gasto');
+    if (dir) {
+      location.hash = dir;
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  // No se anotó (quedó para revisar o se deshizo): al menos se abre la lista.
+  location.hash = tipo === 'ingreso' ? '#/ingresos' : '#/gastos';
+}
+
 /** Toma las notificaciones guardadas por el lector y registra los gastos. Devuelve cuántos se registraron. */
 export async function ingestNotifications(): Promise<number> {
   if (!isNative() || running) return 0;
@@ -191,6 +222,8 @@ export function startNotificationIngest(onNew?: (n: number) => void) {
   Notificaciones.addListener('nuevas', run).catch(() => {});
   Notificaciones.addListener('rapidas', run).catch(() => {});
   Notificaciones.addListener('compartido', () => receiveShared().catch(() => {})).catch(() => {});
+  Notificaciones.addListener('abrir', () => receiveOpen().catch(() => {})).catch(() => {});
   receiveShared().catch(() => {});
+  receiveOpen().catch(() => {});
   document.addEventListener('visibilitychange', () => !document.hidden && run());
 }

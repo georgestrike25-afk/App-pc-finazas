@@ -71,7 +71,7 @@ final class Avisos {
                 .setContentTitle("Se anotó " + Brote.pesos(monto))
                 .setContentText(descripcion + " · " + cuenta + ". Se descuenta de tu plata hasta cobrar.")
                 .setStyle(new Notification.BigTextStyle().bigText(descripcion + " · " + cuenta + ". Se descuenta de tu plata hasta cobrar."))
-                .setContentIntent(Brote.abrirApp(c, id(clave)))
+                .setContentIntent(Brote.abrirApp(c, id(clave), clave, "gasto"))
                 .addAction(new Notification.Action.Builder(null, "Deshacer", accion(c, AccionReceiver.DESHACER, clave)).build())
                 .addAction(new Notification.Action.Builder(null, "Cambiar categoría", anotar(c, "reemplazar", clave, monto, descripcion, cuenta, fecha, transferencia)).build())
                 .build();
@@ -86,7 +86,7 @@ final class Avisos {
                 .setContentTitle("Te entraron " + Brote.pesos(monto))
                 .setContentText(texto)
                 .setStyle(new Notification.BigTextStyle().bigText(texto))
-                .setContentIntent(Brote.abrirApp(c, id(clave)))
+                .setContentIntent(Brote.abrirApp(c, id(clave), clave, "ingreso"))
                 .addAction(new Notification.Action.Builder(null, "Deshacer", accion(c, AccionReceiver.DESHACER, clave)).build())
                 .build();
         gestor(c).notify(id(clave), n);

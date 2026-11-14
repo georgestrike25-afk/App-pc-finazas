@@ -35,6 +35,12 @@ public class NotificacionesPlugin extends Plugin {
         if (p != null) p.notifyListeners("rapidas", new JSObject());
     }
 
+    /** Avisa a la app que se abrió tocando el aviso de un gasto anotado. */
+    static void avisarAbrir() {
+        NotificacionesPlugin p = instancia;
+        if (p != null) p.notifyListeners("abrir", new JSObject());
+    }
+
     /** Avisa a la app que llegó un archivo desde "Compartir". */
     static void avisarCompartido() {
         NotificacionesPlugin p = instancia;
@@ -146,6 +152,12 @@ public class NotificacionesPlugin extends Plugin {
             getActivity().requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, 4711);
         }
         call.resolve();
+    }
+
+    /** El aviso ("Se anotó…") con el que se abrió la app, para llevar a ese gasto (se entrega una sola vez). */
+    @PluginMethod
+    public void abrir(PluginCall call) {
+        call.resolve(MainActivity.tomarAbrir());
     }
 
     /** Archivos que llegaron desde "Compartir" (se entregan una sola vez). */

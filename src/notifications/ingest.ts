@@ -85,7 +85,7 @@ export function expenseFromDetected(d: Detectado, nowIso: string, deviceId?: str
     paymentMethod: d.transferencia === 'ENVIADA' ? 'transferencia' : 'otro',
     source: 'importado',
     importedFrom: 'notificacion',
-    notes: `Notificación de ${d.cuenta} · ${new Date(d.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`,
+    notes: `Notificación de ${d.cuenta} · ${new Date(d.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
     linkedLineFingerprints: [`notif|${d.cuenta}|${d.fecha}|${d.monto}`, ...(clave ? [`notifkey|${clave}`] : [])],
   };
 }

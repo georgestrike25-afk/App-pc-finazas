@@ -137,3 +137,23 @@ export function partnerLedger(expenses: Expense[], today: MonthKey): PartnerLedg
   for (const p of payments) net += p.settlement === 'a_pareja' ? p.totalAmount : -p.totalAmount;
   return { net, payments };
 }
+
+/** Momento exacto (ms) en que llegó el aviso del que salió un gasto detectado; se guarda en su huella `notif|cuenta|ms|monto`. */
+export function notifMs(e: Pick<Expense, 'linkedLineFingerprints'>): number | undefined {
+  for (const f of e.linkedLineFingerprints ?? []) {
+    const m = f.match(/^notif\|.*\|(\d{10,})\|-?\d+$/);
+    if (m) return Number(m[1]);
+  }
+  return undefined;
+}
+
+/** Para ordenar gastos del mismo día: cuándo pasó de verdad (la hora del aviso) y, si no la hay, cuándo se anotó. */
+export const happenedAt = (e: Expense): number => notifMs(e) ?? (Date.parse(e.createdAt) || 0);
+
+/** Hora del aviso en 24 horas ("14:03"), o undefined si el gasto no vino de un aviso. */
+export function noticeClock(e: Expense): string | undefined {
+  const ms = notifMs(e);
+  if (ms === undefined) return undefined;
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
